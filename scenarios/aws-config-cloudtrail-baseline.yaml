@@ -1,0 +1,40 @@
+id: awsConfigCloudTrailBaseline
+kind: awsconfig
+title: AWS Config Review CloudTrail Baseline
+description: A governance trail exists but does not cover every region or log file validation.
+primaryFile: main.tf
+tips:
+  - A governance trail should be multi-region.
+  - Log file validation helps detect tampering.
+  - Global service events should be included.
+files:
+  "main.tf": |
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    resource "aws_cloudtrail" "governance" {
+      name                          = "org-governance"
+      s3_bucket_name                = "org-cloudtrail-logs"
+      is_multi_region_trail         = false
+      include_global_service_events = false
+      enable_log_file_validation    = false
+    }
+backend:
+  bucket: config-review
+  key: cloudtrail-baseline
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudtrail
+    name: org-governance
+    id: org-governance
+    status: failed
+    note: Trail is single-region and log file validation is disabled.
+stateResources: []
+flags:
+  initialized: false
+  securityPassed: false
+  cleanPlan: false
+  configValidated: false

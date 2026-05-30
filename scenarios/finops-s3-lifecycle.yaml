@@ -1,0 +1,45 @@
+id: finopsS3Lifecycle
+kind: finops
+title: S3 Lifecycle Cost Control
+description: A logs and exports bucket stores all data in S3 Standard forever.
+primaryFile: lifecycle.json
+tips:
+  - Inspect the Cost Explorer trend before editing.
+  - Transition old access logs to Standard-IA after 30 days.
+  - Temporary exports should expire after 14 days.
+files:
+  "lifecycle.json": |
+    {
+      "bucket": "prod-platform-logs",
+      "accessLogs": {
+        "transitionAfterDays": null,
+        "storageClass": "STANDARD"
+      },
+      "tempExports": {
+        "expireTempExportsAfterDays": null
+      }
+    }
+  "cost-notes.md": |
+    Required:
+    - accessLogs transitionAfterDays: 30
+    - accessLogs storageClass: STANDARD_IA
+    - tempExports expireTempExportsAfterDays: 14
+backend:
+  bucket: finops-training
+  key: s3-lifecycle-cost-control
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: s3_bucket
+    name: prod-platform-logs
+    id: prod-platform-logs
+    status: failed
+    note: Bucket has no lifecycle controls for logs or temporary exports.
+stateResources:
+  - address: bucket
+    id: prod-platform-logs
+  - address: owner
+    id: platform
+flags:
+  finopsValidated: false

@@ -1,0 +1,58 @@
+id: terraformModuleMissingOutput
+title: Terraform Module Missing Output
+description: A root module consumes an output that the child module does not expose.
+primaryFile: main.tf
+tips:
+  - Run terraform validate to see which module attribute is unsupported.
+  - The root module expects module.logs.bucket_name.
+  - Open modules/s3/main.tf in the file tabs.
+  - Add an output named bucket_name that returns aws_s3_bucket.this.bucket.
+  - Validate and plan again after adding the output.
+files:
+  "main.tf": |
+    terraform {
+      backend "s3" {
+        bucket         = "tf-state-training"
+        key            = "modules/s3.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    module "logs" {
+      source = "./modules/s3"
+      name   = "training-module-logs"
+    }
+
+    output "log_bucket_name" {
+      value = module.logs.bucket_name
+    }
+  "modules/s3/main.tf": |
+    variable "name" {
+      type = string
+    }
+
+    resource "aws_s3_bucket" "this" {
+      bucket = var.name
+    }
+backend:
+  bucket: tf-state-training
+  key: modules/s3.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: module
+    name: modules/s3
+    id: ./modules/s3
+    status: failed
+    note: Root module references module.logs.bucket_name, but the child module has no matching output.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  validationPassed: false

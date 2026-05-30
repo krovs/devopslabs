@@ -1,0 +1,44 @@
+id: awsConfigRdsPublicBackup
+kind: awsconfig
+title: AWS Config Review RDS Public Backup
+description: Review an RDS Terraform resource that is public and has weak recovery settings.
+primaryFile: main.tf
+tips:
+  - Public accessibility is rarely acceptable for an application database.
+  - Production RDS should keep backups.
+  - Deletion protection prevents accidental destructive changes.
+files:
+  "main.tf": |
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    resource "aws_db_instance" "app" {
+      identifier           = "prod-app-db"
+      engine               = "postgres"
+      instance_class       = "db.t3.medium"
+      allocated_storage    = 50
+      username             = "app"
+      publicly_accessible  = true
+      backup_retention_period = 0
+      deletion_protection  = false
+      skip_final_snapshot  = true
+    }
+backend:
+  bucket: config-review
+  key: rds-public-backup
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: rds_instance
+    name: prod-app-db
+    id: prod-app-db
+    status: failed
+    note: RDS is public, has no backup retention, and lacks deletion protection.
+stateResources: []
+flags:
+  initialized: false
+  securityPassed: false
+  cleanPlan: false
+  configValidated: false

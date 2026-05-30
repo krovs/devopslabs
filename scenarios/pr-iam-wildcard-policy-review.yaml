@@ -1,0 +1,81 @@
+id: prIamWildcardPolicyReview
+kind: pr
+title: PR Review IAM Wildcard Policy
+description: Review an IAM policy change that fixes an access issue by adding broad Secrets Manager permissions.
+primaryFile: iam/app-policy.json.diff
+tips:
+  - Compare the app requirement with the proposed action and resource scope.
+  - The app needs one secret, not every secret in the account.
+  - The correct review should request changes and identify both wildcard action and wildcard resource.
+files:
+  "iam/app-policy.json.diff": |
+    diff --git a/iam/app-policy.json b/iam/app-policy.json
+    index 71b3172..71dd004 100644
+    --- a/iam/app-policy.json
+    +++ b/iam/app-policy.json
+    @@ -8,8 +8,8 @@
+         {
+           "Sid": "ReadDatabasePassword",
+           "Effect": "Allow",
+    -      "Action": "secretsmanager:GetSecretValue",
+    -      "Resource": "arn:aws:secretsmanager:eu-west-1:123456789012:secret:prod/db/password-*"
+    +      "Action": "secretsmanager:*",
+    +      "Resource": "*"
+         }
+       ]
+     }
+  "review-notes.md": |
+    Request context:
+    - The app failed to read prod/db/password.
+    - It should only read the production database password secret.
+    - Secret rotation and deletion permissions are not required.
+backend:
+  bucket: pr-review
+  key: iam-wildcard-policy
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: pull_request
+    name: iam-wildcard-policy
+    id: PR-126
+    status: failed
+    note: Review has not blocked the wildcard IAM policy change.
+stateResources:
+  - address: repo
+    id: acme/app-infra
+  - address: base
+    id: main
+flags:
+  reviewPassed: false
+prReview:
+  number: PR-126
+  author: app-team
+  base: main
+  branch: fix-secret-access
+  expectedDecision: request_changes
+  decision: pending
+  summary: Fixes application access to the production database password secret.
+  risk: The proposed policy grants every Secrets Manager action on every resource.
+  findings:
+    - id: wildcard_action
+      label: Wildcard Secrets Manager action
+      file: iam/app-policy.json
+      line: +11
+      selected: false
+      required: true
+      note: GetSecretValue is enough for the stated access path.
+    - id: wildcard_resource
+      label: Wildcard resource
+      file: iam/app-policy.json
+      line: +12
+      selected: false
+      required: true
+      note: Scope the policy to the prod database password secret ARN.
+    - id: sid_name
+      label: Statement Sid was unchanged
+      file: iam/app-policy.json
+      line: +8
+      selected: false
+      required: false
+      note: The Sid is not the risky part of this PR.

@@ -1,0 +1,52 @@
+id: manualSecurityGroupDrift
+title: Manual Security Group Drift
+description: Someone changed a security group rule outside Terraform. Bring code and reality back into agreement.
+tips:
+  - Initialize Terraform before checking the plan.
+  - terraform plan reports the exact drift between state and AWS.
+  - The fake AWS resource view says the actual ingress CIDR is 0.0.0.0/0.
+  - For this scenario, accept the manual change by updating main.tf to use cidr_blocks = ["0.0.0.0/0"].
+  - Save the file, then run terraform plan again.
+files:
+  "main.tf": |
+    terraform {
+      backend "s3" {
+        bucket         = "tf-state-training"
+        key            = "network/web.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    resource "aws_security_group" "web" {
+      name = "training-web-sg"
+
+      ingress {
+        from_port   = 80
+        to_port     = 80
+        protocol    = "tcp"
+        cidr_blocks = ["10.0.0.0/16"]
+      }
+    }
+backend:
+  bucket: tf-state-training
+  key: network/web.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: security_group
+    name: training-web-sg
+    id: sg-08training
+    status: drifted
+    note: Actual ingress CIDR is 0.0.0.0/0.
+stateResources:
+  - address: aws_security_group.web
+    id: sg-08training
+flags:
+  initialized: false
+  cleanPlan: false

@@ -1,0 +1,55 @@
+id: terraformStateFolderMigration
+title: Terraform Folder Migration State Move
+description: Code was migrated into a logging module, but state still tracks the bucket at the old root address.
+primaryFile: main.tf
+tips:
+  - Run terraform state list to see the current resource address.
+  - Run terraform plan to compare the old state address with the new module address.
+  - This is not an import problem because state already knows the remote bucket.
+  - Move the state address from aws_s3_bucket.logs to module.logging.aws_s3_bucket.logs.
+  - Run terraform plan again after the state move.
+files:
+  "main.tf": |
+    terraform {
+      backend "s3" {
+        bucket         = "tf-state-training"
+        key            = "migrations/logging.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    module "logging" {
+      source      = "./modules/logging"
+      bucket_name = "prod-logs-training"
+    }
+  "modules/logging/main.tf": |
+    variable "bucket_name" {
+      type = string
+    }
+
+    resource "aws_s3_bucket" "logs" {
+      bucket = var.bucket_name
+    }
+backend:
+  bucket: tf-state-training
+  key: migrations/logging.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: s3_bucket
+    name: prod-logs-training
+    id: prod-logs-training
+    status: drifted
+    note: The bucket exists and is tracked, but state uses the old root address.
+stateResources:
+  - address: aws_s3_bucket.logs
+    id: prod-logs-training
+flags:
+  initialized: false
+  cleanPlan: false

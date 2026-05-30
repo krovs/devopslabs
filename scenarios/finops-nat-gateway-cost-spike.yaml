@@ -1,0 +1,43 @@
+id: finopsNatGatewayCostSpike
+kind: finops
+title: NAT Gateway Cost Spike
+description: VPC costs doubled after extra NAT gateways were created in AZs with no private workloads.
+primaryFile: nat-gateways.json
+tips:
+  - Inspect the Cost Explorer signal first.
+  - Keep high availability for the two active workload AZs.
+  - Remove idle NAT gateways instead of collapsing all egress into one AZ.
+files:
+  "nat-gateways.json": |
+    {
+      "vpc": "prod-shared",
+      "natGatewayCount": 4,
+      "privateWorkloadAzs": ["eu-west-1a", "eu-west-1b"],
+      "removeIdleGateways": false
+    }
+  "cost-notes.md": |
+    Current:
+    - NAT gateways exist in eu-west-1a, eu-west-1b, eu-west-1c, eu-west-1d
+    - Private workloads only run in eu-west-1a and eu-west-1b
+    Required:
+    - Keep NAT gateways for active workload AZs
+    - Remove idle gateways
+backend:
+  bucket: finops-training
+  key: nat-gateway-cost-spike
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cost_anomaly
+    name: nat-gateway-hours
+    id: ce-nat-gateway-hours
+    status: failed
+    note: Four NAT gateways are running while only two AZs host private workloads.
+stateResources:
+  - address: vpc
+    id: prod-shared
+  - address: service
+    id: NAT Gateway
+flags:
+  finopsValidated: false

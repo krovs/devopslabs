@@ -1,0 +1,84 @@
+id: prTerraformPublicS3Review
+kind: pr
+title: PR Review Terraform Public S3
+description: Review a Terraform change that adds an artifacts bucket with risky public access settings.
+primaryFile: terraform/main.tf.diff
+tips:
+  - Review the resource arguments, not only the PR title.
+  - A public ACL and missing public access block should not be approved for artifact storage.
+  - The correct review should request changes and mention the S3 exposure.
+files:
+  "terraform/main.tf.diff": |
+    diff --git a/terraform/main.tf b/terraform/main.tf
+    index 90f17ac..1c4a061 100644
+    --- a/terraform/main.tf
+    +++ b/terraform/main.tf
+    @@ -12,6 +12,13 @@ provider "aws" {
+       region = "eu-west-1"
+     }
+
+    +resource "aws_s3_bucket" "artifacts" {
+    +  bucket = "acme-prod-artifacts"
+    +  acl    = "public-read"
+    +}
+    +
+    +# public access block will be added in a follow-up
+    +
+     resource "aws_kms_key" "main" {
+       description = "shared application key"
+     }
+  "review-notes.md": |
+    Request context:
+    - Bucket stores production build artifacts.
+    - Public object access is not required.
+    - Security gate requires public access block before merge.
+backend:
+  bucket: pr-review
+  key: terraform-public-s3
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: pull_request
+    name: terraform-public-s3
+    id: PR-104
+    status: failed
+    note: Review has not requested changes for the public S3 exposure.
+stateResources:
+  - address: repo
+    id: acme/platform-infra
+  - address: base
+    id: main
+flags:
+  reviewPassed: false
+prReview:
+  number: PR-104
+  author: platform-dev
+  base: main
+  branch: add-artifacts-bucket
+  expectedDecision: request_changes
+  decision: pending
+  summary: Adds a production artifacts S3 bucket for deployment bundles.
+  risk: The change may expose artifacts publicly and bypass the normal S3 public access guardrail.
+  findings:
+    - id: public_acl
+      label: Bucket ACL is public-read
+      file: terraform/main.tf
+      line: +16
+      selected: false
+      required: true
+      note: Artifact buckets should be private unless public access is explicitly required.
+    - id: missing_public_access_block
+      label: Public access block is deferred
+      file: terraform/main.tf
+      line: +19
+      selected: false
+      required: true
+      note: Do not merge with a follow-up comment for a required guardrail.
+    - id: kms_key_unchanged
+      label: Existing KMS key is modified
+      file: terraform/main.tf
+      line: +22
+      selected: false
+      required: false
+      note: The KMS key is only context here; it is not the risky change.

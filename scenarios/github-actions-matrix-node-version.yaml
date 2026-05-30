@@ -1,0 +1,52 @@
+id: githubActionsMatrixNodeVersion
+kind: cicd
+title: GitHub Actions Matrix Node Version
+description: A test matrix fails because one job still runs on an unsupported Node.js version.
+primaryFile: .github/workflows/test-matrix.yml
+tips:
+  - gh run view shows which matrix entry fails.
+  - The app requires Node.js 20 or newer.
+  - The matrix still includes node-version 16.
+  - Remove 16 or replace it with 22.
+  - Re-run the workflow.
+files:
+  ".github/workflows/test-matrix.yml": |
+    name: test-matrix
+
+    on:
+      pull_request:
+        branches: [main]
+
+    jobs:
+      test:
+        runs-on: ubuntu-latest
+        strategy:
+          matrix:
+            node-version: [16, 20]
+        steps:
+          - uses: actions/checkout@v4
+          - uses: actions/setup-node@v4
+            with:
+              node-version: ${{ matrix.node-version }}
+          - run: npm ci
+          - run: npm test
+backend:
+  bucket: github-actions
+  key: test-matrix.yml
+  table: workflow-runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: workflow
+    name: test-matrix
+    id: run-6404
+    status: failed
+    note: Matrix job node-version 16 fails because the app requires Node.js 20 or newer.
+stateResources:
+  - address: matrix.node-16
+    id: failing
+  - address: matrix.node-20
+    id: passing
+flags:
+  workflowFixed: false
+  runPassing: false

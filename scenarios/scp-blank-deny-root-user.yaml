@@ -1,0 +1,36 @@
+id: scpBlankDenyRootUser
+kind: scp
+title: SCP Blank Deny Root User
+description: Build an SCP from a blank policy that denies root-user actions while preserving a billing exception.
+primaryFile: scp.json
+tips:
+  - Start from the requirement notes, not from an existing policy.
+  - SCP Deny statements can match root users with aws:PrincipalArn.
+  - Keep a billing exception so account teams can still view billing data.
+files:
+  "scp.json": |
+    {}
+  "request.txt": |
+    Build an SCP that:
+    - Denies actions when aws:PrincipalArn matches arn:aws:iam::*:root
+    - Keeps aws-portal:ViewBilling available
+    - Uses an explicit Deny statement
+backend:
+  bucket: governance-training
+  key: scp-blank-deny-root-user
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: service_control_policy
+    name: deny-root-user-actions
+    id: p-denyroot
+    status: failed
+    note: Blank SCP has not been authored yet.
+stateResources:
+  - address: organization
+    id: o-exampleorg
+  - address: target_ou
+    id: ou-prod
+flags:
+  scpValidated: false

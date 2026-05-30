@@ -1,0 +1,37 @@
+id: scpBlankRequireImdsv2
+kind: scp
+title: SCP Blank Require IMDSv2
+description: Build an SCP from scratch that prevents launching EC2 instances without IMDSv2 required.
+primaryFile: scp.json
+tips:
+  - The relevant condition key is ec2:MetadataHttpTokens.
+  - Deny RunInstances when metadata tokens are optional.
+  - Keep the policy scoped to EC2 launch behavior.
+files:
+  "scp.json": |
+    {}
+  "request.txt": |
+    Build an SCP that:
+    - Denies ec2:RunInstances
+    - Uses ec2:MetadataHttpTokens
+    - Denies when the value is optional
+    - Does not deny all ec2:* actions
+backend:
+  bucket: governance-training
+  key: scp-blank-require-imdsv2
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: service_control_policy
+    name: require-imdsv2
+    id: p-imdsv2
+    status: failed
+    note: Blank SCP has not been authored yet.
+stateResources:
+  - address: organization
+    id: o-exampleorg
+  - address: target_ou
+    id: ou-workloads
+flags:
+  scpValidated: false

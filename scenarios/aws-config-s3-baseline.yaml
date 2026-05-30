@@ -1,0 +1,36 @@
+id: awsConfigS3Baseline
+kind: awsconfig
+title: AWS Config Review S3 Baseline
+description: Spot missing S3 guardrails before deploying a production document bucket.
+primaryFile: main.tf
+tips:
+  - Run checkov before planning.
+  - The bucket needs server-side encryption.
+  - Public access block and versioning are required guardrails.
+files:
+  "main.tf": |
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    resource "aws_s3_bucket" "documents" {
+      bucket = "prod-documents-training"
+    }
+backend:
+  bucket: config-review
+  key: s3-baseline
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: s3_bucket
+    name: prod-documents-training
+    id: prod-documents-training
+    status: failed
+    note: Bucket is missing encryption, versioning, and public access block.
+stateResources: []
+flags:
+  initialized: false
+  securityPassed: false
+  cleanPlan: false
+  configValidated: false

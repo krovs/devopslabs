@@ -1,0 +1,83 @@
+id: terragruntBadDependencyOutput
+kind: terragrunt
+title: Terragrunt Bad Dependency Output
+description: An app stack depends on network.outputs.vpc_id, but the dependency mock exposes the wrong output name.
+primaryFile: live/dev/network/terragrunt.hcl
+tips:
+  - Run terragrunt run-all plan to see which dependency output is missing.
+  - The app stack reads dependency.network.outputs.vpc_id.
+  - Open the network stack tab and check mock_outputs.
+  - Rename vpcID to vpc_id, then run terragrunt validate and run-all plan.
+files:
+  "terragrunt.hcl": |
+    remote_state {
+      backend = "s3"
+      config = {
+        bucket         = "tf-state-training"
+        key            = "${path_relative_to_include()}/terraform.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+  "live/dev/network/terragrunt.hcl": |
+    include "root" {
+      path = find_in_parent_folders()
+    }
+
+    terraform {
+      source = "../../../modules/network"
+    }
+
+    mock_outputs = {
+      vpcID = "vpc-0badcafe"
+    }
+  "live/dev/app/terragrunt.hcl": |
+    include "root" {
+      path = find_in_parent_folders()
+    }
+
+    terraform {
+      source = "../../../modules/app"
+    }
+
+    dependency "network" {
+      config_path = "../network"
+    }
+
+    inputs = {
+      vpc_id = dependency.network.outputs.vpc_id
+    }
+  "modules/network/main.tf": |
+    resource "aws_vpc" "this" {
+      cidr_block = "10.50.0.0/16"
+    }
+
+    output "vpc_id" {
+      value = aws_vpc.this.id
+    }
+  "modules/app/main.tf": |
+    variable "vpc_id" {
+      type = string
+    }
+
+    resource "aws_security_group" "app" {
+      name   = "orders-api"
+      vpc_id = var.vpc_id
+    }
+backend:
+  bucket: tf-state-training
+  key: live/dev/app/terraform.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: dependency
+    name: network.outputs.vpc_id
+    id: live/dev/network
+    status: failed
+    note: The app dependency reads vpc_id, but the network stack mock output is named vpcID.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  validationPassed: false

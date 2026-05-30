@@ -1,0 +1,40 @@
+id: iamBlankCloudWatchLogsWrite
+kind: iam
+title: IAM Blank CloudWatch Logs Write
+description: Build a minimal log-writer policy from an empty file for an ECS task role.
+primaryFile: policy.json
+tips:
+  - Log stream creation and log events need different CloudWatch Logs actions.
+  - Scope access to the payments-api log group.
+  - Avoid logs:* and Resource "*".
+files:
+  "policy.json": |
+    {}
+  "request.txt": |
+    Build an IAM policy that allows:
+    - logs:CreateLogStream
+    - logs:PutLogEvents
+    - Resource arn:aws:logs:eu-west-1:123456789012:log-group:/aws/ecs/payments-api:*
+    It must not allow:
+    - logs:DeleteLogGroup
+    - logs:*
+    - Resource *
+backend:
+  bucket: iam-training
+  key: blank-cloudwatch-logs-write
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: iam_policy
+    name: payments-api-log-writer
+    id: arn:aws:iam::123456789012:policy/payments-api-log-writer
+    status: failed
+    note: Blank policy has not been authored yet.
+stateResources:
+  - address: iam.role
+    id: payments-api-task
+  - address: log_group
+    id: /aws/ecs/payments-api
+flags:
+  iamValidated: false

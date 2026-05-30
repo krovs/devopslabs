@@ -1,0 +1,158 @@
+id: networkingVpcPublicPrivateSubnets
+kind: networking
+title: Networking VPC Public and Private Subnets
+description: Configure a VPC with public and private subnets, correct route tables, and no accidental public route for private workloads.
+primaryFile: requirements.md
+tips:
+  - Public subnets need a default route to the internet gateway.
+  - Private subnets should not route directly to the internet gateway.
+  - Route table association decides whether a subnet is public or private.
+files:
+  "requirements.md": |
+    Goal:
+    Build VPC 10.10.0.0/16 with two public subnets and two private app subnets.
+
+    Constraints:
+    - Public subnets route 0.0.0.0/0 to the internet gateway.
+    - Private app subnets use a private route table.
+    - Private app subnets must not have a direct internet gateway route.
+backend:
+  bucket: network-design
+  key: vpc-public-private-subnets
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: network
+    name: vpc-public-private-subnets
+    id: vpc-route-tables
+    status: failed
+    note: One private subnet is associated with the public route table.
+stateResources: []
+flags:
+  networkConfigured: false
+networking:
+  symptoms:
+    - One private subnet behaves like a public subnet.
+    - Internet exposure review flags an app subnet route table.
+    - Public subnet connectivity works, but subnet role classification is inconsistent.
+  nodes:
+    - id: vpc
+      label: VPC
+      type: vpc
+      x: 58
+      y: 50
+      width: 82%
+      height: 84%
+      note: VPC CIDR 10.10.0.0/16
+    - id: igw
+      label: Internet Gateway
+      type: edge
+      x: 18
+      y: 16
+      note: Default route target for public subnets
+    - id: public_rt
+      label: Public Route Table
+      type: route-table
+      x: 38
+      y: 24
+      note: 0.0.0.0/0 points to igw
+    - id: private_rt
+      label: Private Route Table
+      type: route-table
+      x: 38
+      y: 74
+      note: No direct igw default route
+    - id: public_a
+      label: Public Subnet A
+      type: subnet
+      x: 70
+      y: 18
+      width: 23%
+      height: 20%
+      note: 10.10.1.0/24
+    - id: public_b
+      label: Public Subnet B
+      type: subnet
+      x: 86
+      y: 32
+      width: 23%
+      height: 20%
+      note: 10.10.2.0/24
+    - id: private_a
+      label: Private App A
+      type: subnet
+      x: 70
+      y: 68
+      width: 23%
+      height: 20%
+      note: 10.10.11.0/24
+    - id: private_b
+      label: Private App B
+      type: subnet
+      x: 86
+      y: 82
+      width: 23%
+      height: 20%
+      note: 10.10.12.0/24
+  links:
+    - from: igw
+      to: public_rt
+      label: 0.0.0.0/0 -> igw
+      status: ok
+    - from: public_rt
+      to: public_a
+      label: public-a association
+      status: ok
+    - from: public_rt
+      to: public_b
+      label: public-b association
+      status: ok
+    - from: private_rt
+      to: private_a
+      label: private-a association
+      status: ok
+    - from: public_rt
+      to: private_b
+      label: private-b association
+      status: failed
+  traces:
+    - id: internet_to_public
+      label: Internet to public subnet
+      source: Internet
+      destination: Public Subnet A
+      port: 443
+      path: Internet Gateway | Public Route Table | Public Subnet A
+      failure: The public route table or subnet association is not exposing the intended public tier.
+      success: Packet reaches only the public tier through the internet gateway route.
+  controls:
+    - id: vpc_cidr
+      label: VPC CIDR
+      nodeId: vpc
+      value: 10.1.0.0/16
+      answer: 10.10.0.0/16
+      options: []
+      inputType: text
+      placeholder: 10.10.0.0/16
+      note: The VPC CIDR must match the network design.
+    - id: public_default_route
+      label: Public route table default route
+      nodeId: public_rt,public_a,public_b
+      value: nat
+      answer: igw
+      options: igw,nat,local,none
+      note: Public subnets need 0.0.0.0/0 to the internet gateway.
+    - id: private_default_route
+      label: Private route table default route
+      nodeId: private_rt,private_a
+      value: igw
+      answer: none
+      options: igw,nat,local,none
+      note: In this lab, private subnets should not have internet egress.
+    - id: private_b_association
+      label: Private App B route table
+      nodeId: private_b
+      value: public_rt
+      answer: private_rt
+      options: public_rt,private_rt
+      note: Private App B must associate with the private route table.

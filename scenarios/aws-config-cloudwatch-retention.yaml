@@ -1,0 +1,44 @@
+id: awsConfigCloudWatchRetention
+kind: awsconfig
+title: AWS Config Review CloudWatch Retention
+description: Find the missing log retention setting that will keep production logs forever.
+primaryFile: main.tf
+tips:
+  - CloudWatch log groups retain logs forever unless retention is set.
+  - The policy requires 30 days for this service.
+  - Fix the log group, not the Lambda function.
+files:
+  "main.tf": |
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    resource "aws_cloudwatch_log_group" "api" {
+      name = "/aws/lambda/prod-api"
+    }
+
+    resource "aws_lambda_function" "api" {
+      function_name = "prod-api"
+      role          = "arn:aws:iam::123456789012:role/prod-api"
+      handler       = "index.handler"
+      runtime       = "nodejs20.x"
+      filename      = "function.zip"
+    }
+backend:
+  bucket: config-review
+  key: cloudwatch-retention
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: log_group
+    name: /aws/lambda/prod-api
+    id: /aws/lambda/prod-api
+    status: failed
+    note: CloudWatch log group has no retention policy.
+stateResources: []
+flags:
+  initialized: false
+  securityPassed: false
+  cleanPlan: false
+  configValidated: false

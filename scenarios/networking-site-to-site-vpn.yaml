@@ -1,0 +1,163 @@
+id: networkingSiteToSiteVpn
+kind: networking
+title: Networking Site-to-Site VPN Routes
+description: Wire an on-prem network to private VPC subnets through a site-to-site VPN without routing private workloads to the internet.
+primaryFile: requirements.md
+tips:
+  - The on-prem CIDR should route through the VPN target, not the internet gateway.
+  - Private subnet return traffic must know the corporate CIDR.
+  - Public subnets keep the default route to the internet gateway.
+files:
+  "requirements.md": |
+    Goal:
+    Connect 172.16.0.0/16 from the company data center to private subnets in VPC 10.20.0.0/16.
+
+    Constraints:
+    - Private subnet traffic to on-prem must use the VPN.
+    - Public subnet internet access must continue through the internet gateway.
+    - Do not expose private subnet default routes to the internet.
+backend:
+  bucket: network-design
+  key: site-to-site-vpn
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: network
+    name: site-to-site-vpn
+    id: vpn-connection
+    status: failed
+    note: Private route table is not sending on-prem traffic to the VPN.
+stateResources: []
+flags:
+  networkConfigured: false
+networking:
+  symptoms:
+    - Private subnet instances cannot reach 172.16.0.0/16.
+    - On-prem hosts do not receive replies from the VPC.
+    - VPN tunnel health is not stable.
+  nodes:
+    - id: onprem
+      label: Company Network
+      type: on-prem
+      x: 8
+      y: 45
+      note: Corporate CIDR 172.16.0.0/16
+    - id: cgw
+      label: Customer Gateway
+      type: edge
+      x: 27
+      y: 45
+      note: Public endpoint owned by the company
+    - id: vpn
+      label: Site-to-Site VPN
+      type: connection
+      x: 45
+      y: 45
+      note: Two IPSec tunnels
+    - id: vgw
+      label: Virtual Private Gateway
+      type: aws-edge
+      x: 63
+      y: 45
+      note: Attached to the VPC
+    - id: vpc
+      label: VPC
+      type: vpc
+      x: 80
+      y: 48
+      width: 38%
+      height: 72%
+      note: VPC CIDR 10.20.0.0/16
+    - id: private
+      label: Private Subnets
+      type: subnet
+      x: 82
+      y: 30
+      width: 24%
+      height: 24%
+      note: 10.20.10.0/24 and 10.20.11.0/24
+    - id: public
+      label: Public Subnets
+      type: subnet
+      x: 82
+      y: 64
+      width: 24%
+      height: 24%
+      note: 10.20.1.0/24 and 10.20.2.0/24
+    - id: igw
+      label: Internet Gateway
+      type: edge
+      x: 63
+      y: 76
+      note: Public subnet default route target
+  links:
+    - from: onprem
+      to: cgw
+      label: corporate edge
+      status: ok
+    - from: cgw
+      to: vpn
+      label: tunnels
+      status: ok
+    - from: vpn
+      to: vgw
+      label: encrypted
+      status: ok
+    - from: vgw
+      to: private
+      label: route 172.16.0.0/16
+      status: failed
+    - from: igw
+      to: public
+      label: 0.0.0.0/0
+      status: ok
+  traces:
+    - id: corp_to_private
+      label: Corporate network to private subnets
+      source: Company Network
+      destination: Private Subnets
+      port: 443
+      path: Company Network | Customer Gateway | Site-to-Site VPN | Virtual Private Gateway | Private Subnets
+      failure: Route lookup or tunnel state prevents private subnet return traffic.
+      success: Packet crosses the VPN and returns over the private route.
+  controls:
+    - id: onprem_cidr
+      label: Company network CIDR
+      nodeId: onprem
+      value: 172.16.10.0/24
+      answer: 172.16.0.0/16
+      options: []
+      inputType: text
+      placeholder: 172.16.0.0/16
+      note: This is the remote CIDR advertised from the company network.
+    - id: vpc_cidr
+      label: VPC CIDR
+      nodeId: vpc
+      value: 10.2.0.0/16
+      answer: 10.20.0.0/16
+      options: []
+      inputType: text
+      placeholder: 10.20.0.0/16
+      note: The VPC CIDR must match the AWS network in the requirements.
+    - id: private_onprem_route
+      label: Private route for 172.16.0.0/16
+      nodeId: private,vgw
+      value: igw
+      answer: vgw
+      options: igw,vgw,local,none
+      note: Private subnets need a route to the virtual private gateway for corporate CIDRs.
+    - id: public_default_route
+      label: Public subnet 0.0.0.0/0 route
+      nodeId: public,igw
+      value: igw
+      answer: igw
+      options: igw,vgw,local,none
+      note: Public subnet internet egress should stay on the internet gateway.
+    - id: vpn_tunnel_state
+      label: VPN tunnel state
+      nodeId: vpn
+      value: down
+      answer: up
+      options: down,up
+      note: The diagram is healthy only when the VPN tunnels are up.

@@ -1,0 +1,51 @@
+id: githubActionsWrongWorkingDirectory
+kind: cicd
+title: GitHub Actions Wrong Working Directory
+description: A Terraform validation workflow fails because it runs from the wrong folder.
+primaryFile: .github/workflows/terraform-check.yml
+tips:
+  - Inspect the failed run output to find the command that fails.
+  - The repository resources view shows the Terraform code is under infra/dev.
+  - The workflow currently uses infra/prod as the working directory.
+  - Change the workflow working-directory to infra/dev.
+  - Re-run the workflow and verify the latest run is passing.
+files:
+  ".github/workflows/terraform-check.yml": |
+    name: terraform-check
+
+    on:
+      pull_request:
+        branches: [main]
+
+    jobs:
+      validate:
+        runs-on: ubuntu-latest
+        defaults:
+          run:
+            working-directory: infra/prod
+        steps:
+          - uses: actions/checkout@v4
+          - uses: hashicorp/setup-terraform@v3
+          - run: terraform fmt -check
+          - run: terraform init
+          - run: terraform validate
+backend:
+  bucket: github-actions
+  key: terraform-check.yml
+  table: workflow-runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: workflow
+    name: terraform-check
+    id: run-2187
+    status: failed
+    note: infra/prod does not exist in this repository.
+stateResources:
+  - address: path.infra/dev
+    id: Terraform root module
+  - address: path.infra/prod
+    id: missing
+flags:
+  workflowFixed: false
+  runPassing: false

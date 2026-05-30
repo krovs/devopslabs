@@ -1,0 +1,156 @@
+id: networkingVpcNatEgress
+kind: networking
+title: Networking Private Subnet NAT Egress
+description: Configure private subnet outbound internet through a NAT gateway while keeping inbound access private.
+primaryFile: requirements.md
+tips:
+  - NAT gateways live in public subnets.
+  - Private subnet default routes point to NAT, not IGW.
+  - Public subnet default routes point to IGW.
+files:
+  "requirements.md": |
+    Goal:
+    Allow private app subnets in VPC 10.60.0.0/16 to download updates from the internet.
+
+    Constraints:
+    - NAT gateway must be placed in a public subnet.
+    - Private subnet 0.0.0.0/0 routes to NAT.
+    - Public subnet 0.0.0.0/0 routes to IGW.
+backend:
+  bucket: network-design
+  key: vpc-nat-egress
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: network
+    name: vpc-nat-egress
+    id: private-egress
+    status: failed
+    note: Private subnet egress is routed directly to the internet gateway.
+stateResources: []
+flags:
+  networkConfigured: false
+networking:
+  symptoms:
+    - Private app instances cannot download packages reliably.
+    - Egress path review shows private traffic bypassing the expected egress tier.
+    - Public subnet internet access is working.
+  nodes:
+    - id: vpc
+      label: VPC
+      type: vpc
+      x: 54
+      y: 52
+      width: 84%
+      height: 78%
+      note: VPC CIDR 10.60.0.0/16
+    - id: igw
+      label: Internet Gateway
+      type: edge
+      x: 33
+      y: 28
+      width: 104px
+      height: 52px
+      note: Public internet gateway
+    - id: public_subnet
+      label: Public Subnet
+      type: subnet
+      x: 52
+      y: 30
+      width: 58%
+      height: 30%
+      note: 10.60.1.0/24
+    - id: nat
+      label: NAT Gateway
+      type: edge
+      x: 64
+      y: 30
+      width: 104px
+      height: 52px
+      note: Must be deployed in public subnet
+    - id: private_subnet
+      label: Private App Subnet
+      type: subnet
+      x: 62
+      y: 70
+      width: 58%
+      height: 30%
+      note: 10.60.11.0/24
+    - id: public_rt
+      label: Public RT
+      type: route-table
+      x: 44
+      y: 40
+      width: 104px
+      height: 52px
+      note: Public subnet route table
+    - id: private_rt
+      label: Private RT
+      type: route-table
+      x: 54
+      y: 66
+      width: 104px
+      height: 52px
+      note: Private app route table
+  links:
+    - from: igw
+      to: public_rt
+      label: public 0.0.0.0/0
+      status: ok
+    - from: public_rt
+      to: public_subnet
+      label: public subnet association
+      status: ok
+    - from: public_subnet
+      to: nat
+      label: NAT placement
+      status: ok
+    - from: private_rt
+      to: private_subnet
+      label: private association
+      status: ok
+    - from: private_rt
+      to: igw
+      label: private default route
+      status: failed
+  traces:
+    - id: private_egress
+      label: Private app subnet to internet
+      source: Private App Subnet
+      destination: Internet
+      port: 443
+      path: Private App Subnet | Private RT | NAT Gateway | Public Subnet | Internet Gateway
+      failure: Packet leaves the private route table through the wrong egress target.
+      success: Packet exits through NAT and returns through the stateful egress path.
+  controls:
+    - id: vpc_cidr
+      label: VPC CIDR
+      nodeId: vpc
+      value: 10.60.0.0/24
+      answer: 10.60.0.0/16
+      options: []
+      inputType: text
+      placeholder: 10.60.0.0/16
+      note: Use the full VPC CIDR from the requirements.
+    - id: nat_subnet
+      label: NAT gateway subnet
+      nodeId: nat,public_subnet
+      value: private_subnet
+      answer: public_subnet
+      options: public_subnet,private_subnet
+      note: NAT gateway must be in a public subnet.
+    - id: public_default_route
+      label: Public subnet default route
+      nodeId: public_rt,public_subnet
+      value: igw
+      answer: igw
+      options: igw,nat,none
+      note: Public subnet internet route stays on the IGW.
+    - id: private_default_route
+      label: Private subnet default route
+      nodeId: private_rt,private_subnet
+      value: igw
+      answer: nat
+      options: igw,nat,none
+      note: Private subnet outbound internet should route to NAT.

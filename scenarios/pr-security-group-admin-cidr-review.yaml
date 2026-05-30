@@ -1,0 +1,78 @@
+id: prSecurityGroupAdminCidrReview
+kind: pr
+title: PR Review Security Group Admin CIDR
+description: Review a Terraform change that opens admin ingress to the internet to unblock maintenance access.
+primaryFile: terraform/security-group.tf.diff
+tips:
+  - Compare the proposed CIDR with the maintenance access requirement.
+  - The port is not the only risk; source scope matters.
+  - The correct review should request changes and identify the internet CIDR.
+files:
+  "terraform/security-group.tf.diff": |
+    diff --git a/terraform/security-group.tf b/terraform/security-group.tf
+    index 83fd110..a0b38c1 100644
+    --- a/terraform/security-group.tf
+    +++ b/terraform/security-group.tf
+    @@ -12,7 +12,7 @@ resource "aws_security_group_rule" "admin_https" {
+       protocol          = "tcp"
+       from_port         = 8443
+       to_port           = 8443
+    -  cidr_blocks       = ["203.0.113.0/24"]
+    +  cidr_blocks       = ["0.0.0.0/0"]
+       security_group_id = aws_security_group.admin.id
+     }
+  "review-notes.md": |
+    Request context:
+    - Maintenance access should come only from the corporate VPN CIDR 203.0.113.0/24.
+    - The admin service listens on TCP 8443.
+    - Internet-wide admin access is not acceptable.
+backend:
+  bucket: pr-review
+  key: security-group-admin-cidr
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: pull_request
+    name: security-group-admin-cidr
+    id: PR-127
+    status: failed
+    note: Review has not blocked the public admin ingress change.
+stateResources:
+  - address: repo
+    id: acme/network-infra
+  - address: base
+    id: main
+flags:
+  reviewPassed: false
+prReview:
+  number: PR-127
+  author: platform-team
+  base: main
+  branch: unblock-admin-maintenance
+  expectedDecision: request_changes
+  decision: pending
+  summary: Opens admin HTTPS ingress so maintenance engineers can reach the service.
+  risk: The proposed CIDR exposes the admin port to the entire internet instead of the corporate VPN range.
+  findings:
+    - id: public_admin_cidr
+      label: Admin ingress open to internet
+      file: terraform/security-group.tf
+      line: +16
+      selected: false
+      required: true
+      note: Keep the source scoped to 203.0.113.0/24.
+    - id: admin_port
+      label: Admin service port is 8443
+      file: terraform/security-group.tf
+      line: +14
+      selected: false
+      required: false
+      note: The port did not change and matches the maintenance service.
+    - id: rule_type
+      label: Rule remains ingress
+      file: terraform/security-group.tf
+      line: +11
+      selected: false
+      required: false
+      note: The direction is expected; the unsafe change is the source CIDR.

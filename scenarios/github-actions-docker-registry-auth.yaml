@@ -1,0 +1,46 @@
+id: githubActionsDockerRegistryAuth
+kind: cicd
+title: GitHub Actions Docker Registry Auth
+description: A Docker publish workflow fails because docker push runs before logging in to the registry.
+primaryFile: .github/workflows/docker-publish.yml
+tips:
+  - Inspect the failed run with gh run view.
+  - The failed step is docker push.
+  - The workflow has registry secrets, but it never logs in.
+  - Add docker/login-action before build and push.
+  - Re-run the workflow.
+files:
+  ".github/workflows/docker-publish.yml": |
+    name: docker-publish
+
+    on:
+      push:
+        branches: [main]
+
+    jobs:
+      publish:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+          - run: docker build -t ghcr.io/acme/app:${{ github.sha }} .
+          - run: docker push ghcr.io/acme/app:${{ github.sha }}
+backend:
+  bucket: github-actions
+  key: docker-publish.yml
+  table: workflow-runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: workflow
+    name: docker-publish
+    id: run-6202
+    status: failed
+    note: docker push is denied because the workflow never authenticated to ghcr.io.
+stateResources:
+  - address: secret.GITHUB_TOKEN
+    id: available
+  - address: path.Dockerfile
+    id: present
+flags:
+  workflowFixed: false
+  runPassing: false

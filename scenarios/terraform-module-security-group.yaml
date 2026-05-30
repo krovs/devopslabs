@@ -1,0 +1,66 @@
+id: terraformModuleSecurityGroup
+title: Terraform Module Security Group Checkov
+description: A reusable security group module defaults ingress to 0.0.0.0/0 and fails a security scan.
+primaryFile: modules/security-group/main.tf
+tips:
+  - Run checkov -f main.tf to see the security finding.
+  - The risky code is inside modules/security-group/main.tf.
+  - The ingress CIDR is currently 0.0.0.0/0.
+  - Restrict the module default to 10.0.0.0/16.
+  - Re-run checkov and terraform plan.
+files:
+  "main.tf": |
+    terraform {
+      backend "s3" {
+        bucket         = "tf-state-training"
+        key            = "modules/security-group.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    module "web_sg" {
+      source = "./modules/security-group"
+      name   = "web"
+    }
+  "modules/security-group/main.tf": |
+    variable "name" {
+      type = string
+    }
+
+    variable "ingress_cidr" {
+      type    = string
+      default = "0.0.0.0/0"
+    }
+
+    resource "aws_security_group" "this" {
+      name = var.name
+
+      ingress {
+        from_port   = 443
+        to_port     = 443
+        protocol    = "tcp"
+        cidr_blocks = [var.ingress_cidr]
+      }
+    }
+backend:
+  bucket: tf-state-training
+  key: modules/security-group.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: module
+    name: modules/security-group
+    id: ./modules/security-group
+    status: failed
+    note: Checkov blocks a module default that opens ingress to the internet.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  securityPassed: false

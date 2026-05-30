@@ -1,0 +1,154 @@
+id: networkingSecurityGroupAlbApp
+kind: networking
+title: Networking ALB to App Security Group
+description: Fix security group rules so internet traffic reaches the ALB and only the ALB can reach the application instances.
+primaryFile: requirements.md
+tips:
+  - Users reach the ALB on HTTPS.
+  - App instances should allow port 8080 only from the ALB security group.
+  - Do not open app instances directly to the internet.
+files:
+  "requirements.md": |
+    Goal:
+    Allow public HTTPS traffic to an ALB and forward traffic to app instances on port 8080.
+
+    Constraints:
+    - ALB security group allows inbound TCP 443 from 0.0.0.0/0.
+    - App security group allows inbound TCP 8080 only from the ALB security group.
+    - App security group must not allow inbound traffic directly from 0.0.0.0/0.
+backend:
+  bucket: network-design
+  key: sg-alb-app
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: network-security
+    name: sg-alb-app
+    id: sg-rules
+    status: failed
+    note: App instances are open to the internet and the ALB listener port is wrong.
+stateResources: []
+flags:
+  networkConfigured: false
+networking:
+  symptoms:
+    - ALB health checks fail for the app target group.
+    - App instances are reachable from a source that should not reach them.
+    - Public clients do not consistently reach the HTTPS listener.
+  nodes:
+    - id: internet
+      label: Internet
+      type: edge
+      x: 8
+      y: 48
+      note: Public users
+    - id: vpc
+      label: VPC
+      type: vpc
+      x: 60
+      y: 50
+      width: 76%
+      height: 76%
+      note: Public ALB and private app tier
+    - id: public_subnet
+      label: Public Subnets
+      type: subnet
+      x: 45
+      y: 33
+      width: 34%
+      height: 28%
+      note: ALB lives here
+    - id: private_subnet
+      label: Private App Subnets
+      type: subnet
+      x: 75
+      y: 64
+      width: 36%
+      height: 30%
+      note: App instances live here
+    - id: alb_sg
+      label: ALB SG
+      type: security-group
+      x: 39
+      y: 38
+      note: Inbound HTTPS from internet
+    - id: alb
+      label: ALB
+      type: load-balancer
+      x: 52
+      y: 31
+      note: Public application load balancer
+    - id: app_sg
+      label: App SG
+      type: security-group
+      x: 68
+      y: 57
+      note: Should only trust ALB SG
+    - id: app
+      label: App Instances
+      type: compute
+      x: 82
+      y: 66
+      note: App listens on TCP 8080
+  links:
+    - from: internet
+      to: alb_sg
+      label: inbound 443
+      status: failed
+    - from: alb_sg
+      to: alb
+      label: ALB protected by SG
+      status: ok
+    - from: alb
+      to: app_sg
+      label: target 8080
+      status: failed
+    - from: app_sg
+      to: app
+      label: app ingress
+      status: failed
+  traces:
+    - id: internet_to_app
+      label: Internet request to app instances
+      source: Internet
+      destination: App Instances
+      port: 443
+      path: Internet | ALB SG | ALB | App SG | App Instances
+      failure: Security group flow does not allow ALB-to-app traffic without direct app exposure.
+      success: Packet reaches the app only through the ALB security group path.
+  controls:
+    - id: alb_ingress_port
+      label: ALB inbound port
+      nodeId: alb_sg,alb
+      value: 80
+      answer: 443
+      options: []
+      inputType: text
+      placeholder: 443
+      note: Public users should connect to the ALB over HTTPS.
+    - id: alb_ingress_cidr
+      label: ALB inbound CIDR
+      nodeId: alb_sg,alb
+      value: 10.0.0.0/8
+      answer: 0.0.0.0/0
+      options: []
+      inputType: text
+      placeholder: 0.0.0.0/0
+      note: Public ALB accepts HTTPS from the internet.
+    - id: app_ingress_source
+      label: App inbound source
+      nodeId: app_sg,app
+      value: 0.0.0.0/0
+      answer: alb_sg
+      options: 0.0.0.0/0,alb_sg,vpc_cidr,none
+      note: App instances should only accept traffic from the ALB security group.
+    - id: app_ingress_port
+      label: App inbound port
+      nodeId: app_sg,app
+      value: 80
+      answer: 8080
+      options: []
+      inputType: text
+      placeholder: 8080
+      note: Match the target group and application listener port.

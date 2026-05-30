@@ -1,0 +1,55 @@
+id: missingIamImport
+title: Existing IAM Role Missing From State
+description: Terraform wants to create an IAM role that already exists in AWS, but the state file does not know about it.
+tips:
+  - Run terraform init first so Terraform can use the backend.
+  - terraform plan should show that Terraform wants to create the IAM role.
+  - If apply fails with EntityAlreadyExists, the resource exists outside Terraform state.
+  - Import aws_iam_role.app using the existing role name training-app-role.
+  - Run terraform plan again and look for no changes.
+files:
+  "main.tf": |
+    terraform {
+      backend "s3" {
+        bucket         = "tf-state-training"
+        key            = "iam/app.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    resource "aws_iam_role" "app" {
+      name = "training-app-role"
+
+      assume_role_policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [{
+          Action = "sts:AssumeRole"
+          Effect = "Allow"
+          Principal = {
+            Service = "lambda.amazonaws.com"
+          }
+        }]
+      })
+    }
+backend:
+  bucket: tf-state-training
+  key: iam/app.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: iam_role
+    name: training-app-role
+    id: training-app-role
+    status: exists
+    note: Created manually before Terraform was adopted.
+stateResources: []
+flags:
+  initialized: false
+  importedRole: false
+  cleanPlan: false

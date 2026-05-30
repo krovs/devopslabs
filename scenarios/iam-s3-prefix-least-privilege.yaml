@@ -1,0 +1,51 @@
+id: iamS3PrefixLeastPrivilege
+kind: iam
+title: IAM S3 Prefix Least Privilege
+description: A deployment role can read and write every object in the artifacts bucket. Restrict it to the team-a prefix without breaking ListBucket.
+primaryFile: policy.json
+tips:
+  - Simulate the policy before editing.
+  - Object actions use an object ARN with the prefix.
+  - ListBucket uses the bucket ARN and a prefix condition.
+  - Avoid s3:* and avoid Resource *.
+files:
+  "policy.json": |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "ArtifactsAccess",
+          "Effect": "Allow",
+          "Action": "s3:*",
+          "Resource": "*"
+        }
+      ]
+    }
+  "request.txt": |
+    Principal: arn:aws:iam::123456789012:role/deploy-team-a
+    Required:
+    - s3:ListBucket on arn:aws:s3:::company-artifacts with s3:prefix = team-a/*
+    - s3:GetObject on arn:aws:s3:::company-artifacts/team-a/*
+    - s3:PutObject on arn:aws:s3:::company-artifacts/team-a/*
+    Not allowed:
+    - Access to team-b/*
+    - s3:DeleteBucket
+backend:
+  bucket: iam-training
+  key: s3-prefix-least-privilege
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: iam_policy
+    name: deploy-team-a-artifacts
+    id: arn:aws:iam::123456789012:policy/deploy-team-a-artifacts
+    status: failed
+    note: Policy grants s3:* on all resources.
+stateResources:
+  - address: iam.role
+    id: deploy-team-a
+  - address: s3.bucket
+    id: company-artifacts
+flags:
+  iamValidated: false

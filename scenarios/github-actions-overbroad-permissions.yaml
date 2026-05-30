@@ -1,0 +1,45 @@
+id: githubActionsOverbroadPermissions
+kind: cicd
+title: GitHub Actions Overbroad Permissions
+description: actionlint blocks a deploy workflow because it grants write-all permissions at workflow scope.
+primaryFile: .github/workflows/deploy-permissions.yml
+tips:
+  - Run gh run view to inspect the lint failure.
+  - The workflow grants permissions: write-all.
+  - Replace write-all with only the permissions the job needs.
+  - OIDC deployment usually needs id-token: write and contents: read.
+  - Re-run the workflow after fixing the permissions block.
+files:
+  ".github/workflows/deploy-permissions.yml": |
+    name: deploy-permissions
+
+    on:
+      push:
+        branches: [main]
+
+    permissions: write-all
+
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+          - run: echo "deploy"
+backend:
+  bucket: github-actions
+  key: deploy-permissions.yml
+  table: workflow-runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: workflow
+    name: deploy-permissions
+    id: run-4110
+    status: failed
+    note: actionlint rejected permissions write-all.
+stateResources:
+  - address: policy.allowed-permissions
+    id: id-token:write, contents:read
+flags:
+  lintPassed: false
+  runPassing: false

@@ -1,0 +1,60 @@
+id: scpRegionRestrictionBreakGlass
+kind: scp
+title: SCP Region Restriction Break Glass
+description: A region restriction SCP blocks operations inconsistently and lacks a break-glass role exception.
+primaryFile: scp.json
+tips:
+  - Region guardrails normally use aws:RequestedRegion.
+  - Deny unsupported regions while allowing approved regions.
+  - Exempt the break-glass role by principal ARN.
+files:
+  "scp.json": |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "DenyUnsupportedRegions",
+          "Effect": "Deny",
+          "NotAction": [
+            "iam:*",
+            "organizations:*",
+            "route53:*",
+            "cloudfront:*"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringNotEquals": {
+              "aws:RequestedRegion": [
+                "eu-west-1",
+                "us-east-1"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  "request.txt": |
+    Required:
+    - Approved workload regions: eu-west-1, eu-central-1
+    - Deny all other requested regions
+    - Exempt arn:aws:iam::*:role/BreakGlassAdmin
+    - Do not include us-east-1 as an approved workload region
+backend:
+  bucket: governance-training
+  key: scp-region-restriction-break-glass
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: service_control_policy
+    name: region-restriction
+    id: p-regionguard
+    status: failed
+    note: SCP allows the wrong workload region and has no break-glass principal exception.
+stateResources:
+  - address: organization
+    id: o-exampleorg
+  - address: break_glass_role
+    id: arn:aws:iam::*:role/BreakGlassAdmin
+flags:
+  scpValidated: false

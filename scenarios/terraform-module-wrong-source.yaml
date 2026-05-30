@@ -1,0 +1,58 @@
+id: terraformModuleWrongSource
+title: Terraform Module Wrong Source Path
+description: Terraform init fails because the root module points at a module directory that does not exist.
+primaryFile: main.tf
+tips:
+  - Run terraform init to see where Terraform is looking for the child module.
+  - The file tabs show the real module path is modules/network/main.tf.
+  - Fix the module source path in main.tf.
+  - Run terraform init again after correcting source.
+  - A clean plan completes the lab.
+files:
+  "main.tf": |
+    terraform {
+      backend "s3" {
+        bucket         = "tf-state-training"
+        key            = "modules/network.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    module "network" {
+      source = "./module/network"
+      name   = "training-network"
+    }
+  "modules/network/main.tf": |
+    variable "name" {
+      type = string
+    }
+
+    resource "aws_vpc" "this" {
+      cidr_block = "10.40.0.0/16"
+
+      tags = {
+        Name = var.name
+      }
+    }
+backend:
+  bucket: tf-state-training
+  key: modules/network.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: module
+    name: modules/network
+    id: ./modules/network
+    status: failed
+    note: Root module points at ./module/network instead of ./modules/network.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  validationPassed: false

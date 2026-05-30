@@ -1,0 +1,58 @@
+id: terraformModuleMissingVariable
+title: Terraform Module Missing Required Variable
+description: A child module requires environment, but the root module does not pass it.
+primaryFile: main.tf
+tips:
+  - Run terraform validate to identify the missing argument.
+  - Open modules/queue/main.tf to inspect required variables.
+  - The module requires environment.
+  - Pass environment = "dev" from the root module.
+  - Validate and plan again.
+files:
+  "main.tf": |
+    terraform {
+      backend "s3" {
+        bucket         = "tf-state-training"
+        key            = "modules/queue.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    module "queue" {
+      source = "./modules/queue"
+      name   = "orders"
+    }
+  "modules/queue/main.tf": |
+    variable "name" {
+      type = string
+    }
+
+    variable "environment" {
+      type = string
+    }
+
+    resource "aws_sqs_queue" "this" {
+      name = "${var.environment}-${var.name}"
+    }
+backend:
+  bucket: tf-state-training
+  key: modules/queue.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: module
+    name: modules/queue
+    id: ./modules/queue
+    status: failed
+    note: Module queue requires environment, but the root module does not pass it.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  validationPassed: false

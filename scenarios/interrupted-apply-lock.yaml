@@ -1,0 +1,44 @@
+id: interruptedApplyLock
+title: Interrupted Apply With Lock
+description: An apply died mid-run. The S3 bucket exists, state missed it, and the DynamoDB lock is still present.
+tips:
+  - Start by initializing Terraform so commands can inspect the configured backend.
+  - The backend status says the state is locked. Query the fake DynamoDB lock table to get the lock ID.
+  - Unlock the state with terraform force-unlock before attempting plan or import.
+  - The bucket already exists in AWS but is missing from state. Import aws_s3_bucket.logs with the bucket name.
+  - A clean terraform plan is the final confirmation.
+files:
+  "main.tf": |
+    terraform {
+      backend "s3" {
+        bucket         = "tf-state-training"
+        key            = "prod/app.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    resource "aws_s3_bucket" "logs" {
+      bucket = "prod-logs-training"
+    }
+backend:
+  bucket: tf-state-training
+  key: prod/app.tfstate
+  table: tf-locks
+  locked: true
+  lockId: b9f3b20f-apply-crash
+awsResources:
+  - type: s3_bucket
+    name: prod-logs-training
+    id: prod-logs-training
+    status: exists
+    note: Created before apply crashed.
+stateResources: []
+flags:
+  initialized: false
+  importedBucket: false
+  cleanPlan: false

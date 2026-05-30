@@ -1,0 +1,63 @@
+id: terragruntMissingInclude
+kind: terragrunt
+title: Terragrunt Missing Root Include
+description: A live app stack does not inherit the root remote state and shared inputs because include is missing.
+primaryFile: live/dev/app/terragrunt.hcl
+tips:
+  - Run terragrunt validate to inspect the live app stack.
+  - The child terragrunt.hcl should include the root configuration.
+  - Add include "root" with path = find_in_parent_folders().
+  - Run terragrunt validate and terragrunt plan again.
+files:
+  "terragrunt.hcl": |
+    remote_state {
+      backend = "s3"
+      config = {
+        bucket         = "tf-state-training"
+        key            = "${path_relative_to_include()}/terraform.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    inputs = {
+      environment = "dev"
+      owner       = "platform"
+    }
+  "live/dev/app/terragrunt.hcl": |
+    terraform {
+      source = "../../../modules/app"
+    }
+
+    inputs = {
+      name = "orders-api"
+    }
+  "modules/app/main.tf": |
+    variable "name" {
+      type = string
+    }
+
+    variable "environment" {
+      type = string
+    }
+
+    resource "aws_s3_bucket" "app" {
+      bucket = "${var.environment}-${var.name}-artifacts"
+    }
+backend:
+  bucket: tf-state-training
+  key: live/dev/app/terraform.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: stack
+    name: live/dev/app
+    id: app-stack
+    status: failed
+    note: Stack does not inherit remote_state or the shared environment input.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  validationPassed: false

@@ -1,0 +1,50 @@
+id: iamKmsEncryptionContext
+kind: iam
+title: IAM KMS Encryption Context
+description: A service can decrypt too broadly with a shared KMS key. Require the expected encryption context for payroll data.
+primaryFile: kms-policy.json
+tips:
+  - The service only needs kms:Decrypt.
+  - Scope the resource to the payroll key.
+  - Add an encryption context condition for App = payroll.
+  - Avoid kms:* and wildcard resources.
+files:
+  "kms-policy.json": |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "DecryptSharedKey",
+          "Effect": "Allow",
+          "Action": "kms:*",
+          "Resource": "*"
+        }
+      ]
+    }
+  "request.txt": |
+    Principal: arn:aws:iam::123456789012:role/payroll-api
+    Required:
+    - kms:Decrypt on arn:aws:kms:eu-west-1:123456789012:key/payroll-key
+    - Condition kms:EncryptionContext:App = payroll
+    Not allowed:
+    - kms:ScheduleKeyDeletion
+    - Decrypt without the payroll encryption context
+backend:
+  bucket: iam-training
+  key: kms-encryption-context
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: iam_policy
+    name: payroll-kms-decrypt
+    id: arn:aws:iam::123456789012:policy/payroll-kms-decrypt
+    status: failed
+    note: Policy grants broad KMS permissions without encryption context constraints.
+stateResources:
+  - address: kms.key
+    id: arn:aws:kms:eu-west-1:123456789012:key/payroll-key
+  - address: iam.role
+    id: payroll-api
+flags:
+  iamValidated: false

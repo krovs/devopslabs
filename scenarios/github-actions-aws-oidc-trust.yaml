@@ -1,0 +1,72 @@
+id: githubActionsAwsOidcTrust
+kind: cicd
+title: GitHub Actions AWS OIDC Trust Policy
+description: A deploy workflow has id-token permission, but AWS rejects AssumeRoleWithWebIdentity because the role trust policy allows the wrong branch.
+primaryFile: .github/workflows/deploy-oidc.yml
+tips:
+  - Inspect the failed run with gh run view.
+  - The workflow has id-token permission, so the failure is probably on the AWS trust side.
+  - Open trust-policy.json in the file tabs.
+  - The subject currently allows refs/heads/master, but the workflow runs from main.
+  - Change the sub condition to refs/heads/main and rerun.
+files:
+  ".github/workflows/deploy-oidc.yml": |
+    name: deploy-oidc
+
+    on:
+      push:
+        branches: [main]
+
+    permissions:
+      id-token: write
+      contents: read
+
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+          - uses: aws-actions/configure-aws-credentials@v4
+            with:
+              role-to-assume: arn:aws:iam::123456789012:role/github-actions-deploy
+              aws-region: eu-west-1
+          - run: terraform plan
+  "trust-policy.json": |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+          },
+          "Action": "sts:AssumeRoleWithWebIdentity",
+          "Condition": {
+            "StringEquals": {
+              "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+              "token.actions.githubusercontent.com:sub": "repo:acme/platform:ref:refs/heads/master"
+            }
+          }
+        }
+      ]
+    }
+backend:
+  bucket: github-actions
+  key: deploy-oidc.yml
+  table: workflow-runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: workflow
+    name: deploy-oidc
+    id: run-5208
+    status: failed
+    note: AWS rejected the OIDC token because the trust policy subject does not match refs/heads/main.
+stateResources:
+  - address: policy.aws-role-trust
+    id: refs/heads/master
+  - address: path.trust-policy.json
+    id: AWS IAM role trust policy
+flags:
+  workflowFixed: false
+  runPassing: false

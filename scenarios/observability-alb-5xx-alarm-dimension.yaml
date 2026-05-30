@@ -1,0 +1,48 @@
+id: observabilityAlb5xxAlarmDimension
+kind: observability
+title: CloudWatch ALB 5xx Alarm Dimension
+description: An ALB 5xx alarm never fires because it uses the classic ELB namespace and dimension shape.
+primaryFile: alarm.json
+tips:
+  - Describe the alarm before editing.
+  - Application Load Balancers use the AWS/ApplicationELB namespace.
+  - The dimension key should be LoadBalancer with the full app/... resource value.
+files:
+  "alarm.json": |
+    {
+      "alarmName": "alb-5xx-prod",
+      "namespace": "AWS/ELB",
+      "metricName": "HTTPCode_ELB_5XX_Count",
+      "dimensions": [
+        {
+          "name": "LoadBalancerName",
+          "value": "prod-web"
+        }
+      ],
+      "threshold": 5,
+      "evaluationPeriods": 2
+    }
+  "target.txt": |
+    ALB ARN suffix:
+    app/prod-web/50dc6c495c0c9188
+    Correct metric:
+    AWS/ApplicationELB HTTPCode_ELB_5XX_Count
+backend:
+  bucket: observability-training
+  key: alb-5xx-alarm-dimension
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudwatch_alarm
+    name: alb-5xx-prod
+    id: alb-5xx-prod
+    status: failed
+    note: Alarm is in INSUFFICIENT_DATA because it targets the wrong namespace and dimension.
+stateResources:
+  - address: alb
+    id: app/prod-web/50dc6c495c0c9188
+  - address: metric
+    id: HTTPCode_ELB_5XX_Count
+flags:
+  observabilityValidated: false

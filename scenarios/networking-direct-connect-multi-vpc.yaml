@@ -1,0 +1,174 @@
+id: networkingDirectConnectMultiVpc
+kind: networking
+title: Networking Direct Connect Multi-VPC Routing
+description: Connect a company network to multiple AWS VPCs through Direct Connect, a DX gateway, and a transit gateway.
+primaryFile: requirements.md
+tips:
+  - Direct Connect gateway connects the private VIF to the transit gateway.
+  - VPC attachments need the right TGW route table association.
+  - Shared services should be reachable from on-prem and spoke VPCs.
+files:
+  "requirements.md": |
+    Goal:
+    Route 10.80.0.0/16 from the corporate network to two AWS VPCs through Direct Connect.
+
+    Constraints:
+    - Use Direct Connect gateway plus Transit Gateway for multiple VPCs.
+    - Associate workload VPC attachments with the production TGW route table.
+    - Propagate the on-prem route into the production TGW route table.
+backend:
+  bucket: network-design
+  key: direct-connect-multi-vpc
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: network
+    name: direct-connect-multi-vpc
+    id: dx-gateway-tgw
+    status: failed
+    note: Workload attachments are not fully associated and propagated through the production TGW route table.
+stateResources: []
+flags:
+  networkConfigured: false
+networking:
+  symptoms:
+    - Corporate hosts cannot reach one or more workload VPC CIDRs.
+    - Shared services are reachable inconsistently from spoke VPCs.
+    - Transit Gateway route lookup does not show the expected on-prem route.
+  nodes:
+    - id: corp
+      label: Company Network
+      type: on-prem
+      x: 7
+      y: 48
+      note: Corporate CIDR 10.80.0.0/16
+    - id: dx
+      label: Direct Connect
+      type: connection
+      x: 25
+      y: 48
+      note: Private virtual interface
+    - id: dxgw
+      label: DX Gateway
+      type: aws-edge
+      x: 43
+      y: 48
+      note: Connects DX to AWS regions
+    - id: tgw
+      label: Transit Gateway
+      type: hub
+      x: 61
+      y: 48
+      note: Central routing hub
+    - id: shared
+      label: Shared Services VPC
+      type: vpc
+      x: 82
+      y: 22
+      width: 24%
+      height: 18%
+      note: 10.30.0.0/16
+    - id: app
+      label: App VPC
+      type: vpc
+      x: 84
+      y: 48
+      width: 24%
+      height: 18%
+      note: 10.40.0.0/16
+    - id: data
+      label: Data VPC
+      type: vpc
+      x: 82
+      y: 74
+      width: 24%
+      height: 18%
+      note: 10.50.0.0/16
+  links:
+    - from: corp
+      to: dx
+      label: private circuit
+      status: ok
+      controlIds: corporate_cidr
+    - from: dx
+      to: dxgw
+      label: private VIF
+      status: ok
+    - from: dxgw
+      to: tgw
+      label: gateway association
+      status: failed
+      controlIds: dxgw_target,onprem_propagation
+    - from: tgw
+      to: shared
+      label: attachment
+      status: ok
+    - from: tgw
+      to: app
+      label: attachment
+      status: failed
+      controlIds: app_vpc_cidr,workload_association
+    - from: tgw
+      to: data
+      label: attachment
+      status: failed
+      controlIds: data_vpc_cidr,workload_association
+  traces:
+    - id: corp_to_app
+      label: Corporate network to app VPC
+      source: Company Network
+      destination: App VPC
+      port: 443
+      path: Company Network | Direct Connect | DX Gateway | Transit Gateway | App VPC
+      failure: Gateway association or route propagation does not provide a complete path to the workload VPC.
+      success: Packet reaches the app VPC through DX gateway and transit gateway propagation.
+  controls:
+    - id: corporate_cidr
+      label: Corporate advertised CIDR
+      nodeId: corp
+      value: 10.8.0.0/16
+      answer: 10.80.0.0/16
+      options: []
+      inputType: text
+      placeholder: 10.80.0.0/16
+      note: This CIDR is advertised over the private Direct Connect path.
+    - id: app_vpc_cidr
+      label: App VPC CIDR
+      nodeId: app
+      value: 10.40.0.0/24
+      answer: 10.40.0.0/16
+      options: []
+      inputType: text
+      placeholder: 10.40.0.0/16
+      note: The app VPC CIDR must match the route table entry and attachment route.
+    - id: data_vpc_cidr
+      label: Data VPC CIDR
+      nodeId: data
+      value: 10.50.10.0/24
+      answer: 10.50.0.0/16
+      options: []
+      inputType: text
+      placeholder: 10.50.0.0/16
+      note: The data VPC CIDR must be propagated through the transit gateway.
+    - id: dxgw_target
+      label: DX gateway association target
+      nodeId: dxgw,tgw
+      value: vpc
+      answer: tgw
+      options: vpc,tgw,igw,none
+      note: Use a Transit Gateway association when one DX path must reach multiple VPCs.
+    - id: workload_association
+      label: App and data VPC association
+      nodeId: tgw,app,data
+      value: isolated
+      answer: prod-tgw-rt
+      options: isolated,prod-tgw-rt,shared-only
+      note: Workload attachments must associate with the production TGW route table.
+    - id: onprem_propagation
+      label: On-prem CIDR propagation
+      nodeId: tgw,dxgw
+      value: disabled
+      answer: enabled
+      options: disabled,enabled
+      note: The production TGW route table needs the on-prem route propagated from Direct Connect.

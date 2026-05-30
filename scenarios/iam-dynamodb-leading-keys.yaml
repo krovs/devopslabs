@@ -1,0 +1,53 @@
+id: iamDynamoDbLeadingKeys
+kind: iam
+title: IAM DynamoDB Leading Keys
+description: A tenant service can read every item in a shared DynamoDB table instead of only its tenant partition.
+primaryFile: policy.json
+tips:
+  - Simulate the policy before editing.
+  - DynamoDB table access can be constrained with dynamodb:LeadingKeys.
+  - Keep read/write item actions but scope access to tenant-a.
+files:
+  "policy.json": |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "TenantTableAccess",
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:Query"
+          ],
+          "Resource": "arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders"
+        }
+      ]
+    }
+  "request.txt": |
+    Principal: arn:aws:iam::123456789012:role/tenant-a-api
+    Required:
+    - dynamodb:GetItem on shared-orders only when dynamodb:LeadingKeys = tenant-a
+    - dynamodb:PutItem on shared-orders only when dynamodb:LeadingKeys = tenant-a
+    Not allowed:
+    - Access to tenant-b partition keys
+    - dynamodb:DeleteTable
+backend:
+  bucket: iam-training
+  key: dynamodb-leading-keys
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: iam_policy
+    name: tenant-a-dynamodb
+    id: arn:aws:iam::123456789012:policy/tenant-a-dynamodb
+    status: failed
+    note: Policy lacks a dynamodb:LeadingKeys condition for tenant isolation.
+stateResources:
+  - address: iam.role
+    id: tenant-a-api
+  - address: dynamodb.table
+    id: shared-orders
+flags:
+  iamValidated: false

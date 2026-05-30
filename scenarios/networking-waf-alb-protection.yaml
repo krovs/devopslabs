@@ -1,0 +1,139 @@
+id: networkingWafAlbProtection
+kind: networking
+title: Networking WAF ALB Protection
+description: Attach a WAF web ACL to the public ALB and block suspicious requests while allowing normal traffic.
+primaryFile: requirements.md
+tips:
+  - WAF protects the ALB before traffic reaches targets.
+  - Default action should allow normal requests when rules block bad patterns.
+  - Managed SQL injection and common rule sets are a common baseline.
+files:
+  "requirements.md": |
+    Goal:
+    Protect a public ALB with AWS WAF before traffic reaches private app targets.
+
+    Constraints:
+    - Web ACL is associated with the ALB.
+    - Default action is allow.
+    - SQL injection rule action is block.
+    - App instances remain private behind the ALB.
+backend:
+  bucket: network-design
+  key: waf-alb-protection
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: network-security
+    name: waf-alb-protection
+    id: waf-web-acl
+    status: failed
+    note: WAF is not associated to the ALB and SQLi requests are not blocked.
+stateResources: []
+flags:
+  networkConfigured: false
+networking:
+  symptoms:
+    - SQL injection test requests are not blocked.
+    - Normal user requests are blocked unexpectedly.
+    - The public ALB does not show the expected web ACL protection.
+  nodes:
+    - id: internet
+      label: Internet
+      type: edge
+      x: 8
+      y: 48
+      note: Public users and malicious requests
+    - id: waf
+      label: WAF Web ACL
+      type: waf
+      x: 29
+      y: 48
+      note: Evaluates requests before ALB
+    - id: vpc
+      label: VPC
+      type: vpc
+      x: 66
+      y: 50
+      width: 58%
+      height: 72%
+      note: ALB and private app targets
+    - id: public_subnet
+      label: Public Subnets
+      type: subnet
+      x: 58
+      y: 34
+      width: 30%
+      height: 26%
+      note: ALB lives here
+    - id: private_subnet
+      label: Private Subnets
+      type: subnet
+      x: 78
+      y: 66
+      width: 30%
+      height: 26%
+      note: App targets live here
+    - id: alb
+      label: Public ALB
+      type: load-balancer
+      x: 58
+      y: 38
+      note: WAF association target
+    - id: app
+      label: App Targets
+      type: compute
+      x: 80
+      y: 68
+      note: Private instances
+  links:
+    - from: internet
+      to: waf
+      label: request inspection
+      status: failed
+    - from: waf
+      to: alb
+      label: web ACL association
+      status: failed
+    - from: alb
+      to: app
+      label: forward clean traffic
+      status: ok
+  traces:
+    - id: inspected_request
+      label: Internet request through WAF
+      source: Internet
+      destination: App Targets
+      port: 443
+      path: Internet | WAF Web ACL | Public ALB | App Targets
+      failure: Request is not consistently evaluated by the web ACL before reaching the ALB.
+      success: Packet is inspected by WAF before clean traffic reaches the targets.
+  controls:
+    - id: waf_association
+      label: WAF association target
+      nodeId: waf,alb
+      value: cloudfront
+      answer: alb
+      options: cloudfront,alb,app_sg,none
+      note: Regional Web ACL should be associated with the ALB in this lab.
+    - id: waf_default_action
+      label: WAF default action
+      nodeId: waf,alb
+      value: block
+      answer: allow
+      options: allow,block,count
+      note: Allow normal traffic and block suspicious requests with rules.
+    - id: sqli_rule_action
+      label: SQL injection rule action
+      nodeId: waf,alb
+      value: count
+      answer: block
+      options: allow,block,count
+      note: SQL injection findings should be blocked.
+    - id: app_exposure
+      label: App target exposure
+      nodeId: app
+      value: public
+      answer: private
+      options: public,private
+      note: App targets should stay private behind the ALB.

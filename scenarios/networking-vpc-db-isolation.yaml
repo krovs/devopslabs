@@ -1,0 +1,142 @@
+id: networkingVpcDbIsolation
+kind: networking
+title: Networking Database Subnet Isolation
+description: Keep database subnets isolated while allowing app subnets to reach them inside the VPC.
+primaryFile: requirements.md
+tips:
+  - Database subnets should not have a default route to IGW or NAT.
+  - App to database traffic stays on the local VPC route.
+  - The database route table should only need the local VPC route for this lab.
+files:
+  "requirements.md": |
+    Goal:
+    Place app and database tiers in VPC 10.70.0.0/16.
+
+    Constraints:
+    - App subnets can use NAT for outbound updates.
+    - Database subnets must stay isolated from internet egress.
+    - App subnets reach database subnets through the local VPC route.
+backend:
+  bucket: network-design
+  key: vpc-db-isolation
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: network
+    name: vpc-db-isolation
+    id: db-route-tables
+    status: failed
+    note: Database subnets still have an outbound default route.
+stateResources: []
+flags:
+  networkConfigured: false
+networking:
+  symptoms:
+    - Database subnet egress appears in the security review.
+    - App to database connectivity is unreliable in the modeled path.
+    - Database tier should not have outbound internet access.
+  nodes:
+    - id: vpc
+      label: VPC
+      type: vpc
+      x: 54
+      y: 50
+      width: 82%
+      height: 80%
+      note: VPC CIDR 10.70.0.0/16
+    - id: nat
+      label: NAT Gateway
+      type: edge
+      x: 22
+      y: 22
+      note: App subnet outbound internet target
+    - id: app_rt
+      label: App Route Table
+      type: route-table
+      x: 45
+      y: 28
+      note: App default route goes to NAT
+    - id: db_rt
+      label: DB Route Table
+      type: route-table
+      x: 45
+      y: 72
+      note: Database route table should only use local VPC routing
+    - id: app_subnet
+      label: App Subnets
+      type: subnet
+      x: 62
+      y: 30
+      width: 56%
+      height: 25%
+      note: 10.70.11.0/24 and 10.70.12.0/24
+    - id: db_subnet
+      label: DB Subnets
+      type: subnet
+      x: 62
+      y: 72
+      width: 56%
+      height: 25%
+      note: 10.70.21.0/24 and 10.70.22.0/24
+  links:
+    - from: app_rt
+      to: nat
+      label: app 0.0.0.0/0
+      status: ok
+    - from: app_rt
+      to: app_subnet
+      label: app association
+      status: ok
+    - from: db_rt
+      to: db_subnet
+      label: db association
+      status: ok
+    - from: app_subnet
+      to: db_subnet
+      label: local VPC route
+      status: ok
+    - from: db_rt
+      to: nat
+      label: db default route
+      status: failed
+  traces:
+    - id: app_to_db
+      label: App subnet to database subnet
+      source: App Subnets
+      destination: DB Subnets
+      port: 5432
+      path: App Subnets | App Route Table | Local VPC Route | DB Subnets
+      failure: The database tier is not isolated on the local VPC path.
+      success: Packet stays inside the VPC and reaches the database tier without internet egress.
+  controls:
+    - id: vpc_cidr
+      label: VPC CIDR
+      nodeId: vpc
+      value: 10.70.0.0/24
+      answer: 10.70.0.0/16
+      options: []
+      inputType: text
+      placeholder: 10.70.0.0/16
+      note: Use the VPC CIDR from the requirements.
+    - id: app_default_route
+      label: App subnet default route
+      nodeId: app_rt,app_subnet
+      value: nat
+      answer: nat
+      options: nat,igw,none
+      note: App subnets can use NAT for outbound package updates.
+    - id: db_default_route
+      label: Database subnet default route
+      nodeId: db_rt,db_subnet
+      value: nat
+      answer: none
+      options: nat,igw,none
+      note: Database subnets should not have outbound internet egress in this lab.
+    - id: app_to_db_route
+      label: App to DB path
+      nodeId: app_subnet,db_subnet
+      value: tgw
+      answer: local
+      options: local,nat,tgw,igw
+      note: App to database traffic stays inside the VPC on the local route.

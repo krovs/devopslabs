@@ -1,0 +1,36 @@
+id: awsConfigBlankS3SecureBucket
+kind: awsconfig
+title: AWS Config Blank S3 Secure Bucket
+description: Build a secure S3 bucket Terraform configuration from an empty file.
+primaryFile: main.tf
+tips:
+  - Start with the bucket, then add the guardrail resources.
+  - The lab expects encryption, versioning, and public access block.
+  - Use Checkov before running plan.
+files:
+  "main.tf": |
+    # Start here.
+  "requirements.md": |
+    Build Terraform for:
+    - aws_s3_bucket named secure_logs
+    - aws_s3_bucket_server_side_encryption_configuration
+    - aws_s3_bucket_versioning with status = "Enabled"
+    - aws_s3_bucket_public_access_block
+backend:
+  bucket: aws-config-training
+  key: blank-s3-secure-bucket
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: s3_bucket
+    name: secure-logs-training
+    id: secure-logs-training
+    status: failed
+    note: Blank Terraform file has not defined the secure bucket guardrails.
+stateResources: []
+flags:
+  initialized: false
+  securityPassed: false
+  cleanPlan: false
+  configValidated: false

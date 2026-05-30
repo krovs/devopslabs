@@ -1,0 +1,81 @@
+id: prGithubActionsWriteAllReview
+kind: pr
+title: PR Review GitHub Actions Write-All
+description: Review a workflow change that broadens repository token permissions for an AWS deployment.
+primaryFile: .github/workflows/deploy.yml.diff
+tips:
+  - Check the permissions block before looking at deploy commands.
+  - AWS OIDC does not require write-all.
+  - The correct review should request changes and call out the overbroad token scope.
+files:
+  ".github/workflows/deploy.yml.diff": |
+    diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+    index 356eb20..c56de98 100644
+    --- a/.github/workflows/deploy.yml
+    +++ b/.github/workflows/deploy.yml
+    @@ -5,9 +5,8 @@ on:
+         branches: [main]
+
+     permissions:
+    -  id-token: write
+    -  contents: read
+    +  write-all
+
+     jobs:
+       deploy:
+         runs-on: ubuntu-latest
+  "review-notes.md": |
+    Request context:
+    - Workflow deploys to AWS using GitHub OIDC.
+    - Repository policy requires explicit minimal permissions.
+    - id-token: write and contents: read are sufficient.
+backend:
+  bucket: pr-review
+  key: github-actions-write-all
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: pull_request
+    name: github-actions-write-all
+    id: PR-118
+    status: failed
+    note: Review has not rejected the overbroad workflow permissions.
+stateResources:
+  - address: repo
+    id: acme/platform
+  - address: base
+    id: main
+flags:
+  reviewPassed: false
+prReview:
+  number: PR-118
+  author: release-engineer
+  base: main
+  branch: unblock-deploy-token
+  expectedDecision: request_changes
+  decision: pending
+  summary: Updates deployment workflow permissions after an OIDC deployment failure.
+  risk: The workflow token is broadened from scoped OIDC permissions to write-all.
+  findings:
+    - id: write_all
+      label: permissions write-all is overbroad
+      file: .github/workflows/deploy.yml
+      line: +8
+      selected: false
+      required: true
+      note: Use explicit id-token: write and contents: read instead.
+    - id: removed_oidc
+      label: id-token permission was removed
+      file: .github/workflows/deploy.yml
+      line: -6
+      selected: false
+      required: true
+      note: AWS OIDC needs id-token: write.
+    - id: main_branch_trigger
+      label: Push trigger targets main
+      file: .github/workflows/deploy.yml
+      line: +3
+      selected: false
+      required: false
+      note: The trigger is normal for this deployment workflow.

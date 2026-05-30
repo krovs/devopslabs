@@ -1,0 +1,58 @@
+id: terragruntWrongSourceRef
+kind: terragrunt
+title: Terragrunt Wrong Module Source
+description: Terragrunt init fails because the live stack points at the wrong module path.
+primaryFile: live/dev/app/terragrunt.hcl
+tips:
+  - Run terragrunt init to see the module source Terragrunt tries to download.
+  - Compare the source path with the modules listed in the file tabs.
+  - Fix the source to ../../../modules/app.
+  - Re-run terragrunt init and terragrunt plan.
+files:
+  "terragrunt.hcl": |
+    remote_state {
+      backend = "s3"
+      config = {
+        bucket         = "tf-state-training"
+        key            = "${path_relative_to_include()}/terraform.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+  "live/dev/app/terragrunt.hcl": |
+    include "root" {
+      path = find_in_parent_folders()
+    }
+
+    terraform {
+      source = "../../../module/app"
+    }
+
+    inputs = {
+      name = "orders-api"
+    }
+  "modules/app/main.tf": |
+    variable "name" {
+      type = string
+    }
+
+    resource "aws_sqs_queue" "app" {
+      name = var.name
+    }
+backend:
+  bucket: tf-state-training
+  key: live/dev/app/terraform.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: stack
+    name: live/dev/app
+    id: ../../../modules/app
+    status: failed
+    note: The stack points at ../../../module/app instead of ../../../modules/app.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  validationPassed: false

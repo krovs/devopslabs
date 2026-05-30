@@ -1,0 +1,51 @@
+id: terragruntHclfmt
+kind: terragrunt
+title: Terragrunt HCL Formatting Gate
+description: A pull request gate fails because terragrunt hclfmt detects unformatted Terragrunt configuration.
+primaryFile: live/dev/app/terragrunt.hcl
+tips:
+  - Run terragrunt hclfmt to see which file fails formatting.
+  - Use normal multi-line HCL blocks for include, terraform, and inputs.
+  - The module source should stay ../../../modules/app.
+  - Run terragrunt hclfmt and terragrunt plan after fixing the file.
+files:
+  "terragrunt.hcl": |
+    remote_state {
+      backend = "s3"
+      config = {
+        bucket         = "tf-state-training"
+        key            = "${path_relative_to_include()}/terraform.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+  "live/dev/app/terragrunt.hcl": |
+    include "root" { path = find_in_parent_folders() }
+    terraform { source = "../../../modules/app" }
+    inputs = { name = "orders-api" }
+  "modules/app/main.tf": |
+    variable "name" {
+      type = string
+    }
+
+    resource "aws_sns_topic" "app" {
+      name = var.name
+    }
+backend:
+  bucket: tf-state-training
+  key: live/dev/app/terraform.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: lint
+    name: terragrunt hclfmt
+    id: live/dev/app/terragrunt.hcl
+    status: failed
+    note: CI requires terragrunt.hcl files to be formatted before planning.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  validationPassed: false
+  lintPassed: false

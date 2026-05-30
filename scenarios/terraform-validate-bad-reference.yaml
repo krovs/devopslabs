@@ -1,0 +1,48 @@
+id: terraformValidateBadReference
+title: Terraform Validate Bad Reference
+description: Validation fails because an output references a resource name that does not exist.
+tips:
+  - Run terraform validate to see the broken reference.
+  - The resource is named aws_s3_bucket.logs.
+  - The output currently references aws_s3_bucket.log.
+  - Fix the output reference, then validate again.
+  - A clean plan completes the lab.
+files:
+  "main.tf": |
+    terraform {
+      backend "s3" {
+        bucket         = "tf-state-training"
+        key            = "validate/logs.tfstate"
+        region         = "eu-west-1"
+        dynamodb_table = "tf-locks"
+      }
+    }
+
+    provider "aws" {
+      region = "eu-west-1"
+    }
+
+    resource "aws_s3_bucket" "logs" {
+      bucket = "training-validation-logs"
+    }
+
+    output "bucket_name" {
+      value = aws_s3_bucket.log.bucket
+    }
+backend:
+  bucket: tf-state-training
+  key: validate/logs.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: validation
+    name: terraform validate
+    id: main.tf
+    status: failed
+    note: output.bucket_name references aws_s3_bucket.log.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  validationPassed: false

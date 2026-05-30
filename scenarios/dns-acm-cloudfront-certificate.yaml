@@ -1,0 +1,40 @@
+id: dnsAcmCloudFrontCertificate
+kind: dns
+title: DNS TLS CloudFront ACM Certificate
+description: A CloudFront distribution cannot attach its certificate because the certificate is in the wrong region and DNS validation is incomplete.
+primaryFile: certificate.json
+tips:
+  - CloudFront viewer certificates must be in us-east-1.
+  - DNS validation needs the exact CNAME name and value from ACM.
+  - Do not use the eu-west-1 certificate for CloudFront.
+files:
+  "certificate.json": |
+    {
+      "domainName": "app.example.com",
+      "region": "eu-west-1",
+      "validationRecordName": "_abc.app.example.com",
+      "validationRecordValue": "_old.acm-validations.aws"
+    }
+  "expected-validation.txt": |
+    region: us-east-1
+    validationRecordName: _9f3b.app.example.com
+    validationRecordValue: _7a1d.acm-validations.aws
+backend:
+  bucket: dns-training
+  key: acm-cloudfront-certificate
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: acm_certificate
+    name: app.example.com
+    id: arn:aws:acm:us-east-1:123456789012:certificate/app-example
+    status: failed
+    note: CloudFront certificate validation is pending and region is wrong.
+stateResources:
+  - address: hosted_zone
+    id: Z123EXAMPLE
+  - address: distribution
+    id: E2CLOUDFRONT
+flags:
+  dnsValidated: false

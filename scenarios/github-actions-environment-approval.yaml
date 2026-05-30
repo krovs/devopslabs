@@ -1,0 +1,46 @@
+id: githubActionsEnvironmentApproval
+kind: cicd
+title: GitHub Actions Environment Approval
+description: A production deploy workflow is blocked because the job targets the wrong environment name.
+primaryFile: .github/workflows/prod-deploy.yml
+tips:
+  - gh run view shows the deployment is waiting for an environment that is not configured.
+  - Repository context shows the protected environment is production.
+  - The workflow currently targets prod.
+  - Change environment.name to production.
+  - Re-run the workflow.
+files:
+  ".github/workflows/prod-deploy.yml": |
+    name: prod-deploy
+
+    on:
+      workflow_dispatch:
+
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
+        environment:
+          name: prod
+        steps:
+          - uses: actions/checkout@v4
+          - run: ./deploy.sh
+backend:
+  bucket: github-actions
+  key: prod-deploy.yml
+  table: workflow-runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: workflow
+    name: prod-deploy
+    id: run-6303
+    status: failed
+    note: The workflow targets prod, but only production is configured as a protected environment.
+stateResources:
+  - address: environment.production
+    id: protected
+  - address: environment.prod
+    id: missing
+flags:
+  workflowFixed: false
+  runPassing: false

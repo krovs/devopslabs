@@ -1,0 +1,134 @@
+id: networkingNaclEphemeralReturn
+kind: networking
+title: Networking NACL Ephemeral Return Traffic
+description: Fix a network ACL that allows inbound HTTPS but blocks return traffic from private app subnets.
+primaryFile: requirements.md
+tips:
+  - NACLs are stateless.
+  - Return traffic needs an outbound ephemeral port rule.
+  - Security groups are stateful, NACLs are not.
+files:
+  "requirements.md": |
+    Goal:
+    Allow clients to reach an HTTPS service while preserving stateless NACL return traffic.
+
+    Constraints:
+    - Inbound TCP 443 is allowed from clients.
+    - Outbound ephemeral TCP ports 1024-65535 are allowed back to clients.
+    - Do not allow all inbound ports.
+backend:
+  bucket: network-design
+  key: nacl-ephemeral-return
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: network-security
+    name: nacl-ephemeral-return
+    id: nacl-rules
+    status: failed
+    note: Return traffic is blocked by the subnet NACL.
+stateResources: []
+flags:
+  networkConfigured: false
+networking:
+  symptoms:
+    - TCP handshake starts but HTTPS responses do not return to clients.
+    - Flow logs show subnet ACL rejects on response traffic.
+    - Broad inbound access is flagged by the network review.
+  nodes:
+    - id: client
+      label: Client
+      type: edge
+      x: 9
+      y: 48
+      note: External client network
+    - id: vpc
+      label: VPC
+      type: vpc
+      x: 58
+      y: 50
+      width: 78%
+      height: 74%
+      note: Web subnet protected by NACL
+    - id: web_subnet
+      label: Web Subnet
+      type: subnet
+      x: 58
+      y: 50
+      width: 54%
+      height: 44%
+      note: HTTPS service subnet
+    - id: nacl
+      label: Web NACL
+      type: nacl
+      x: 43
+      y: 50
+      note: Stateless subnet firewall
+    - id: web
+      label: HTTPS Service
+      type: compute
+      x: 69
+      y: 50
+      note: TCP 443
+  links:
+    - from: client
+      to: nacl
+      label: inbound 443
+      status: ok
+    - from: nacl
+      to: web
+      label: allow request
+      status: ok
+    - from: web
+      to: nacl
+      label: ephemeral return
+      status: failed
+    - from: nacl
+      to: client
+      label: outbound response
+      status: failed
+  traces:
+    - id: https_round_trip
+      label: HTTPS client round trip
+      source: Client
+      destination: HTTPS Service
+      port: 443
+      path: Client | Web NACL inbound 443 | HTTPS Service | Web NACL outbound ephemeral | Client
+      failure: Return traffic is blocked on the ephemeral response path.
+      success: Request and response both pass the stateless NACL rules.
+  controls:
+    - id: inbound_rule_port
+      label: Inbound allowed port
+      nodeId: nacl,web_subnet,web
+      value: all
+      answer: 443
+      options: []
+      inputType: text
+      placeholder: 443
+      note: Allow only the service port inbound.
+    - id: inbound_source
+      label: Inbound source CIDR
+      nodeId: nacl,web_subnet,web
+      value: 0.0.0.0/0
+      answer: 0.0.0.0/0
+      options: []
+      inputType: text
+      placeholder: 0.0.0.0/0
+      note: This lab models a public HTTPS service.
+    - id: outbound_ephemeral
+      label: Outbound ephemeral ports
+      nodeId: nacl,web_subnet,web
+      value: denied
+      answer: 1024-65535
+      options: []
+      inputType: text
+      placeholder: 1024-65535
+      note: NACLs require explicit outbound return traffic.
+    - id: nacl_mode
+      label: NACL inbound scope
+      nodeId: nacl,web_subnet
+      value: all_ports
+      answer: service_only
+      options: all_ports,service_only,deny_all
+      note: Avoid opening every inbound port.

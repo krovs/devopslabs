@@ -1,0 +1,50 @@
+id: githubActionsNodeCachePath
+kind: cicd
+title: GitHub Actions Node Cache Path
+description: A Node.js CI workflow fails before tests because npm ci cannot find the lockfile in the configured working directory.
+primaryFile: .github/workflows/node-ci.yml
+tips:
+  - Run gh run view and inspect the failed command.
+  - The repository paths show package-lock.json is under app/.
+  - The workflow runs npm ci from the repository root.
+  - Set defaults.run.working-directory to app.
+  - Re-run the workflow.
+files:
+  ".github/workflows/node-ci.yml": |
+    name: node-ci
+
+    on:
+      pull_request:
+        branches: [main]
+
+    jobs:
+      test:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+          - uses: actions/setup-node@v4
+            with:
+              node-version: 20
+              cache: npm
+          - run: npm ci
+          - run: npm test
+backend:
+  bucket: github-actions
+  key: node-ci.yml
+  table: workflow-runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: workflow
+    name: node-ci
+    id: run-6101
+    status: failed
+    note: npm ci runs from the repository root, but the Node app lives in app/.
+stateResources:
+  - address: path.app/package-lock.json
+    id: present
+  - address: path.package-lock.json
+    id: missing
+flags:
+  workflowFixed: false
+  runPassing: false

@@ -1,0 +1,154 @@
+id: networkingSshCidrHardening
+kind: networking
+title: Networking SSH CIDR Hardening
+description: Restrict bastion SSH access to the corporate office CIDR and avoid exposing private instances.
+primaryFile: requirements.md
+tips:
+  - SSH should not be open to the internet.
+  - Bastion access can be limited to the corporate office CIDR.
+  - Private instances should trust the bastion security group, not public CIDRs.
+files:
+  "requirements.md": |
+    Goal:
+    Allow administrators from 203.0.113.0/24 to SSH to a bastion and then reach private instances.
+
+    Constraints:
+    - Bastion SSH is TCP 22 from 203.0.113.0/24 only.
+    - Private instance SSH source is the bastion security group.
+    - Private instances do not allow SSH directly from 0.0.0.0/0.
+backend:
+  bucket: network-design
+  key: ssh-cidr-hardening
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: network-security
+    name: ssh-cidr-hardening
+    id: ssh-sg-rules
+    status: failed
+    note: SSH is open too broadly.
+stateResources: []
+flags:
+  networkConfigured: false
+networking:
+  symptoms:
+    - SSH exposure scan reports a public administrative path.
+    - Admins from the office CIDR cannot complete the intended bastion path.
+    - Private instances are reachable from a broader source than expected.
+  nodes:
+    - id: admins
+      label: Admin Office
+      type: edge
+      x: 7
+      y: 45
+      note: 203.0.113.0/24
+    - id: vpc
+      label: VPC
+      type: vpc
+      x: 60
+      y: 50
+      width: 74%
+      height: 72%
+      note: Bastion plus private instances
+    - id: public_subnet
+      label: Public Subnet
+      type: subnet
+      x: 44
+      y: 35
+      width: 34%
+      height: 28%
+      note: Bastion subnet
+    - id: private_subnet
+      label: Private Subnet
+      type: subnet
+      x: 76
+      y: 64
+      width: 34%
+      height: 28%
+      note: Private instance subnet
+    - id: bastion_sg
+      label: Bastion SG
+      type: security-group
+      x: 39
+      y: 39
+      note: SSH from admin office only
+    - id: bastion
+      label: Bastion
+      type: compute
+      x: 50
+      y: 34
+      note: Public SSH entry point
+    - id: private_sg
+      label: Private SG
+      type: security-group
+      x: 69
+      y: 58
+      note: SSH from bastion SG only
+    - id: private
+      label: Private Instances
+      type: compute
+      x: 82
+      y: 68
+      note: No direct public SSH
+  links:
+    - from: admins
+      to: bastion_sg
+      label: SSH 22 from office
+      status: failed
+    - from: bastion_sg
+      to: bastion
+      label: bastion ingress
+      status: ok
+    - from: bastion
+      to: private_sg
+      label: SSH via bastion
+      status: failed
+    - from: private_sg
+      to: private
+      label: private ingress
+      status: ok
+  traces:
+    - id: admin_to_private
+      label: Admin SSH to private instances
+      source: Admin Office
+      destination: Private Instances
+      port: 22
+      path: Admin Office | Bastion SG | Bastion | Private SG | Private Instances
+      failure: SSH access is either too broad or not constrained to the bastion-to-private path.
+      success: SSH reaches private instances only through the approved bastion path.
+  controls:
+    - id: bastion_ssh_cidr
+      label: Bastion SSH CIDR
+      nodeId: bastion_sg,bastion
+      value: 0.0.0.0/0
+      answer: 203.0.113.0/24
+      options: []
+      inputType: text
+      placeholder: 203.0.113.0/24
+      note: Restrict SSH to the corporate admin office CIDR.
+    - id: bastion_ssh_port
+      label: Bastion SSH port
+      nodeId: bastion_sg,bastion
+      value: 22
+      answer: 22
+      options: []
+      inputType: text
+      placeholder: 22
+      note: SSH listens on TCP 22 in this lab.
+    - id: private_ssh_source
+      label: Private SSH source
+      nodeId: private_sg,private
+      value: 0.0.0.0/0
+      answer: bastion_sg
+      options: 0.0.0.0/0,bastion_sg,admin_cidr,none
+      note: Private instances should only accept SSH from the bastion security group.
+    - id: private_ssh_port
+      label: Private SSH port
+      nodeId: private_sg,private
+      value: 3389
+      answer: 22
+      options: []
+      inputType: text
+      placeholder: 22
+      note: Linux private instances use TCP 22 for SSH.
