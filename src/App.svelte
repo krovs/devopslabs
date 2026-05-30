@@ -12,6 +12,7 @@
   import FolderTree from "carbon-icons-svelte/lib/FolderTree.svelte";
   import GroupSecurity from "carbon-icons-svelte/lib/GroupSecurity.svelte";
   import IbmSecurity from "carbon-icons-svelte/lib/IbmSecurity.svelte";
+  import Launch from "carbon-icons-svelte/lib/Launch.svelte";
   import { dispatchCommand as dispatchSimulatorCommand, type CommandHandlers } from "./commands";
   import { scenarios } from "./scenarios";
   import type { NetworkNode, NetworkTrace, PrFinding, Scenario } from "./types";
@@ -3029,6 +3030,11 @@
       {/if}
     {/each}
   </section>
+
+  <a class="menu-repo-link" href="https://github.com/krovs/devopslabs" target="_blank" rel="noreferrer">
+    <span>🌵 krovs@2026</span>
+    <Launch size={16} aria-hidden="true" />
+  </a>
 
 </aside>
 

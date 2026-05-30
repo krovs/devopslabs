@@ -183,6 +183,24 @@ select {
   transition: transform 160ms ease;
 }
 
+.menu-repo-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 42%, transparent);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.menu-repo-link:hover {
+  color: var(--accent);
+}
+
 .app-menu.open {
   transform: translateX(0);
 }
