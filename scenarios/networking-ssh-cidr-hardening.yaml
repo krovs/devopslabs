@@ -16,6 +16,23 @@ files:
     - Bastion SSH is TCP 22 from 203.0.113.0/24 only.
     - Private instance SSH source is the bastion security group.
     - Private instances do not allow SSH directly from 0.0.0.0/0.
+solution:
+  summary: |
+    Restrict bastion SSH access to the corporate office CIDR and avoid exposing private instances.
+  steps:
+    - SSH should not be open to the internet.
+    - Bastion access can be limited to the corporate office CIDR.
+    - Private instances should trust the bastion security group, not public CIDRs.
+  explanation: |
+    Networking SSH CIDR Hardening is complete because the final state now addresses the original failure: Restrict bastion SSH access to the corporate office CIDR and avoid exposing private instances.
+    
+    Key takeaway: Private instances should trust the bastion security group, not public CIDRs. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+  outcome: |
+    Networking SSH CIDR Hardening: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+  apply: networkingControls
+  commands:
+    - Set diagram controls to the expected values
+    - Check design
 backend:
   bucket: network-design
   key: ssh-cidr-hardening

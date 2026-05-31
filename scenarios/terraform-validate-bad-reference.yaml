@@ -29,6 +29,32 @@ files:
     output "bucket_name" {
       value = aws_s3_bucket.log.bucket
     }
+solution:
+  summary: |
+    Validation fails because an output references a resource name that does not exist.
+  steps:
+    - Run terraform validate to see the broken reference.
+    - The resource is named aws_s3_bucket.logs.
+    - The output currently references aws_s3_bucket.log.
+    - Fix the output reference, then validate again.
+    - A clean plan completes the lab.
+  explanation: |
+    Terraform Validate Bad Reference is complete because the final state now addresses the original failure: Validation fails because an output references a resource name that does not exist.
+    
+    Key takeaway: A clean plan completes the lab. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+  outcome: |
+    Terraform Validate Bad Reference: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+  focusFileName: main.tf
+  replacements:
+    - fileName: main.tf
+      search: |
+        aws_s3_bucket.log.bucket
+      replace: |
+        aws_s3_bucket.logs.bucket
+  commands:
+    - terraform init
+    - terraform validate
+    - terraform plan
 backend:
   bucket: tf-state-training
   key: validate/logs.tfstate

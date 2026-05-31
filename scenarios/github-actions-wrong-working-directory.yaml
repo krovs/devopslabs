@@ -29,6 +29,30 @@ files:
           - run: terraform fmt -check
           - run: terraform init
           - run: terraform validate
+solution:
+  summary: |
+    A Terraform validation workflow fails because it runs from the wrong folder.
+  steps:
+    - Inspect the failed run output to find the command that fails.
+    - The repository resources view shows the Terraform code is under infra/dev.
+    - The workflow currently uses infra/prod as the working directory.
+    - Change the workflow working-directory to infra/dev.
+    - Re-run the workflow and verify the latest run is passing.
+  explanation: |
+    GitHub Actions Wrong Working Directory is complete because the final state now addresses the original failure: A Terraform validation workflow fails because it runs from the wrong folder.
+    
+    Key takeaway: Re-run the workflow and verify the latest run is passing. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+  outcome: |
+    GitHub Actions Wrong Working Directory: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+  focusFileName: .github/workflows/terraform-check.yml
+  replacements:
+    - fileName: .github/workflows/terraform-check.yml
+      search: |
+        working-directory: infra/prod
+      replace: |
+        working-directory: infra/dev
+  commands:
+    - gh run rerun
 backend:
   bucket: github-actions
   key: terraform-check.yml

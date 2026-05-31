@@ -20,6 +20,40 @@ files:
       include_global_service_events = false
       enable_log_file_validation    = false
     }
+solution:
+  summary: |
+    A governance trail exists but does not cover every region or log file validation.
+  steps:
+    - A governance trail should be multi-region.
+    - Log file validation helps detect tampering.
+    - Global service events should be included.
+  explanation: |
+    AWS Config Review CloudTrail Baseline is complete because the final state now addresses the original failure: A governance trail exists but does not cover every region or log file validation.
+    
+    Key takeaway: Global service events should be included. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
+  outcome: |
+    AWS Config Review CloudTrail Baseline: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+  focusFileName: main.tf
+  replacements:
+    - fileName: main.tf
+      search: |
+        is_multi_region_trail         = false
+      replace: |
+        is_multi_region_trail         = true
+    - fileName: main.tf
+      search: |
+        include_global_service_events = false
+      replace: |
+        include_global_service_events = true
+    - fileName: main.tf
+      search: |
+        enable_log_file_validation    = false
+      replace: |
+        enable_log_file_validation    = true
+  commands:
+    - terraform init
+    - checkov -f main.tf
+    - terraform plan
 backend:
   bucket: config-review
   key: cloudtrail-baseline

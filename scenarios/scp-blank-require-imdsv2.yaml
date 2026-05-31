@@ -16,6 +16,25 @@ files:
     - Uses ec2:MetadataHttpTokens
     - Denies when the value is optional
     - Does not deny all ec2:* actions
+solution:
+  summary: |
+    Build an SCP from scratch that prevents launching EC2 instances without IMDSv2 required.
+  steps:
+    - The relevant condition key is ec2:MetadataHttpTokens.
+    - Deny RunInstances when metadata tokens are optional.
+    - Keep the policy scoped to EC2 launch behavior.
+  explanation: |
+    SCP Blank Require IMDSv2 is complete because the final state now addresses the original failure: Build an SCP from scratch that prevents launching EC2 instances without IMDSv2 required.
+    
+    Key takeaway: Keep the policy scoped to EC2 launch behavior. In a real platform team, this prevents organization guardrails that either over-block valid operations or leave risky exceptions unmanaged.
+  outcome: |
+    SCP Blank Require IMDSv2: The organization guardrail now enforces the intended deny behavior without breaking the documented exception path.
+  focusFileName: scp.json
+  files:
+    "scp.json": |
+      { "Version": "2012-10-17", "Statement": [{ "Effect": "Deny", "Action": "ec2:RunInstances", "Resource": "arn:aws:ec2:*:*:instance/*", "Condition": { "StringEquals": { "ec2:MetadataHttpTokens": "optional" } } }] }
+  commands:
+    - check
 backend:
   bucket: governance-training
   key: scp-blank-require-imdsv2

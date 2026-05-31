@@ -27,6 +27,25 @@ files:
     app/prod-web/50dc6c495c0c9188
     Correct metric:
     AWS/ApplicationELB HTTPCode_ELB_5XX_Count
+solution:
+  summary: |
+    An ALB 5xx alarm never fires because it uses the classic ELB namespace and dimension shape.
+  steps:
+    - Describe the alarm before editing.
+    - Application Load Balancers use the AWS/ApplicationELB namespace.
+    - The dimension key should be LoadBalancer with the full app/... resource value.
+  explanation: |
+    CloudWatch ALB 5xx Alarm Dimension is complete because the final state now addresses the original failure: An ALB 5xx alarm never fires because it uses the classic ELB namespace and dimension shape.
+    
+    Key takeaway: The dimension key should be LoadBalancer with the full app/... resource value. In a real platform team, this prevents alerts and logs that exist but do not preserve the signal needed during an incident.
+  outcome: |
+    CloudWatch ALB 5xx Alarm Dimension: The telemetry configuration now preserves the signal needed for alerting, retention, or notification during an incident.
+  focusFileName: alarm.json
+  files:
+    "alarm.json": |
+      { "alarmName": "alb-5xx-prod", "namespace": "AWS/ApplicationELB", "metricName": "HTTPCode_ELB_5XX_Count", "dimensions": [{ "name": "LoadBalancer", "value": "app/prod-web/50dc6c495c0c9188" }], "threshold": 5, "evaluationPeriods": 2 }
+  commands:
+    - aws cloudwatch describe-alarms
 backend:
   bucket: observability-training
   key: alb-5xx-alarm-dimension

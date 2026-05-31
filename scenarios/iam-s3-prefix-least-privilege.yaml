@@ -30,6 +30,43 @@ files:
     Not allowed:
     - Access to team-b/*
     - s3:DeleteBucket
+solution:
+  summary: |
+    A deployment role can read and write every object in the artifacts bucket. Restrict it to the team-a prefix without breaking ListBucket.
+  steps:
+    - Simulate the policy before editing.
+    - Object actions use an object ARN with the prefix.
+    - ListBucket uses the bucket ARN and a prefix condition.
+    - Avoid s3:* and avoid Resource *.
+  explanation: |
+    IAM S3 Prefix Least Privilege is complete because the final state now addresses the original failure: A deployment role can read and write every object in the artifacts bucket. Restrict it to the team-a prefix without breaking ListBucket.
+    
+    Key takeaway: Avoid s3:* and avoid Resource *. In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
+  outcome: |
+    IAM S3 Prefix Least Privilege: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+  focusFileName: policy.json
+  files:
+    "policy.json": |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "ArtifactsList",
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::company-artifacts",
+            "Condition": { "StringLike": { "s3:prefix": "team-a/*" } }
+          },
+          {
+            "Sid": "ArtifactsObjectAccess",
+            "Effect": "Allow",
+            "Action": ["s3:GetObject", "s3:PutObject"],
+            "Resource": "arn:aws:s3:::company-artifacts/team-a/*"
+          }
+        ]
+      }
+  commands:
+    - aws iam simulate-principal-policy
 backend:
   bucket: iam-training
   key: s3-prefix-least-privilege

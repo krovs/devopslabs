@@ -31,6 +31,41 @@ files:
     - endpointSelector.matchLabels.app is worker
     - egress uses toEndpoints matching k8s-app: kube-dns
     - toPorts allows UDP port 53
+solution:
+  summary: |
+    Fix a CiliumNetworkPolicy so worker Pods can resolve DNS without opening broad egress.
+  steps:
+    - The endpoint selector should target app worker.
+    - DNS egress should go to the kube-dns endpoint.
+    - Keep the allowed port scoped to UDP 53.
+  explanation: |
+    Cilium Allow DNS Egress is complete because the final state now addresses the original failure: Fix a CiliumNetworkPolicy so worker Pods can resolve DNS without opening broad egress.
+    
+    Key takeaway: Keep the allowed port scoped to UDP 53. In a real platform team, this prevents cluster guardrails that look documented but are not enforced or testable as code.
+  outcome: |
+    Cilium Allow DNS Egress: The policy-as-code guardrail now enforces the intended Kubernetes, mesh, or network behavior and is testable before rollout.
+  focusFileName: policy.yaml
+  files:
+    "policy.yaml": |
+      apiVersion: cilium.io/v2
+      kind: CiliumNetworkPolicy
+      metadata:
+        name: allow-dns-egress
+        namespace: platform
+      spec:
+        endpointSelector:
+          matchLabels:
+            app: worker
+        egress:
+          - toEndpoints:
+              - matchLabels:
+                  k8s-app: kube-dns
+            toPorts:
+              - ports:
+                  - port: "53"
+                    protocol: UDP
+  commands:
+    - kubectl apply --dry-run=server -f policy.yaml
 backend:
   bucket: policy-as-code
   key: cilium-allow-dns-egress

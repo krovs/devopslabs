@@ -39,6 +39,31 @@ files:
         Name = var.name
       }
     }
+solution:
+  summary: |
+    Terraform init fails because the root module points at a module directory that does not exist.
+  steps:
+    - Run terraform init to see where Terraform is looking for the child module.
+    - The file tabs show the real module path is modules/network/main.tf.
+    - Fix the module source path in main.tf.
+    - Run terraform init again after correcting source.
+    - A clean plan completes the lab.
+  explanation: |
+    Terraform Module Wrong Source Path is complete because the final state now addresses the original failure: Terraform init fails because the root module points at a module directory that does not exist.
+    
+    Key takeaway: A clean plan completes the lab. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+  outcome: |
+    Terraform Module Wrong Source Path: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+  focusFileName: main.tf
+  replacements:
+    - fileName: main.tf
+      search: |
+        source = "./module/network"
+      replace: |
+        source = "./modules/network"
+  commands:
+    - terraform init
+    - terraform plan
 backend:
   bucket: tf-state-training
   key: modules/network.tfstate

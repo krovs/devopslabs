@@ -16,6 +16,23 @@ files:
     - App subnets can use NAT for outbound updates.
     - Database subnets must stay isolated from internet egress.
     - App subnets reach database subnets through the local VPC route.
+solution:
+  summary: |
+    Keep database subnets isolated while allowing app subnets to reach them inside the VPC.
+  steps:
+    - Database subnets should not have a default route to IGW or NAT.
+    - App to database traffic stays on the local VPC route.
+    - The database route table should only need the local VPC route for this lab.
+  explanation: |
+    Networking Database Subnet Isolation is complete because the final state now addresses the original failure: Keep database subnets isolated while allowing app subnets to reach them inside the VPC.
+    
+    Key takeaway: The database route table should only need the local VPC route for this lab. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+  outcome: |
+    Networking Database Subnet Isolation: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+  apply: networkingControls
+  commands:
+    - Set diagram controls to the expected values
+    - Check design
 backend:
   bucket: network-design
   key: vpc-db-isolation

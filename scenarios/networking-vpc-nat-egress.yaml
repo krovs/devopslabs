@@ -16,6 +16,23 @@ files:
     - NAT gateway must be placed in a public subnet.
     - Private subnet 0.0.0.0/0 routes to NAT.
     - Public subnet 0.0.0.0/0 routes to IGW.
+solution:
+  summary: |
+    Configure private subnet outbound internet through a NAT gateway while keeping inbound access private.
+  steps:
+    - NAT gateways live in public subnets.
+    - Private subnet default routes point to NAT, not IGW.
+    - Public subnet default routes point to IGW.
+  explanation: |
+    Networking Private Subnet NAT Egress is complete because the final state now addresses the original failure: Configure private subnet outbound internet through a NAT gateway while keeping inbound access private.
+    
+    Key takeaway: Public subnet default routes point to IGW. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+  outcome: |
+    Networking Private Subnet NAT Egress: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+  apply: networkingControls
+  commands:
+    - Set diagram controls to the expected values
+    - Check design
 backend:
   bucket: network-design
   key: vpc-nat-egress

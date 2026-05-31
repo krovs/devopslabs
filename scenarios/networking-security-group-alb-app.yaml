@@ -16,6 +16,23 @@ files:
     - ALB security group allows inbound TCP 443 from 0.0.0.0/0.
     - App security group allows inbound TCP 8080 only from the ALB security group.
     - App security group must not allow inbound traffic directly from 0.0.0.0/0.
+solution:
+  summary: |
+    Fix security group rules so internet traffic reaches the ALB and only the ALB can reach the application instances.
+  steps:
+    - Users reach the ALB on HTTPS.
+    - App instances should allow port 8080 only from the ALB security group.
+    - Do not open app instances directly to the internet.
+  explanation: |
+    Networking ALB to App Security Group is complete because the final state now addresses the original failure: Fix security group rules so internet traffic reaches the ALB and only the ALB can reach the application instances.
+    
+    Key takeaway: Do not open app instances directly to the internet. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+  outcome: |
+    Networking ALB to App Security Group: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+  apply: networkingControls
+  commands:
+    - Set diagram controls to the expected values
+    - Check design
 backend:
   bucket: network-design
   key: sg-alb-app

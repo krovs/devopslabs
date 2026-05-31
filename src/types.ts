@@ -114,6 +114,12 @@ export type PrReviewModel = {
   findings: PrFinding[];
 };
 
+export type ScenarioSolutionReplacement = {
+  fileName: string;
+  search: string;
+  replace: string;
+};
+
 export type Scenario = {
   id: string;
   kind?: "terraform" | "terragrunt" | "cicd" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops" | "policy";
@@ -122,10 +128,15 @@ export type Scenario = {
   primaryFile?: string;
   tips?: string[];
   solution?: {
+    apply?: "networkingControls" | "prReview" | string;
     summary?: string;
     steps?: string[];
     commands?: string[];
     explanation?: string;
+    outcome?: string;
+    files?: Record<string, string>;
+    replacements?: ScenarioSolutionReplacement[];
+    focusFileName?: string;
   };
   files: Record<string, string>;
   backend: Backend;

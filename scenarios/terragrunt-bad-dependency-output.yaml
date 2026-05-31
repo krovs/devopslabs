@@ -64,6 +64,31 @@ files:
       name   = "orders-api"
       vpc_id = var.vpc_id
     }
+solution:
+  summary: |
+    An app stack depends on network.outputs.vpc_id, but the dependency mock exposes the wrong output name.
+  steps:
+    - Run terragrunt run-all plan to see which dependency output is missing.
+    - The app stack reads dependency.network.outputs.vpc_id.
+    - Open the network stack tab and check mock_outputs.
+    - Rename vpcID to vpc_id, then run terragrunt validate and run-all plan.
+  explanation: |
+    Terragrunt Bad Dependency Output is complete because the final state now addresses the original failure: An app stack depends on network.outputs.vpc_id, but the dependency mock exposes the wrong output name.
+    
+    Key takeaway: Rename vpcID to vpc_id, then run terragrunt validate and run-all plan. In a real platform team, this prevents multi-stack drift from broken includes, source paths, dependency outputs, or formatting gates.
+  outcome: |
+    Terragrunt Bad Dependency Output: The Terragrunt stack now resolves its source, inherited settings, dependency values, and validation path correctly.
+  focusFileName: live/dev/network/terragrunt.hcl
+  replacements:
+    - fileName: live/dev/network/terragrunt.hcl
+      search: |
+        vpcID
+      replace: |
+        vpc_id
+  commands:
+    - terragrunt init
+    - terragrunt validate
+    - terragrunt run-all plan
 backend:
   bucket: tf-state-training
   key: live/dev/app/terraform.tfstate

@@ -24,6 +24,29 @@ files:
 
     Target scope:
     /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports
+solution:
+  summary: |
+    An Azure managed identity has subscription Owner access but only needs read access to one storage container.
+  steps:
+    - Inspect the role assignment before editing.
+    - Use the smallest built-in role that can read blob data.
+    - Scope the assignment to the reports container, not the subscription.
+  explanation: |
+    Azure Blob Reader Scope is complete because the final state now addresses the original failure: An Azure managed identity has subscription Owner access but only needs read access to one storage container.
+    
+    Key takeaway: Scope the assignment to the reports container, not the subscription. In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
+  outcome: |
+    Azure Blob Reader Scope: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+  focusFileName: role-assignment.json
+  files:
+    "role-assignment.json": |
+      {
+        "principalName": "reporting-api",
+        "roleDefinitionName": "Storage Blob Data Reader",
+        "scope": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports"
+      }
+  commands:
+    - az role assignment list
 backend:
   bucket: iam-training
   key: azure-blob-reader-scope

@@ -16,6 +16,23 @@ files:
     - Inbound TCP 443 is allowed from clients.
     - Outbound ephemeral TCP ports 1024-65535 are allowed back to clients.
     - Do not allow all inbound ports.
+solution:
+  summary: |
+    Fix a network ACL that allows inbound HTTPS but blocks return traffic from private app subnets.
+  steps:
+    - NACLs are stateless.
+    - Return traffic needs an outbound ephemeral port rule.
+    - Security groups are stateful, NACLs are not.
+  explanation: |
+    Networking NACL Ephemeral Return Traffic is complete because the final state now addresses the original failure: Fix a network ACL that allows inbound HTTPS but blocks return traffic from private app subnets.
+    
+    Key takeaway: Security groups are stateful, NACLs are not. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+  outcome: |
+    Networking NACL Ephemeral Return Traffic: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+  apply: networkingControls
+  commands:
+    - Set diagram controls to the expected values
+    - Check design
 backend:
   bucket: network-design
   key: nacl-ephemeral-return

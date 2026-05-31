@@ -39,6 +39,33 @@ files:
     resource "aws_sqs_queue" "this" {
       name = "${var.environment}-${var.name}"
     }
+solution:
+  summary: |
+    A child module requires environment, but the root module does not pass it.
+  steps:
+    - Run terraform validate to identify the missing argument.
+    - Open modules/queue/main.tf to inspect required variables.
+    - The module requires environment.
+    - Pass environment = "dev" from the root module.
+    - Validate and plan again.
+  explanation: |
+    Terraform Module Missing Required Variable is complete because the final state now addresses the original failure: A child module requires environment, but the root module does not pass it.
+    
+    Key takeaway: Validate and plan again. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+  outcome: |
+    Terraform Module Missing Required Variable: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+  focusFileName: main.tf
+  replacements:
+    - fileName: main.tf
+      search: |
+        name   = "orders"
+      replace: |
+        name        = "orders"
+          environment = "dev"
+  commands:
+    - terraform init
+    - terraform validate
+    - terraform plan
 backend:
   bucket: tf-state-training
   key: modules/queue.tfstate

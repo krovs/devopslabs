@@ -19,6 +19,25 @@ files:
   "current-alb.txt": |
     dnsName: app-prod-456.eu-west-1.elb.amazonaws.com
     hostedZoneId: Z32O12XQLNTSW2
+solution:
+  summary: |
+    The application hostname resolves to an old load balancer instead of the current ALB alias target.
+  steps:
+    - Apex and app records should use Route 53 alias records for AWS load balancers.
+    - The target must be the current ALB DNS name and hosted zone ID.
+    - Enable evaluateTargetHealth for the alias.
+  explanation: |
+    DNS Route 53 ALB Alias is complete because the final state now addresses the original failure: The application hostname resolves to an old load balancer instead of the current ALB alias target.
+    
+    Key takeaway: Enable evaluateTargetHealth for the alias. In a real platform team, this prevents routing and certificate failures where one wrong region, record, or alias breaks the whole request path.
+  outcome: |
+    DNS Route 53 ALB Alias: The request path now resolves through the intended DNS or certificate configuration instead of failing on record, alias, or region mismatch.
+  focusFileName: route53-record.json
+  files:
+    "route53-record.json": |
+      { "name": "app.example.com", "type": "A", "value": "app-prod-456.eu-west-1.elb.amazonaws.com", "aliasHostedZoneId": "Z32O12XQLNTSW2", "evaluateTargetHealth": true }
+  commands:
+    - dig app.example.com
 backend:
   bucket: dns-training
   key: route53-alb-alias

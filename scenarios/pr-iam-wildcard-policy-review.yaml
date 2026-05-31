@@ -29,6 +29,24 @@ files:
     - The app failed to read prod/db/password.
     - It should only read the production database password secret.
     - Secret rotation and deletion permissions are not required.
+solution:
+  summary: |
+    Review an IAM policy change that fixes an access issue by adding broad Secrets Manager permissions.
+  steps:
+    - Compare the app requirement with the proposed action and resource scope.
+    - The app needs one secret, not every secret in the account.
+    - The correct review should request changes and identify both wildcard action and wildcard resource.
+  explanation: |
+    PR Review IAM Wildcard Policy is complete because the final state now addresses the original failure: Review an IAM policy change that fixes an access issue by adding broad Secrets Manager permissions.
+    
+    Key takeaway: The correct review should request changes and identify both wildcard action and wildcard resource. In a real platform team, this prevents risky changes being approved because review findings focus on context instead of the actual blast radius.
+  outcome: |
+    PR Review IAM Wildcard Policy: The review now blocks the risky change with the right decision and findings while leaving harmless context unflagged.
+  apply: prReview
+  commands:
+    - Select the expected review decision
+    - Select only required findings
+    - Submit review
 backend:
   bucket: pr-review
   key: iam-wildcard-policy

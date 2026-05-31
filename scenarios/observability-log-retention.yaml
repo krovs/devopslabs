@@ -18,6 +18,25 @@ files:
     Required:
     - /aws/ecs/payments-api must retain logs for 30 days
     - Keep the existing KMS key
+solution:
+  summary: |
+    An ECS service log group keeps logs forever and is driving avoidable storage growth.
+  steps:
+    - Inspect the log group before editing.
+    - Production app logs should have an explicit retention period.
+    - Set payments-api retention to 30 days.
+  explanation: |
+    CloudWatch Log Retention is complete because the final state now addresses the original failure: An ECS service log group keeps logs forever and is driving avoidable storage growth.
+    
+    Key takeaway: Set payments-api retention to 30 days. In a real platform team, this prevents alerts and logs that exist but do not preserve the signal needed during an incident.
+  outcome: |
+    CloudWatch Log Retention: The telemetry configuration now preserves the signal needed for alerting, retention, or notification during an incident.
+  focusFileName: log-group.json
+  files:
+    "log-group.json": |
+      { "logGroupName": "/aws/ecs/payments-api", "retentionInDays": 30, "kmsKeyId": "alias/logs-kms" }
+  commands:
+    - aws logs describe-log-groups
 backend:
   bucket: observability-training
   key: cloudwatch-log-retention

@@ -22,6 +22,25 @@ files:
     Required validation CNAME:
     _a1b2.example.com -> _c3d4.acm-validations.aws
     Required hosted zone: example.com
+solution:
+  summary: |
+    A CloudFront wildcard certificate is stuck pending because the DNS validation record is in the wrong hosted zone.
+  steps:
+    - CloudFront viewer certificates must be issued in us-east-1.
+    - Wildcard certificates validate with the exact CNAME ACM provides.
+    - Put the validation CNAME in the public example.com hosted zone.
+  explanation: |
+    DNS ACM Wildcard Validation is complete because the final state now addresses the original failure: A CloudFront wildcard certificate is stuck pending because the DNS validation record is in the wrong hosted zone.
+    
+    Key takeaway: Put the validation CNAME in the public example.com hosted zone. In a real platform team, this prevents routing and certificate failures where one wrong region, record, or alias breaks the whole request path.
+  outcome: |
+    DNS ACM Wildcard Validation: The request path now resolves through the intended DNS or certificate configuration instead of failing on record, alias, or region mismatch.
+  focusFileName: certificate.json
+  files:
+    "certificate.json": |
+      { "domainName": "*.example.com", "region": "us-east-1", "status": "ISSUED", "validationRecordName": "_a1b2.example.com", "validationRecordValue": "_c3d4.acm-validations.aws", "hostedZone": "example.com" }
+  commands:
+    - aws acm describe-certificate
 backend:
   bucket: dns-training
   key: acm-wildcard-validation

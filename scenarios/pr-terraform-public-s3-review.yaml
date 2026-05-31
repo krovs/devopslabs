@@ -32,6 +32,24 @@ files:
     - Bucket stores production build artifacts.
     - Public object access is not required.
     - Security gate requires public access block before merge.
+solution:
+  summary: |
+    Review a Terraform change that adds an artifacts bucket with risky public access settings.
+  steps:
+    - Review the resource arguments, not only the PR title.
+    - A public ACL and missing public access block should not be approved for artifact storage.
+    - The correct review should request changes and mention the S3 exposure.
+  explanation: |
+    PR Review Terraform Public S3 is complete because the final state now addresses the original failure: Review a Terraform change that adds an artifacts bucket with risky public access settings.
+    
+    Key takeaway: The correct review should request changes and mention the S3 exposure. In a real platform team, this prevents risky changes being approved because review findings focus on context instead of the actual blast radius.
+  outcome: |
+    PR Review Terraform Public S3: The review now blocks the risky change with the right decision and findings while leaving harmless context unflagged.
+  apply: prReview
+  commands:
+    - Select the expected review decision
+    - Select only required findings
+    - Submit review
 backend:
   bucket: pr-review
   key: terraform-public-s3

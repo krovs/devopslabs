@@ -69,6 +69,43 @@ files:
       containers:
         - name: app
           image: nginx:1.27
+solution:
+  summary: |
+    Fix a Kyverno ClusterPolicy so Pods without the app label are rejected by the admission policy test.
+  steps:
+    - The policy should validate Pod metadata labels.
+    - Use validationFailureAction Enforce so the policy blocks bad resources.
+    - The pattern needs app: "?*" under metadata.labels.
+  explanation: |
+    Kyverno Require App Label is complete because the final state now addresses the original failure: Fix a Kyverno ClusterPolicy so Pods without the app label are rejected by the admission policy test.
+    
+    Key takeaway: The pattern needs app: "?*" under metadata.labels. In a real platform team, this prevents cluster guardrails that look documented but are not enforced or testable as code.
+  outcome: |
+    Kyverno Require App Label: The policy-as-code guardrail now enforces the intended Kubernetes, mesh, or network behavior and is testable before rollout.
+  focusFileName: policy.yaml
+  files:
+    "policy.yaml": |
+      apiVersion: kyverno.io/v1
+      kind: ClusterPolicy
+      metadata:
+        name: require-app-label
+      spec:
+        validationFailureAction: Enforce
+        rules:
+          - name: require-app-label
+            match:
+              any:
+                - resources:
+                    kinds:
+                      - Pod
+            validate:
+              message: Pods must define the app label.
+              pattern:
+                metadata:
+                  labels:
+                    app: "?*"
+  commands:
+    - kyverno test .
 backend:
   bucket: policy-as-code
   key: kyverno-require-app-label

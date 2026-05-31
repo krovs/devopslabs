@@ -24,6 +24,31 @@ files:
       runtime       = "nodejs20.x"
       filename      = "function.zip"
     }
+solution:
+  summary: |
+    Find the missing log retention setting that will keep production logs forever.
+  steps:
+    - CloudWatch log groups retain logs forever unless retention is set.
+    - The policy requires 30 days for this service.
+    - Fix the log group, not the Lambda function.
+  explanation: |
+    AWS Config Review CloudWatch Retention is complete because the final state now addresses the original failure: Find the missing log retention setting that will keep production logs forever.
+    
+    Key takeaway: Fix the log group, not the Lambda function. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
+  outcome: |
+    AWS Config Review CloudWatch Retention: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+  focusFileName: main.tf
+  replacements:
+    - fileName: main.tf
+      search: |
+        name = "/aws/lambda/prod-api"
+      replace: |
+        name              = "/aws/lambda/prod-api"
+          retention_in_days = 30
+  commands:
+    - terraform init
+    - checkov -f main.tf
+    - terraform plan
 backend:
   bucket: config-review
   key: cloudwatch-retention

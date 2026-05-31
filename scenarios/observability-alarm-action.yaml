@@ -21,6 +21,25 @@ files:
   "target.txt": |
     Required notification topic:
     arn:aws:sns:eu-west-1:123456789012:oncall-critical
+solution:
+  summary: |
+    A critical latency alarm enters ALARM state but never notifies the on-call SNS topic.
+  steps:
+    - Describe the alarm to confirm whether it has actions.
+    - Critical alarms need an alarm action.
+    - Add the on-call SNS topic to both alarmActions and okActions.
+  explanation: |
+    CloudWatch Alarm Missing Action is complete because the final state now addresses the original failure: A critical latency alarm enters ALARM state but never notifies the on-call SNS topic.
+    
+    Key takeaway: Add the on-call SNS topic to both alarmActions and okActions. In a real platform team, this prevents alerts and logs that exist but do not preserve the signal needed during an incident.
+  outcome: |
+    CloudWatch Alarm Missing Action: The telemetry configuration now preserves the signal needed for alerting, retention, or notification during an incident.
+  focusFileName: alarm.json
+  files:
+    "alarm.json": |
+      { "alarmName": "api-latency-critical", "namespace": "AWS/ApplicationELB", "metricName": "TargetResponseTime", "threshold": 1.5, "evaluationPeriods": 3, "alarmActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"], "okActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"] }
+  commands:
+    - aws cloudwatch describe-alarms
 backend:
   bucket: observability-training
   key: alarm-missing-action

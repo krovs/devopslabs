@@ -31,6 +31,39 @@ files:
     resource "aws_sns_topic" "app" {
       name = var.name
     }
+solution:
+  summary: |
+    A pull request gate fails because terragrunt hclfmt detects unformatted Terragrunt configuration.
+  steps:
+    - Run terragrunt hclfmt to see which file fails formatting.
+    - Use normal multi-line HCL blocks for include, terraform, and inputs.
+    - The module source should stay ../../../modules/app.
+    - Run terragrunt hclfmt and terragrunt plan after fixing the file.
+  explanation: |
+    Terragrunt HCL Formatting Gate is complete because the final state now addresses the original failure: A pull request gate fails because terragrunt hclfmt detects unformatted Terragrunt configuration.
+    
+    Key takeaway: Run terragrunt hclfmt and terragrunt plan after fixing the file. In a real platform team, this prevents multi-stack drift from broken includes, source paths, dependency outputs, or formatting gates.
+  outcome: |
+    Terragrunt HCL Formatting Gate: The Terragrunt stack now resolves its source, inherited settings, dependency values, and validation path correctly.
+  focusFileName: live/dev/app/terragrunt.hcl
+  files:
+    "live/dev/app/terragrunt.hcl": |
+      include "root" {
+        path = find_in_parent_folders()
+      }
+      
+      terraform {
+        source = "../../../modules/app"
+      }
+      
+      inputs = {
+        name = "orders-api"
+      }
+  commands:
+    - terragrunt init
+    - terragrunt hclfmt
+    - terragrunt validate
+    - terragrunt plan
 backend:
   bucket: tf-state-training
   key: live/dev/app/terraform.tfstate

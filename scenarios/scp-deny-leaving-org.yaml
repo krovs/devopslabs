@@ -25,6 +25,25 @@ files:
     - Deny organizations:LeaveOrganization for all member accounts
     - Do not deny read-only Organizations actions
     - Avoid Action "*" and Resource "*"
+solution:
+  summary: |
+    Member accounts can leave the AWS Organization because the baseline SCP does not deny LeaveOrganization.
+  steps:
+    - SCPs set guardrails; they do not grant permissions.
+    - Use an explicit Deny for organizations:LeaveOrganization.
+    - Keep the deny scoped to the specific action instead of denying all Organizations APIs.
+  explanation: |
+    SCP Deny Leaving Organization is complete because the final state now addresses the original failure: Member accounts can leave the AWS Organization because the baseline SCP does not deny LeaveOrganization.
+    
+    Key takeaway: Keep the deny scoped to the specific action instead of denying all Organizations APIs. In a real platform team, this prevents organization guardrails that either over-block valid operations or leave risky exceptions unmanaged.
+  outcome: |
+    SCP Deny Leaving Organization: The organization guardrail now enforces the intended deny behavior without breaking the documented exception path.
+  focusFileName: scp.json
+  files:
+    "scp.json": |
+      { "Version": "2012-10-17", "Statement": [{ "Effect": "Deny", "Action": "organizations:LeaveOrganization", "Resource": "arn:aws:organizations::*" }] }
+  commands:
+    - aws iam simulate-principal-policy
 backend:
   bucket: governance-training
   key: scp-deny-leaving-org

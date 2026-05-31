@@ -49,6 +49,29 @@ files:
             with:
               role-to-assume: arn:aws:iam::123456789012:role/prod-deploy
               aws-region: eu-west-1
+solution:
+  summary: |
+    A production deploy role accepts too many GitHub OIDC subjects. Lock it to the production environment.
+  steps:
+    - The workflow deploys through the production environment.
+    - Keep the audience condition set to sts.amazonaws.com.
+    - The subject should use environment:production, not a wildcard.
+    - Do not trust every branch in the repository.
+  explanation: |
+    IAM GitHub OIDC Environment Trust is complete because the final state now addresses the original failure: A production deploy role accepts too many GitHub OIDC subjects. Lock it to the production environment.
+    
+    Key takeaway: Do not trust every branch in the repository. In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
+  outcome: |
+    IAM GitHub OIDC Environment Trust: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+  focusFileName: trust-policy.json
+  replacements:
+    - fileName: trust-policy.json
+      search: |
+        repo:acme/platform:*
+      replace: |
+        repo:acme/platform:environment:production
+  commands:
+    - aws sts assume-role-with-web-identity
 backend:
   bucket: iam-training
   key: github-oidc-environment-trust

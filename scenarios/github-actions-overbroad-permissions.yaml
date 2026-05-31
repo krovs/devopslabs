@@ -25,6 +25,32 @@ files:
         steps:
           - uses: actions/checkout@v4
           - run: echo "deploy"
+solution:
+  summary: |
+    actionlint blocks a deploy workflow because it grants write-all permissions at workflow scope.
+  steps:
+    - Run gh run view to inspect the lint failure.
+    - The workflow grants permissions: write-all.
+    - Replace write-all with only the permissions the job needs.
+    - OIDC deployment usually needs id-token: write and contents: read.
+    - Re-run the workflow after fixing the permissions block.
+  explanation: |
+    GitHub Actions Overbroad Permissions is complete because the final state now addresses the original failure: actionlint blocks a deploy workflow because it grants write-all permissions at workflow scope.
+    
+    Key takeaway: Re-run the workflow after fixing the permissions block. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+  outcome: |
+    GitHub Actions Overbroad Permissions: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+  focusFileName: .github/workflows/deploy-permissions.yml
+  replacements:
+    - fileName: .github/workflows/deploy-permissions.yml
+      search: |
+        permissions: write-all
+      replace: |
+        permissions:
+          id-token: write
+          contents: read
+  commands:
+    - gh run rerun
 backend:
   bucket: github-actions
   key: deploy-permissions.yml

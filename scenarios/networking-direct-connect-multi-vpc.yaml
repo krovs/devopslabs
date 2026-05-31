@@ -16,6 +16,23 @@ files:
     - Use Direct Connect gateway plus Transit Gateway for multiple VPCs.
     - Associate workload VPC attachments with the production TGW route table.
     - Propagate the on-prem route into the production TGW route table.
+solution:
+  summary: |
+    Connect a company network to multiple AWS VPCs through Direct Connect, a DX gateway, and a transit gateway.
+  steps:
+    - Direct Connect gateway connects the private VIF to the transit gateway.
+    - VPC attachments need the right TGW route table association.
+    - Shared services should be reachable from on-prem and spoke VPCs.
+  explanation: |
+    Networking Direct Connect Multi-VPC Routing is complete because the final state now addresses the original failure: Connect a company network to multiple AWS VPCs through Direct Connect, a DX gateway, and a transit gateway.
+    
+    Key takeaway: Shared services should be reachable from on-prem and spoke VPCs. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+  outcome: |
+    Networking Direct Connect Multi-VPC Routing: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+  apply: networkingControls
+  commands:
+    - Set diagram controls to the expected values
+    - Check design
 backend:
   bucket: network-design
   key: direct-connect-multi-vpc

@@ -32,6 +32,31 @@ files:
         cidr_blocks = ["10.0.0.0/16"]
       }
     }
+solution:
+  summary: |
+    Someone changed a security group rule outside Terraform. Bring code and reality back into agreement.
+  steps:
+    - Initialize Terraform before checking the plan.
+    - terraform plan reports the exact drift between state and AWS.
+    - The fake AWS resource view says the actual ingress CIDR is 0.0.0.0/0.
+    - For this scenario, accept the manual change by updating main.tf to use cidr_blocks = ["0.0.0.0/0"].
+    - Save the file, then run terraform plan again.
+  explanation: |
+    Manual Security Group Drift is complete because the final state now addresses the original failure: Someone changed a security group rule outside Terraform. Bring code and reality back into agreement.
+    
+    Key takeaway: Save the file, then run terraform plan again. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+  outcome: |
+    Manual Security Group Drift: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+  focusFileName: main.tf
+  replacements:
+    - fileName: main.tf
+      search: |
+        cidr_blocks = ["10.0.0.0/16"]
+      replace: |
+        cidr_blocks = ["0.0.0.0/0"]
+  commands:
+    - terraform init
+    - terraform plan
 backend:
   bucket: tf-state-training
   key: network/web.tfstate

@@ -30,6 +30,30 @@ files:
               }
               EOF
           - run: checkov -f main.tf
+solution:
+  summary: |
+    A pull request workflow fails because the Checkov IaC security scan detects a public S3 bucket.
+  steps:
+    - Start with gh run view to inspect the failed step.
+    - The workflow itself is fine; the security finding is in the Terraform snippet.
+    - The scan fails because acl is public-read.
+    - Change the workflow's inline Terraform example to use acl = "private".
+    - Re-run the workflow.
+  explanation: |
+    GitHub Actions Checkov Gate is complete because the final state now addresses the original failure: A pull request workflow fails because the Checkov IaC security scan detects a public S3 bucket.
+    
+    Key takeaway: Re-run the workflow. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+  outcome: |
+    GitHub Actions Checkov Gate: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+  focusFileName: .github/workflows/iac-security.yml
+  replacements:
+    - fileName: .github/workflows/iac-security.yml
+      search: |
+        acl    = "public-read"
+      replace: |
+        acl    = "private"
+  commands:
+    - gh run rerun
 backend:
   bucket: github-actions
   key: iac-security.yml

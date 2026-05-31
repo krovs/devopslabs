@@ -35,6 +35,34 @@ files:
     - spec.podSelector selects every Pod
     - policyTypes includes Ingress
     - ingress has no allow rules
+solution:
+  summary: |
+    Fix a Kubernetes NetworkPolicy so every Pod in the payments namespace denies ingress by default.
+  steps:
+    - A namespace default deny policy selects every Pod with podSelector: {}.
+    - Default deny ingress has policyTypes containing Ingress and no ingress rules.
+    - Do not keep an allow rule for monitoring in the default deny policy.
+  explanation: |
+    Kubernetes Default Deny Ingress is complete because the final state now addresses the original failure: Fix a Kubernetes NetworkPolicy so every Pod in the payments namespace denies ingress by default.
+    
+    Key takeaway: Do not keep an allow rule for monitoring in the default deny policy. In a real platform team, this prevents cluster guardrails that look documented but are not enforced or testable as code.
+  outcome: |
+    Kubernetes Default Deny Ingress: The policy-as-code guardrail now enforces the intended Kubernetes, mesh, or network behavior and is testable before rollout.
+  focusFileName: policy.yaml
+  files:
+    "policy.yaml": |
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      metadata:
+        name: default-deny-ingress
+        namespace: payments
+      spec:
+        podSelector: {}
+        policyTypes:
+          - Ingress
+        ingress: []
+  commands:
+    - kubectl apply --dry-run=server -f policy.yaml
 backend:
   bucket: policy-as-code
   key: kubernetes-default-deny-ingress

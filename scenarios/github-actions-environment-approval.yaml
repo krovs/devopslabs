@@ -24,6 +24,30 @@ files:
         steps:
           - uses: actions/checkout@v4
           - run: ./deploy.sh
+solution:
+  summary: |
+    A production deploy workflow is blocked because the job targets the wrong environment name.
+  steps:
+    - gh run view shows the deployment is waiting for an environment that is not configured.
+    - Repository context shows the protected environment is production.
+    - The workflow currently targets prod.
+    - Change environment.name to production.
+    - Re-run the workflow.
+  explanation: |
+    GitHub Actions Environment Approval is complete because the final state now addresses the original failure: A production deploy workflow is blocked because the job targets the wrong environment name.
+    
+    Key takeaway: Re-run the workflow. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+  outcome: |
+    GitHub Actions Environment Approval: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+  focusFileName: .github/workflows/prod-deploy.yml
+  replacements:
+    - fileName: .github/workflows/prod-deploy.yml
+      search: |
+        name: prod
+      replace: |
+        name: production
+  commands:
+    - gh run rerun
 backend:
   bucket: github-actions
   key: prod-deploy.yml

@@ -26,6 +26,24 @@ files:
     - Maintenance access should come only from the corporate VPN CIDR 203.0.113.0/24.
     - The admin service listens on TCP 8443.
     - Internet-wide admin access is not acceptable.
+solution:
+  summary: |
+    Review a Terraform change that opens admin ingress to the internet to unblock maintenance access.
+  steps:
+    - Compare the proposed CIDR with the maintenance access requirement.
+    - The port is not the only risk; source scope matters.
+    - The correct review should request changes and identify the internet CIDR.
+  explanation: |
+    PR Review Security Group Admin CIDR is complete because the final state now addresses the original failure: Review a Terraform change that opens admin ingress to the internet to unblock maintenance access.
+    
+    Key takeaway: The correct review should request changes and identify the internet CIDR. In a real platform team, this prevents risky changes being approved because review findings focus on context instead of the actual blast radius.
+  outcome: |
+    PR Review Security Group Admin CIDR: The review now blocks the risky change with the right decision and findings while leaving harmless context unflagged.
+  apply: prReview
+  commands:
+    - Select the expected review decision
+    - Select only required findings
+    - Submit review
 backend:
   bucket: pr-review
   key: security-group-admin-cidr

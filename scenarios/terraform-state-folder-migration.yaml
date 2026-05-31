@@ -35,6 +35,25 @@ files:
     resource "aws_s3_bucket" "logs" {
       bucket = var.bucket_name
     }
+solution:
+  summary: |
+    Code was migrated into a logging module, but state still tracks the bucket at the old root address.
+  steps:
+    - Run terraform state list to see the current resource address.
+    - Run terraform plan to compare the old state address with the new module address.
+    - This is not an import problem because state already knows the remote bucket.
+    - Move the state address from aws_s3_bucket.logs to module.logging.aws_s3_bucket.logs.
+    - Run terraform plan again after the state move.
+  explanation: |
+    Terraform Folder Migration State Move is complete because the final state now addresses the original failure: Code was migrated into a logging module, but state still tracks the bucket at the old root address.
+    
+    Key takeaway: Run terraform plan again after the state move. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+  outcome: |
+    Terraform Folder Migration State Move: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+  commands:
+    - terraform init
+    - terraform state mv aws_s3_bucket.logs module.logging.aws_s3_bucket.logs
+    - terraform plan
 backend:
   bucket: tf-state-training
   key: migrations/logging.tfstate

@@ -496,7 +496,7 @@ select {
 
 .scenario-list button.scenario-difficulty,
 .lab-index-list button.scenario-difficulty {
-  background: color-mix(in srgb, var(--difficulty-color), var(--control-bg) 82%);
+  background: color-mix(in srgb, var(--difficulty-color), var(--control-bg) 91%);
 }
 
 .scenario-list button.difficulty-common,
@@ -541,13 +541,24 @@ select {
   font-weight: 800;
 }
 
+.scenario-check-empty {
+  border: 1px solid color-mix(in srgb, var(--muted) 42%, transparent);
+  background: transparent;
+  color: transparent;
+}
+
+.scenario-check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .scenario-list button.completed:not(.active) {
   border-color: var(--ok-bg);
 }
 
 .scenario-list button.active {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--difficulty-color), var(--ok-bg) 76%);
+  background: color-mix(in srgb, var(--difficulty-color), var(--ok-bg) 86%);
   color: var(--ok);
   font-weight: 700;
 }
@@ -703,6 +714,11 @@ select {
 .lab-index-providers span.provider-k8s {
   border-color: color-mix(in srgb, #326ce5 62%, transparent);
   color: #326ce5;
+}
+
+.lab-index-providers span.provider-github {
+  border-color: color-mix(in srgb, #6b7280 64%, transparent);
+  color: #9ca3af;
 }
 
 .lab-index-count {
@@ -1522,7 +1538,7 @@ th {
   padding: 12px;
   overflow: auto;
   white-space: pre-wrap;
-  color: var(--terminal-text);
+  color: color-mix(in srgb, var(--accent) 56%, var(--terminal-text));
   font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -1933,6 +1949,7 @@ th {
   gap: 8px;
   padding: 10px 12px;
   border-top: 1px solid var(--terminal-line);
+  color: color-mix(in srgb, var(--accent) 62%, var(--terminal-text));
 }
 
 .terminal-panel input {

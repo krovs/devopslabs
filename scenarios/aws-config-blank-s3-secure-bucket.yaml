@@ -16,6 +16,59 @@ files:
     - aws_s3_bucket_server_side_encryption_configuration
     - aws_s3_bucket_versioning with status = "Enabled"
     - aws_s3_bucket_public_access_block
+solution:
+  summary: |
+    Build a secure S3 bucket Terraform configuration from an empty file.
+  steps:
+    - Start with the bucket, then add the guardrail resources.
+    - The lab expects encryption, versioning, and public access block.
+    - Use Checkov before running plan.
+  explanation: |
+    AWS Config Blank S3 Secure Bucket is complete because the final state now addresses the original failure: Build a secure S3 bucket Terraform configuration from an empty file.
+    
+    Key takeaway: Use Checkov before running plan. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
+  outcome: |
+    AWS Config Blank S3 Secure Bucket: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+  focusFileName: main.tf
+  files:
+    "main.tf": |
+      provider "aws" {
+        region = "eu-west-1"
+      }
+      
+      resource "aws_s3_bucket" "secure_logs" {
+        bucket = "secure-logs"
+      }
+      
+      resource "aws_s3_bucket_server_side_encryption_configuration" "secure_logs" {
+        bucket = aws_s3_bucket.secure_logs.id
+      
+        rule {
+          apply_server_side_encryption_by_default {
+            sse_algorithm = "AES256"
+          }
+        }
+      }
+      
+      resource "aws_s3_bucket_versioning" "secure_logs" {
+        bucket = aws_s3_bucket.secure_logs.id
+      
+        versioning_configuration {
+          status = "Enabled"
+        }
+      }
+      
+      resource "aws_s3_bucket_public_access_block" "secure_logs" {
+        bucket                  = aws_s3_bucket.secure_logs.id
+        block_public_acls       = true
+        block_public_policy     = true
+        ignore_public_acls      = true
+        restrict_public_buckets = true
+      }
+  commands:
+    - terraform init
+    - checkov -f main.tf
+    - terraform plan
 backend:
   bucket: aws-config-training
   key: blank-s3-secure-bucket

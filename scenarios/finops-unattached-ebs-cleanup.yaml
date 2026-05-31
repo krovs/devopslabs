@@ -22,6 +22,25 @@ files:
     - minimumUnattachedDays: 14
     - snapshotBeforeDelete: true
     - deleteUnattached: true
+solution:
+  summary: |
+    An old unattached EBS volume is still accruing storage cost because cleanup is disabled.
+  steps:
+    - Inspect unattached volume inventory before changing cleanup.
+    - Snapshot before deleting old unattached volumes.
+    - Only delete volumes that have been unattached for at least 14 days.
+  explanation: |
+    Unattached EBS Cleanup is complete because the final state now addresses the original failure: An old unattached EBS volume is still accruing storage cost because cleanup is disabled.
+    
+    Key takeaway: Only delete volumes that have been unattached for at least 14 days. In a real platform team, this prevents small unused resources or missing lifecycle controls becoming recurring operational spend.
+  outcome: |
+    Unattached EBS Cleanup: The cost control now removes waste or adds lifecycle behavior without changing the workload requirement.
+  focusFileName: volume-cleanup.json
+  files:
+    "volume-cleanup.json": |
+      { "volumeId": "vol-0abc123", "state": "available", "unattachedDays": 41, "minimumUnattachedDays": 14, "snapshotBeforeDelete": true, "deleteUnattached": true }
+  commands:
+    - aws ec2 describe-volumes
 backend:
   bucket: finops-training
   key: unattached-ebs-cleanup

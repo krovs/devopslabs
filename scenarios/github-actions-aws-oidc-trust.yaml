@@ -50,6 +50,30 @@ files:
         }
       ]
     }
+solution:
+  summary: |
+    A deploy workflow has id-token permission, but AWS rejects AssumeRoleWithWebIdentity because the role trust policy allows the wrong branch.
+  steps:
+    - Inspect the failed run with gh run view.
+    - The workflow has id-token permission, so the failure is probably on the AWS trust side.
+    - Open trust-policy.json in the file tabs.
+    - The subject currently allows refs/heads/master, but the workflow runs from main.
+    - Change the sub condition to refs/heads/main and rerun.
+  explanation: |
+    GitHub Actions AWS OIDC Trust Policy is complete because the final state now addresses the original failure: A deploy workflow has id-token permission, but AWS rejects AssumeRoleWithWebIdentity because the role trust policy allows the wrong branch.
+    
+    Key takeaway: Change the sub condition to refs/heads/main and rerun. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+  outcome: |
+    GitHub Actions AWS OIDC Trust Policy: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+  focusFileName: trust-policy.json
+  replacements:
+    - fileName: trust-policy.json
+      search: |
+        repo:acme/platform:ref:refs/heads/master
+      replace: |
+        repo:acme/platform:ref:refs/heads/main
+  commands:
+    - gh run rerun
 backend:
   bucket: github-actions
   key: deploy-oidc.yml

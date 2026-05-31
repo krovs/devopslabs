@@ -19,6 +19,25 @@ files:
     - logs:DeleteLogGroup
     - logs:*
     - Resource *
+solution:
+  summary: |
+    Build a minimal log-writer policy from an empty file for an ECS task role.
+  steps:
+    - Log stream creation and log events need different CloudWatch Logs actions.
+    - Scope access to the payments-api log group.
+    - Avoid logs:* and Resource "*".
+  explanation: |
+    IAM Blank CloudWatch Logs Write is complete because the final state now addresses the original failure: Build a minimal log-writer policy from an empty file for an ECS task role.
+    
+    Key takeaway: Avoid logs:* and Resource "*". In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
+  outcome: |
+    IAM Blank CloudWatch Logs Write: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+  focusFileName: policy.json
+  files:
+    "policy.json": |
+      { "Version": "2012-10-17", "Statement": [{ "Effect": "Allow", "Action": ["logs:CreateLogStream", "logs:PutLogEvents"], "Resource": "arn:aws:logs:eu-west-1:123456789012:log-group:/aws/ecs/payments-api:*" }] }
+  commands:
+    - check
 backend:
   bucket: iam-training
   key: blank-cloudwatch-logs-write

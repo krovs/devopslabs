@@ -24,6 +24,25 @@ files:
     - accessLogs transitionAfterDays: 30
     - accessLogs storageClass: STANDARD_IA
     - tempExports expireTempExportsAfterDays: 14
+solution:
+  summary: |
+    A logs and exports bucket stores all data in S3 Standard forever.
+  steps:
+    - Inspect the Cost Explorer trend before editing.
+    - Transition old access logs to Standard-IA after 30 days.
+    - Temporary exports should expire after 14 days.
+  explanation: |
+    S3 Lifecycle Cost Control is complete because the final state now addresses the original failure: A logs and exports bucket stores all data in S3 Standard forever.
+    
+    Key takeaway: Temporary exports should expire after 14 days. In a real platform team, this prevents small unused resources or missing lifecycle controls becoming recurring operational spend.
+  outcome: |
+    S3 Lifecycle Cost Control: The cost control now removes waste or adds lifecycle behavior without changing the workload requirement.
+  focusFileName: lifecycle.json
+  files:
+    "lifecycle.json": |
+      { "bucket": "prod-platform-logs", "accessLogs": { "transitionAfterDays": 30, "storageClass": "STANDARD_IA" }, "tempExports": { "expireTempExportsAfterDays": 14 } }
+  commands:
+    - aws ce get-cost-and-usage
 backend:
   bucket: finops-training
   key: s3-lifecycle-cost-control

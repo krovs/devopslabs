@@ -39,6 +39,40 @@ files:
     resource "aws_s3_bucket" "this" {
       bucket = var.name
     }
+solution:
+  summary: |
+    A root module consumes an output that the child module does not expose.
+  steps:
+    - Run terraform validate to see which module attribute is unsupported.
+    - The root module expects module.logs.bucket_name.
+    - Open modules/s3/main.tf in the file tabs.
+    - Add an output named bucket_name that returns aws_s3_bucket.this.bucket.
+    - Validate and plan again after adding the output.
+  explanation: |
+    Terraform Module Missing Output is complete because the final state now addresses the original failure: A root module consumes an output that the child module does not expose.
+    
+    Key takeaway: Validate and plan again after adding the output. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+  outcome: |
+    Terraform Module Missing Output: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+  focusFileName: modules/s3/main.tf
+  replacements:
+    - fileName: modules/s3/main.tf
+      search: |
+        resource "aws_s3_bucket" "this" {
+          bucket = var.name
+        }
+      replace: |
+        resource "aws_s3_bucket" "this" {
+          bucket = var.name
+        }
+        
+        output "bucket_name" {
+          value = aws_s3_bucket.this.bucket
+        }
+  commands:
+    - terraform init
+    - terraform validate
+    - terraform plan
 backend:
   bucket: tf-state-training
   key: modules/s3.tfstate

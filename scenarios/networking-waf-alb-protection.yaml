@@ -17,6 +17,23 @@ files:
     - Default action is allow.
     - SQL injection rule action is block.
     - App instances remain private behind the ALB.
+solution:
+  summary: |
+    Attach a WAF web ACL to the public ALB and block suspicious requests while allowing normal traffic.
+  steps:
+    - WAF protects the ALB before traffic reaches targets.
+    - Default action should allow normal requests when rules block bad patterns.
+    - Managed SQL injection and common rule sets are a common baseline.
+  explanation: |
+    Networking WAF ALB Protection is complete because the final state now addresses the original failure: Attach a WAF web ACL to the public ALB and block suspicious requests while allowing normal traffic.
+    
+    Key takeaway: Managed SQL injection and common rule sets are a common baseline. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+  outcome: |
+    Networking WAF ALB Protection: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+  apply: networkingControls
+  commands:
+    - Set diagram controls to the expected values
+    - Check design
 backend:
   bucket: network-design
   key: waf-alb-protection

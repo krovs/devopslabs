@@ -39,6 +39,51 @@ files:
     - Deny all other requested regions
     - Exempt arn:aws:iam::*:role/BreakGlassAdmin
     - Do not include us-east-1 as an approved workload region
+solution:
+  summary: |
+    A region restriction SCP blocks operations inconsistently and lacks a break-glass role exception.
+  steps:
+    - Region guardrails normally use aws:RequestedRegion.
+    - Deny unsupported regions while allowing approved regions.
+    - Exempt the break-glass role by principal ARN.
+  explanation: |
+    SCP Region Restriction Break Glass is complete because the final state now addresses the original failure: A region restriction SCP blocks operations inconsistently and lacks a break-glass role exception.
+    
+    Key takeaway: Exempt the break-glass role by principal ARN. In a real platform team, this prevents organization guardrails that either over-block valid operations or leave risky exceptions unmanaged.
+  outcome: |
+    SCP Region Restriction Break Glass: The organization guardrail now enforces the intended deny behavior without breaking the documented exception path.
+  focusFileName: scp.json
+  files:
+    "scp.json": |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "DenyUnsupportedRegions",
+            "Effect": "Deny",
+            "NotAction": [
+              "iam:*",
+              "organizations:*",
+              "route53:*",
+              "cloudfront:*"
+            ],
+            "Resource": "*",
+            "Condition": {
+              "StringNotEquals": {
+                "aws:RequestedRegion": [
+                  "eu-west-1",
+                  "eu-central-1"
+                ]
+              },
+              "ArnNotLike": {
+                "aws:PrincipalArn": "arn:aws:iam::*:role/BreakGlassAdmin"
+              }
+            }
+          }
+        ]
+      }
+  commands:
+    - aws iam simulate-principal-policy
 backend:
   bucket: governance-training
   key: scp-region-restriction-break-glass

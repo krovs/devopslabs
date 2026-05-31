@@ -26,6 +26,53 @@ files:
       bucket = "training-artifacts-public"
       acl    = "public-read"
     }
+solution:
+  summary: |
+    A security scan blocks the plan because an S3 bucket allows public ACLs.
+  steps:
+    - Initialize Terraform, then run the security scanner.
+    - checkov reports the exact control that fails.
+    - The bucket currently has acl = "public-read".
+    - Change the ACL to private and add a public access block.
+    - Run checkov and terraform plan again.
+  explanation: |
+    Terraform Checkov Public S3 Finding is complete because the final state now addresses the original failure: A security scan blocks the plan because an S3 bucket allows public ACLs.
+    
+    Key takeaway: Run checkov and terraform plan again. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+  outcome: |
+    Terraform Checkov Public S3 Finding: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+  focusFileName: main.tf
+  files:
+    "main.tf": |
+      terraform {
+        backend "s3" {
+          bucket         = "tf-state-training"
+          key            = "security/s3.tfstate"
+          region         = "eu-west-1"
+          dynamodb_table = "tf-locks"
+        }
+      }
+      
+      provider "aws" {
+        region = "eu-west-1"
+      }
+      
+      resource "aws_s3_bucket" "artifacts" {
+        bucket = "training-artifacts-public"
+        acl    = "private"
+      }
+      
+      resource "aws_s3_bucket_public_access_block" "artifacts" {
+        bucket                  = aws_s3_bucket.artifacts.id
+        block_public_acls       = true
+        block_public_policy     = true
+        ignore_public_acls      = true
+        restrict_public_buckets = true
+      }
+  commands:
+    - terraform init
+    - checkov -f main.tf
+    - terraform plan
 backend:
   bucket: tf-state-training
   key: security/s3.tfstate

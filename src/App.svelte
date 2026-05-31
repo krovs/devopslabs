@@ -50,6 +50,7 @@
     commandHistory: string[];
     revealedTipCount: number;
     completedScenarioIds?: string[];
+    manuallyUncheckedScenarioIds?: string[];
   };
 
   type LegacySavedSession = {
@@ -62,6 +63,7 @@
     commandHistory: string[];
     revealedTipCount: number;
     completedScenarioIds?: string[];
+    manuallyUncheckedScenarioIds?: string[];
   };
 
   type ThemeName = "latte" | "mocha" | "dracula" | "cyberpunk";
@@ -193,9 +195,11 @@
   let terminalLines = savedSession?.terminalLines ?? [incidentMode ? `Loaded incident: ${incidentDisplayTitle(currentScenarioId)}` : `Loaded scenario: ${runtime.title}`, "Type 'help' to see available commands."];
   let terminalInput = "";
   let terminalOutput: HTMLPreElement;
+  let terminalInputElement: HTMLInputElement;
   let commandHistory: string[] = savedSession?.commandHistory ?? [];
   let revealedTipCount = savedSession?.revealedTipCount ?? 0;
   let completedScenarioIds = savedSession?.completedScenarioIds ?? [];
+  let manuallyUncheckedScenarioIds = savedSession?.manuallyUncheckedScenarioIds ?? [];
   let historyIndex = -1;
   let theme = getInitialTheme();
   let terminalHeight = getInitialTerminalHeight();
@@ -241,7 +245,7 @@
   $: selectedNetworkControls = getSelectedNetworkControls(runtime, selectedNetworkNode);
   $: networkTraces = runtime.networking?.traces ?? [];
   $: selectedTrace = getSelectedTrace(networkTraces, selectedTraceId);
-  $: if (solved && !completedScenarioIds.includes(currentScenarioId)) {
+  $: if (solved && !completedScenarioIds.includes(currentScenarioId) && !manuallyUncheckedScenarioIds.includes(currentScenarioId)) {
     completedScenarioIds = [...completedScenarioIds, currentScenarioId];
     saveSession();
   }
@@ -335,6 +339,7 @@
           commandHistory: parsed.commandHistory,
           revealedTipCount: parsed.revealedTipCount,
           completedScenarioIds: parsed.completedScenarioIds,
+          manuallyUncheckedScenarioIds: parsed.manuallyUncheckedScenarioIds,
         };
       }
 
@@ -361,6 +366,7 @@
       commandHistory,
       revealedTipCount,
       completedScenarioIds,
+      manuallyUncheckedScenarioIds,
     };
 
     localStorage.setItem(sessionStorageKey, JSON.stringify(session));
@@ -438,6 +444,18 @@
     return `${completed}/${ids.length}`;
   }
 
+  function toggleScenarioCompletion(id: string, event: Event): void {
+    event.stopPropagation();
+    if (completedScenarioIds.includes(id)) {
+      completedScenarioIds = completedScenarioIds.filter((scenarioId) => scenarioId !== id);
+      if (!manuallyUncheckedScenarioIds.includes(id)) manuallyUncheckedScenarioIds = [...manuallyUncheckedScenarioIds, id];
+    } else {
+      completedScenarioIds = [...completedScenarioIds, id];
+      manuallyUncheckedScenarioIds = manuallyUncheckedScenarioIds.filter((scenarioId) => scenarioId !== id);
+    }
+    saveSession();
+  }
+
   function scenarioDifficultyClass(id: string): string {
     return `difficulty-${scenarioDifficultyTiers[id] ?? "common"}`;
   }
@@ -511,6 +529,11 @@
 
   function handleGlobalKeydown(event: KeyboardEvent): void {
     if (event.key === "Escape") isMenuOpen = false;
+  }
+
+  function handleGlobalPointerDown(event: PointerEvent): void {
+    if (!(event.target as HTMLElement | null)?.closest(".terminal-panel")) return;
+    window.setTimeout(() => focusTerminalInput(), 0);
   }
 
   function getInitialTerminalHeight(): number {
@@ -658,6 +681,23 @@
     runtime.files[activeFileName] = value;
     runtime = runtime;
     scheduleSaveSession();
+  }
+
+  function handleEditorKeydown(event: KeyboardEvent): void {
+    if (event.key !== "Tab") return;
+    event.preventDefault();
+
+    const textarea = event.currentTarget as HTMLTextAreaElement;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const indentation = "  ";
+    const nextValue = `${textarea.value.slice(0, start)}${indentation}${textarea.value.slice(end)}`;
+
+    updateMainTf(nextValue);
+    tick().then(() => {
+      textarea.selectionStart = start + indentation.length;
+      textarea.selectionEnd = start + indentation.length;
+    });
   }
 
   function updateNetworkControl(controlId: string, value: string): void {
@@ -1070,9 +1110,14 @@
   }
 
   function applySolution(): void {
-    const terminalOutput: string[] = [];
+    const lessonSolution = scenarios[currentScenarioId].solution;
+    if (!lessonSolution) {
+      addTerminalLines(["No auto-apply solution is configured for this lab."]);
+      saveSession();
+      return;
+    }
 
-    if (runtime.kind === "networking" && runtime.networking) {
+    if (lessonSolution.apply === "networkingControls" && runtime.networking) {
       runtime.networking.controls = runtime.networking.controls.map((control) => ({
         ...control,
         value: control.answer,
@@ -1083,7 +1128,7 @@
       return;
     }
 
-    if (runtime.kind === "pr" && runtime.prReview) {
+    if (lessonSolution.apply === "prReview" && runtime.prReview) {
       runtime.prReview.decision = runtime.prReview.expectedDecision;
       runtime.prReview.findings = runtime.prReview.findings.map((finding) => ({
         ...finding,
@@ -1095,1305 +1140,31 @@
       return;
     }
 
-    if (runtime.kind === "cicd") {
-      switch (currentScenarioId) {
-        case "githubActionsMissingSecret":
-          terminalOutput.push(...githubSecretSet("AWS_ROLE_ARN"));
-          terminalOutput.push(...githubRunRerun());
-          break;
-        case "githubActionsWrongWorkingDirectory":
-          updateScenarioFiles(
-            {
-              ".github/workflows/terraform-check.yml": `name: terraform-check
+    const filePatches = { ...(lessonSolution.files ?? {}) };
+    for (const replacement of lessonSolution.replacements ?? []) {
+      const currentContent = filePatches[replacement.fileName] ?? runtime.files[replacement.fileName] ?? "";
+      if (!currentContent.includes(replacement.search)) {
+        if (currentContent.includes(replacement.replace)) continue;
 
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  validate:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: infra/dev
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - run: terraform fmt -check
-      - run: terraform init
-      - run: terraform validate
-`,
-            },
-            ".github/workflows/terraform-check.yml",
-          );
-          terminalOutput.push(...githubRunRerun());
-          break;
-        case "githubActionsAwsOidcTrust":
-          updateScenarioFiles(
-            {
-              "trust-policy.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": "repo:acme/platform:ref:refs/heads/main"
-        }
+        addTerminalLines([`Solution patch could not be applied to ${replacement.fileName}.`]);
+        saveSession();
+        return;
       }
-    }
-  ]
-}`,
-            },
-            "trust-policy.json",
-          );
-          terminalOutput.push(...githubRunRerun());
-          break;
-        case "githubActionsCheckovGate":
-          updateScenarioFiles(
-            {
-              ".github/workflows/iac-security.yml": `name: iac-security
-
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  checkov:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          cat > main.tf <<'EOF'
-          resource "aws_s3_bucket" "artifacts" {
-            bucket = "training-artifacts"
-            acl    = "private"
-          }
-          EOF
-      - run: checkov -f main.tf
-`,
-            },
-            ".github/workflows/iac-security.yml",
-          );
-          terminalOutput.push(...githubRunRerun());
-          break;
-        case "githubActionsOverbroadPermissions":
-          updateScenarioFiles(
-            {
-              ".github/workflows/deploy-permissions.yml": `name: deploy-permissions
-
-on:
-  push:
-    branches: [main]
-
-permissions:
-  id-token: write
-  contents: read
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: echo "deploy"
-`,
-            },
-            ".github/workflows/deploy-permissions.yml",
-          );
-          terminalOutput.push(...githubRunRerun());
-          break;
-        case "githubActionsNodeCachePath":
-          updateScenarioFiles(
-            {
-              ".github/workflows/node-ci.yml": `name: node-ci
-
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm test
-`,
-            },
-            ".github/workflows/node-ci.yml",
-          );
-          terminalOutput.push(...githubRunRerun());
-          break;
-        case "githubActionsDockerRegistryAuth":
-          updateScenarioFiles(
-            {
-              ".github/workflows/docker-publish.yml": `name: docker-publish
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: \${{ github.actor }}
-          password: \${{ secrets.GITHUB_TOKEN }}
-      - run: docker build -t ghcr.io/acme/app:\${{ github.sha }} .
-      - run: docker push ghcr.io/acme/app:\${{ github.sha }}
-`,
-            },
-            ".github/workflows/docker-publish.yml",
-          );
-          terminalOutput.push(...githubRunRerun());
-          break;
-        case "githubActionsEnvironmentApproval":
-          updateScenarioFiles(
-            {
-              ".github/workflows/prod-deploy.yml": `name: prod-deploy
-
-on:
-  workflow_dispatch:
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./deploy.sh
-`,
-            },
-            ".github/workflows/prod-deploy.yml",
-          );
-          terminalOutput.push(...githubRunRerun());
-          break;
-        case "githubActionsMatrixNodeVersion":
-          updateScenarioFiles(
-            {
-              ".github/workflows/test-matrix.yml": `name: test-matrix
-
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20, 22]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: \${{ matrix.node-version }}
-      - run: npm ci
-      - run: npm test
-`,
-            },
-            ".github/workflows/test-matrix.yml",
-          );
-          terminalOutput.push(...githubRunRerun());
-          break;
-        default:
-          terminalOutput.push("No auto-apply solution is configured for this workflow.");
-          break;
-      }
-
-      if (terminalOutput.length && terminalOutput[0] !== "No auto-apply solution is configured for this workflow.") {
-        addTerminalLines(terminalOutput);
-      }
-      celebrateIfScenarioCompleted();
-      saveSession();
-      return;
+      filePatches[replacement.fileName] = currentContent.replace(replacement.search, replacement.replace);
     }
 
-    if (runtime.kind === "terraform" || runtime.kind === "awsconfig" || runtime.kind === "terragrunt") {
-      switch (currentScenarioId) {
-        case "terragruntMissingInclude":
-          updateScenarioFiles(
-            {
-              "live/dev/app/terragrunt.hcl": `include "root" {
-  path = find_in_parent_folders()
-}
-
-terraform {
-  source = "../../../modules/app"
-}
-
-inputs = {
-  name = "orders-api"
-}
-`,
-            },
-            "live/dev/app/terragrunt.hcl",
-          );
-          terminalOutput.push(...terragruntInit(), ...terragruntValidate(), ...terragruntPlan());
-          break;
-        case "terragruntBadDependencyOutput":
-          updateScenarioFiles(
-            {
-              "live/dev/network/terragrunt.hcl": `include "root" {
-  path = find_in_parent_folders()
-}
-
-terraform {
-  source = "../../../modules/network"
-}
-
-mock_outputs = {
-  vpc_id = "vpc-0badcafe"
-}
-`,
-            },
-            "live/dev/network/terragrunt.hcl",
-          );
-          terminalOutput.push(...terragruntInit(), ...terragruntValidate(), ...terragruntRunAllPlan());
-          break;
-        case "terragruntWrongSourceRef":
-          updateScenarioFiles(
-            {
-              "live/dev/app/terragrunt.hcl": `include "root" {
-  path = find_in_parent_folders()
-}
-
-terraform {
-  source = "../../../modules/app"
-}
-
-inputs = {
-  name = "orders-api"
-}
-`,
-            },
-            "live/dev/app/terragrunt.hcl",
-          );
-          terminalOutput.push(...terragruntInit(), ...terragruntPlan());
-          break;
-        case "terragruntHclfmt":
-          updateScenarioFiles(
-            {
-              "live/dev/app/terragrunt.hcl": `include "root" {
-  path = find_in_parent_folders()
-}
-
-terraform {
-  source = "../../../modules/app"
-}
-
-inputs = {
-  name = "orders-api"
-}
-`,
-            },
-            "live/dev/app/terragrunt.hcl",
-          );
-          terminalOutput.push(...terragruntInit(), ...terragruntHclfmt(), ...terragruntValidate(), ...terragruntPlan());
-          break;
-        case "terraformCheckovPublicS3":
-          updateScenarioFiles(
-            {
-              "main.tf": `terraform {
-  backend "s3" {
-    bucket         = "tf-state-training"
-    key            = "security/s3.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "tf-locks"
-  }
-}
-
-provider "aws" {
-  region = "eu-west-1"
-}
-
-resource "aws_s3_bucket" "artifacts" {
-  bucket = "training-artifacts-public"
-  acl    = "private"
-}
-
-resource "aws_s3_bucket_public_access_block" "artifacts" {
-  bucket                  = aws_s3_bucket.artifacts.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
-          break;
-        case "terraformValidateBadReference":
-          updateScenarioFiles(
-            {
-              "main.tf": `terraform {
-  backend "s3" {
-    bucket         = "tf-state-training"
-    key            = "validate/logs.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "tf-locks"
-  }
-}
-
-provider "aws" {
-  region = "eu-west-1"
-}
-
-resource "aws_s3_bucket" "logs" {
-  bucket = "training-validation-logs"
-}
-
-output "bucket_name" {
-  value = aws_s3_bucket.logs.bucket
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...terraformValidate(), ...terraformPlan());
-          break;
-        case "terraformModuleMissingOutput":
-          updateScenarioFiles(
-            {
-              "modules/s3/main.tf": `variable "name" {
-  type = string
-}
-
-resource "aws_s3_bucket" "this" {
-  bucket = var.name
-}
-
-output "bucket_name" {
-  value = aws_s3_bucket.this.bucket
-}
-`,
-            },
-            "modules/s3/main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...terraformValidate(), ...terraformPlan());
-          break;
-        case "terraformModuleWrongSource":
-          updateScenarioFiles(
-            {
-              "main.tf": `terraform {
-  backend "s3" {
-    bucket         = "tf-state-training"
-    key            = "modules/network.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "tf-locks"
-  }
-}
-
-provider "aws" {
-  region = "eu-west-1"
-}
-
-module "network" {
-  source = "./modules/network"
-  name   = "training-network"
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...terraformPlan());
-          break;
-        case "terraformModuleMissingVariable":
-          updateScenarioFiles(
-            {
-              "main.tf": `terraform {
-  backend "s3" {
-    bucket         = "tf-state-training"
-    key            = "modules/queue.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "tf-locks"
-  }
-}
-
-provider "aws" {
-  region = "eu-west-1"
-}
-
-module "queue" {
-  source      = "./modules/queue"
-  name        = "orders"
-  environment = "dev"
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...terraformValidate(), ...terraformPlan());
-          break;
-        case "terraformModuleSecurityGroup":
-          updateScenarioFiles(
-            {
-              "modules/security-group/main.tf": `variable "name" {
-  type = string
-}
-
-variable "ingress_cidr" {
-  type    = string
-  default = "10.0.0.0/16"
-}
-
-resource "aws_security_group" "this" {
-  name = var.name
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [var.ingress_cidr]
-  }
-}
-`,
-            },
-            "modules/security-group/main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
-          break;
-        case "terraformStateFolderMigration":
-          terminalOutput.push(...terraformInit(), ...terraformStateMv("aws_s3_bucket.logs", "module.logging.aws_s3_bucket.logs"), ...terraformPlan());
-          break;
-        case "manualSecurityGroupDrift":
-          updateScenarioFiles(
-            {
-              "main.tf": `terraform {
-  backend "s3" {
-    bucket         = "tf-state-training"
-    key            = "network/web.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "tf-locks"
-  }
-}
-
-provider "aws" {
-  region = "eu-west-1"
-}
-
-resource "aws_security_group" "web" {
-  name = "training-web-sg"
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...terraformPlan());
-          break;
-        case "interruptedApplyLock":
-          terminalOutput.push(...terraformInit(), ...scanLocks(), ...forceUnlock(runtime.backend.lockId ?? ""), ...terraformImport("aws_s3_bucket.logs", "prod-logs-training"), ...terraformPlan());
-          break;
-        case "missingIamImport":
-          terminalOutput.push(...terraformInit(), ...terraformImport("aws_iam_role.app", "training-app-role"), ...terraformPlan());
-          break;
-        case "awsConfigS3Baseline":
-          updateScenarioFiles(
-            {
-              "main.tf": `provider "aws" {
-  region = "eu-west-1"
-}
-
-resource "aws_s3_bucket" "documents" {
-  bucket = "prod-documents-training"
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
-  bucket = aws_s3_bucket.documents.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_versioning" "documents" {
-  bucket = aws_s3_bucket.documents.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "documents" {
-  bucket                  = aws_s3_bucket.documents.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
-          break;
-        case "awsConfigRdsPublicBackup":
-          updateScenarioFiles(
-            {
-              "main.tf": `provider "aws" {
-  region = "eu-west-1"
-}
-
-resource "aws_db_instance" "app" {
-  identifier              = "prod-app-db"
-  engine                  = "postgres"
-  instance_class          = "db.t3.medium"
-  allocated_storage       = 50
-  username                = "app"
-  publicly_accessible     = false
-  backup_retention_period = 30
-  deletion_protection     = true
-  skip_final_snapshot     = false
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
-          break;
-        case "awsConfigCloudWatchRetention":
-          updateScenarioFiles(
-            {
-              "main.tf": `provider "aws" {
-  region = "eu-west-1"
-}
-
-resource "aws_cloudwatch_log_group" "api" {
-  name              = "/aws/lambda/prod-api"
-  retention_in_days = 30
-}
-
-resource "aws_lambda_function" "api" {
-  function_name = "prod-api"
-  role          = "arn:aws:iam::123456789012:role/prod-api"
-  handler       = "index.handler"
-  runtime       = "nodejs20.x"
-  filename      = "function.zip"
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
-          break;
-        case "awsConfigCloudTrailBaseline":
-          updateScenarioFiles(
-            {
-              "main.tf": `provider "aws" {
-  region = "eu-west-1"
-}
-
-resource "aws_cloudtrail" "governance" {
-  name                          = "org-governance"
-  s3_bucket_name                = "org-cloudtrail-logs"
-  is_multi_region_trail         = true
-  include_global_service_events = true
-  enable_log_file_validation    = true
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
-          break;
-        case "awsConfigBlankS3SecureBucket":
-          updateScenarioFiles(
-            {
-              "main.tf": `provider "aws" {
-  region = "eu-west-1"
-}
-
-resource "aws_s3_bucket" "secure_logs" {
-  bucket = "secure-logs"
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "secure_logs" {
-  bucket = aws_s3_bucket.secure_logs.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_versioning" "secure_logs" {
-  bucket = aws_s3_bucket.secure_logs.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "secure_logs" {
-  bucket                  = aws_s3_bucket.secure_logs.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-`,
-            },
-            "main.tf",
-          );
-          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
-          break;
-        default:
-          terminalOutput.push("No auto-apply solution is configured for this infrastructure scenario.");
-          break;
-      }
-
-      if (terminalOutput.length && terminalOutput[0] !== "No auto-apply solution is configured for this infrastructure scenario.") {
-        addTerminalLines(terminalOutput);
-      }
-      celebrateIfScenarioCompleted();
-      saveSession();
-      return;
+    if (Object.keys(filePatches).length) {
+      updateScenarioFiles(filePatches, lessonSolution.focusFileName);
     }
 
-    if (runtime.kind === "iam" || runtime.kind === "scp" || runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "policy") {
-      switch (currentScenarioId) {
-        case "iamS3PrefixLeastPrivilege":
-          updateScenarioFiles(
-            {
-              "policy.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "ArtifactsList",
-      "Effect": "Allow",
-      "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::company-artifacts",
-      "Condition": {
-        "StringLike": {
-          "s3:prefix": "team-a/*"
-        }
-      }
-    },
-    {
-      "Sid": "ArtifactsObjectAccess",
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject"
-      ],
-      "Resource": "arn:aws:s3:::company-artifacts/team-a/*"
-    }
-  ]
-}
-`,
-            },
-            "policy.json",
-          );
-          terminalOutput.push(...iamSimulatePrincipalPolicy());
-          break;
-        case "iamDynamoDbLeadingKeys":
-          updateScenarioFiles(
-            {
-              "policy.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "TenantTableAccess",
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:Query"
-      ],
-      "Resource": "arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders",
-      "Condition": {
-        "ForAllValues:StringEquals": {
-          "dynamodb:LeadingKeys": "tenant-a"
-        }
-      }
-    }
-  ]
-}
-`,
-            },
-            "policy.json",
-          );
-          terminalOutput.push(...iamSimulatePrincipalPolicy());
-          break;
-        case "iamGithubOidcEnvironmentTrust":
-          updateScenarioFiles(
-            {
-              "trust-policy.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-        },
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:acme/platform:environment:production"
-        }
-      }
-    }
-  ]
-}
-`,
-            },
-            "trust-policy.json",
-          );
-          terminalOutput.push(...iamAssumeRoleWithWebIdentity());
-          break;
-        case "iamKmsEncryptionContext":
-          updateScenarioFiles(
-            {
-              "kms-policy.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "DecryptPayroll",
-      "Effect": "Allow",
-      "Action": "kms:Decrypt",
-      "Resource": "arn:aws:kms:eu-west-1:123456789012:key/payroll-key",
-      "Condition": {
-        "StringEquals": {
-          "kms:EncryptionContext:App": "payroll"
-        }
-      }
-    }
-  ]
-}
-`,
-            },
-            "kms-policy.json",
-          );
-          terminalOutput.push(...iamKmsDecrypt());
-          break;
-        case "iamAzureBlobReaderScope":
-          updateScenarioFiles(
-            {
-              "role-assignment.json": `{
-  "principalName": "reporting-api",
-  "roleDefinitionName": "Storage Blob Data Reader",
-  "scope": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports"
-}
-`,
-            },
-            "role-assignment.json",
-          );
-          terminalOutput.push(...azureRoleAssignmentList());
-          break;
-        case "iamBlankSecretsReadonly":
-          updateScenarioFiles(
-            {
-              "policy.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowSecretRead",
-      "Effect": "Allow",
-      "Action": "secretsmanager:GetSecretValue",
-      "Resource": "arn:aws:secretsmanager:eu-west-1:123456789012:secret:prod/db/password-abc123"
-    }
-  ]
-}
-`,
-            },
-            "policy.json",
-          );
-          terminalOutput.push(...checkScenario());
-          break;
-        case "iamBlankCloudWatchLogsWrite":
-          updateScenarioFiles(
-            {
-              "policy.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowLogWrite",
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": "arn:aws:logs:eu-west-1:123456789012:log-group:/aws/ecs/payments-api:*"
-    }
-  ]
-}
-`,
-            },
-            "policy.json",
-          );
-          terminalOutput.push(...checkScenario());
-          break;
-        case "scpDenyLeavingOrg":
-          updateScenarioFiles(
-            {
-              "scp.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "DenyLeaveOrganization",
-      "Effect": "Deny",
-      "Action": "organizations:LeaveOrganization",
-      "Resource": "arn:aws:organizations::*"
-    },
-    {
-      "Sid": "BaselineOrganizations",
-      "Effect": "Allow",
-      "Action": "organizations:DescribeOrganization",
-      "Resource": "arn:aws:organizations::*"
-    }
-  ]
-}
-`,
-            },
-            "scp.json",
-          );
-          terminalOutput.push(...scpSimulatePrincipalPolicy());
-          break;
-        case "scpRegionRestrictionBreakGlass":
-          updateScenarioFiles(
-            {
-              "scp.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "DenyUnsupportedRegions",
-      "Effect": "Deny",
-      "NotAction": [
-        "iam:*",
-        "organizations:*",
-        "route53:*",
-        "cloudfront:*"
-      ],
-      "Resource": "arn:aws:*:*:*",
-      "Condition": {
-        "StringNotEquals": {
-          "aws:RequestedRegion": [
-            "eu-west-1",
-            "eu-central-1"
-          ]
-        },
-        "ArnNotLike": {
-          "aws:PrincipalArn": "arn:aws:iam::*:role/BreakGlassAdmin"
-        }
-      }
-    }
-  ]
-}
-`,
-            },
-            "scp.json",
-          );
-          terminalOutput.push(...scpSimulatePrincipalPolicy());
-          break;
-        case "scpBlankDenyRootUser":
-          updateScenarioFiles(
-            {
-              "scp.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "DenyRootUser",
-      "Effect": "Deny",
-      "Action": [
-        "ec2:TerminateInstances",
-        "s3:DeleteBucket"
-      ],
-      "Resource": "arn:aws:iam::*:root",
-      "Condition": {
-        "StringLike": {
-          "aws:PrincipalArn": "arn:aws:iam::*:root"
-        }
-      }
-    },
-    {
-      "Sid": "BillingView",
-      "Effect": "Allow",
-      "Action": "aws-portal:ViewBilling",
-      "Resource": "arn:aws:iam::*:root"
-    }
-  ]
-}
-`,
-            },
-            "scp.json",
-          );
-          terminalOutput.push(...checkScenario());
-          break;
-        case "scpBlankRequireImdsv2":
-          updateScenarioFiles(
-            {
-              "scp.json": `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "RequireImdsv2",
-      "Effect": "Deny",
-      "Action": "ec2:RunInstances",
-      "Resource": "arn:aws:ec2:*:*:instance/*",
-      "Condition": {
-        "StringEquals": {
-          "ec2:MetadataHttpTokens": "optional"
-        }
-      }
-    }
-  ]
-}
-`,
-            },
-            "scp.json",
-          );
-          terminalOutput.push(...checkScenario());
-          break;
-        case "secretsManagerRotationKms":
-          updateScenarioFiles(
-            {
-              "secret-config.json": `{
-  "name": "prod/db/password",
-  "kmsKeyId": "alias/prod-secrets-kms",
-  "rotationEnabled": true,
-  "rotationDays": 30
-}
-`,
-            },
-            "secret-config.json",
-          );
-          terminalOutput.push(...secretsManagerDescribeSecret());
-          break;
-        case "secretsSsmEnvironmentPath":
-          updateScenarioFiles(
-            {
-              "app-config.yaml": `service: checkout-api
-environment: staging
-databasePasswordParameter: /staging/checkout/db/password
-withDecryption: true
-`,
-            },
-            "app-config.yaml",
-          );
-          terminalOutput.push(...secretsSsmGetParameter());
-          break;
-        case "secretsManagerResourcePolicy":
-          updateScenarioFiles(
-            {
-              "resource-policy.json": `{
-  "secretName": "prod/payments/api-key",
-  "blockPublicPolicy": true,
-  "policy": {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Sid": "AllowAuditRead",
-        "Effect": "Allow",
-        "Principal": "arn:aws:iam::210987654321:role/security-audit",
-        "Action": "secretsmanager:GetSecretValue",
-        "Resource": "arn:aws:secretsmanager:eu-west-1:123456789012:secret:prod/payments/api-key"
-      }
-    ]
-  }
-}
-`,
-            },
-            "resource-policy.json",
-          );
-          terminalOutput.push(...secretsManagerDescribeSecret());
-          break;
-        case "dnsAcmCloudFrontCertificate":
-          updateScenarioFiles(
-            {
-              "certificate.json": `{
-  "domainName": "app.example.com",
-  "region": "us-east-1",
-  "validationRecordName": "_9f3b.app.example.com",
-  "validationRecordValue": "_7a1d.acm-validations.aws"
-}
-`,
-            },
-            "certificate.json",
-          );
-          terminalOutput.push(...dnsAcmDescribeCertificate());
-          break;
-        case "dnsRoute53AlbAlias":
-          updateScenarioFiles(
-            {
-              "route53-record.json": `{
-  "name": "app.example.com",
-  "type": "A",
-  "value": "app-prod-456.eu-west-1.elb.amazonaws.com",
-  "aliasHostedZoneId": "Z32O12XQLNTSW2",
-  "evaluateTargetHealth": true
-}
-`,
-            },
-            "route53-record.json",
-          );
-          terminalOutput.push(...dnsDigApp());
-          break;
-        case "dnsAcmWildcardValidation":
-          updateScenarioFiles(
-            {
-              "certificate.json": `{
-  "domainName": "*.example.com",
-  "region": "us-east-1",
-  "status": "ISSUED",
-  "validationRecordName": "_a1b2.example.com",
-  "validationRecordValue": "_c3d4.acm-validations.aws",
-  "hostedZone": "example.com"
-}
-`,
-            },
-            "certificate.json",
-          );
-          terminalOutput.push(...dnsAcmDescribeCertificate());
-          break;
-        case "observabilityAlb5xxAlarmDimension":
-          updateScenarioFiles(
-            {
-              "alarm.json": `{
-  "alarmName": "alb-5xx-prod",
-  "namespace": "AWS/ApplicationELB",
-  "metricName": "HTTPCode_ELB_5XX_Count",
-  "dimensions": [
-    {
-      "name": "LoadBalancer",
-      "value": "app/prod-web/50dc6c495c0c9188"
-    }
-  ],
-  "threshold": 5,
-  "evaluationPeriods": 2
-}
-`,
-            },
-            "alarm.json",
-          );
-          terminalOutput.push(...cloudWatchDescribeAlarms());
-          break;
-        case "observabilityLogRetention":
-          updateScenarioFiles(
-            {
-              "log-group.json": `{
-  "logGroupName": "/aws/ecs/payments-api",
-  "retentionInDays": 30,
-  "kmsKeyId": "alias/logs-kms"
-}
-`,
-            },
-            "log-group.json",
-          );
-          terminalOutput.push(...logsDescribeLogGroups());
-          break;
-        case "observabilityAlarmAction":
-          updateScenarioFiles(
-            {
-              "alarm.json": `{
-  "alarmName": "api-latency-critical",
-  "namespace": "AWS/ApplicationELB",
-  "metricName": "TargetResponseTime",
-  "threshold": 1.5,
-  "evaluationPeriods": 3,
-  "alarmActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"],
-  "okActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"]
-}
-`,
-            },
-            "alarm.json",
-          );
-          terminalOutput.push(...cloudWatchDescribeAlarms());
-          break;
-        case "finopsNatGatewayCostSpike":
-          updateScenarioFiles(
-            {
-              "nat-gateways.json": `{
-  "vpc": "prod-shared",
-  "natGatewayCount": 2,
-  "privateWorkloadAzs": ["eu-west-1a", "eu-west-1b"],
-  "removeIdleGateways": true
-}
-`,
-            },
-            "nat-gateways.json",
-          );
-          terminalOutput.push(...costAndUsage());
-          break;
-        case "finopsS3Lifecycle":
-          updateScenarioFiles(
-            {
-              "lifecycle.json": `{
-  "bucket": "prod-platform-logs",
-  "accessLogs": {
-    "transitionAfterDays": 30,
-    "storageClass": "STANDARD_IA"
-  },
-  "tempExports": {
-    "expireTempExportsAfterDays": 14
-  }
-}
-`,
-            },
-            "lifecycle.json",
-          );
-          terminalOutput.push(...costAndUsage());
-          break;
-        case "finopsUnattachedEbsCleanup":
-          updateScenarioFiles(
-            {
-              "volume-cleanup.json": `{
-  "volumeId": "vol-0abc123",
-  "state": "available",
-  "unattachedDays": 41,
-  "minimumUnattachedDays": 14,
-  "snapshotBeforeDelete": true,
-  "deleteUnattached": true
-}
-`,
-            },
-            "volume-cleanup.json",
-          );
-          terminalOutput.push(...ec2DescribeVolumes());
-          break;
-        case "policyKyvernoRequireAppLabel":
-          updateScenarioFiles(
-            {
-              "policy.yaml": `apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: require-app-label
-spec:
-  validationFailureAction: Enforce
-  rules:
-    - name: require-app-label
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-      validate:
-        message: Pods must define the app label.
-        pattern:
-          metadata:
-            labels:
-              app: "?*"
-`,
-            },
-            "policy.yaml",
-          );
-          terminalOutput.push(...kyvernoTest());
-          break;
-        case "policyKubernetesDefaultDenyIngress":
-          updateScenarioFiles(
-            {
-              "policy.yaml": `apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-ingress
-  namespace: payments
-spec:
-  podSelector: {}
-  policyTypes:
-    - Ingress
-  ingress: []
-`,
-            },
-            "policy.yaml",
-          );
-          terminalOutput.push(...kubectlDryRun());
-          break;
-        case "policyIstioDenyUnauthenticated":
-          updateScenarioFiles(
-            {
-              "policy.yaml": `apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: require-jwt-checkout
-  namespace: checkout
-spec:
-  selector:
-    matchLabels:
-      app: checkout-api
-  action: ALLOW
-  rules:
-    - from:
-        - source:
-            requestPrincipals:
-              - "*"
-`,
-            },
-            "policy.yaml",
-          );
-          terminalOutput.push(...kubectlDryRun());
-          break;
-        case "policyCiliumAllowDnsEgress":
-          updateScenarioFiles(
-            {
-              "policy.yaml": `apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: allow-dns-egress
-  namespace: platform
-spec:
-  endpointSelector:
-    matchLabels:
-      app: worker
-  egress:
-    - toEndpoints:
-        - matchLabels:
-            k8s-app: kube-dns
-      toPorts:
-        - ports:
-            - port: "53"
-              protocol: UDP
-`,
-            },
-            "policy.yaml",
-          );
-          terminalOutput.push(...kubectlDryRun());
-          break;
-        default:
-          terminalOutput.push("No auto-apply solution is configured for this lab.");
-          break;
-      }
+    const handlers = commandHandlers();
+    const commandOutput = (lessonSolution.commands ?? []).flatMap((command) => [
+      `$ ${command}`,
+      ...dispatchSimulatorCommand(command, runtime, handlers),
+    ]);
+    if (commandOutput.length) addTerminalLines(commandOutput);
 
-      if (terminalOutput.length && terminalOutput[0] !== "No auto-apply solution is configured for this lab.") {
-        addTerminalLines(terminalOutput);
-      }
-      celebrateIfScenarioCompleted();
-      saveSession();
-      return;
-    }
-
-    terminalOutput.push("No auto-apply solution is configured for this lab.");
-    addTerminalLines(terminalOutput);
+    celebrateIfScenarioCompleted();
     saveSession();
   }
 
@@ -3105,9 +1876,14 @@ spec:
     if (!lockId) return [`Usage: terraform force-unlock ${runtime.backend.lockId}`];
     if (lockId !== runtime.backend.lockId) return [`Lock ID ${lockId} does not match the current lock.`];
 
-    runtime.backend.locked = false;
-    runtime.backend.lockId = null;
-    runtime = runtime;
+    runtime = {
+      ...runtime,
+      backend: {
+        ...runtime.backend,
+        locked: false,
+        lockId: null,
+      },
+    };
     return ["Terraform state has been successfully unlocked."];
   }
 
@@ -3946,7 +2722,7 @@ spec:
 
   function celebrateIfScenarioCompleted(): void {
     const solved = isSolved();
-    if (solved && !completedScenarioIds.includes(currentScenarioId)) {
+    if (solved && !completedScenarioIds.includes(currentScenarioId) && !manuallyUncheckedScenarioIds.includes(currentScenarioId)) {
       completedScenarioIds = [...completedScenarioIds, currentScenarioId];
     }
     if (solved && !wasSolved) {
@@ -4016,88 +2792,36 @@ spec:
   }
 
   function solutionSummary(): string {
-    return scenarios[currentScenarioId].solution?.summary ?? solutionTarget();
+    return currentSolution().summary ?? "";
   }
 
   function solutionSteps(): string[] {
-    return scenarios[currentScenarioId].solution?.steps ?? [
-      `Inspect the failure using ${solutionInspectionCommand()}.`,
-      solutionTarget(),
-      `Run ${solutionValidationCommand()} until it reports a clean result.`,
-      "Finish with check when the validation output matches the required behavior.",
-    ];
+    return currentSolution().steps ?? [];
   }
 
   function solutionCommands(): string[] {
-    return scenarios[currentScenarioId].solution?.commands ?? [solutionInspectionCommand(), solutionValidationCommand(), "check"];
+    return currentSolution().commands ?? [];
   }
 
   function completionExplanation(): string {
-    return scenarios[currentScenarioId].solution?.explanation ?? useCaseExplanation();
+    return currentSolution().explanation ?? "";
   }
 
-  function solutionInspectionCommand(): string {
-    if (runtime.kind === "cicd") return "gh run view";
-    if (runtime.kind === "terragrunt") return "terragrunt validate";
-    if (runtime.kind === "iam") {
-      if (currentScenarioId === "iamAzureBlobReaderScope") return "az role assignment list";
-      if (currentScenarioId === "iamGithubOidcEnvironmentTrust") return "aws sts assume-role-with-web-identity";
-      if (currentScenarioId === "iamKmsEncryptionContext") return "aws kms decrypt";
-      return "aws iam simulate-principal-policy";
-    }
-    if (runtime.kind === "scp") return "aws organizations describe-policy";
-    if (runtime.kind === "secrets") return currentScenarioId === "secretsSsmEnvironmentPath" ? "aws ssm get-parameter" : "aws secretsmanager describe-secret";
-    if (runtime.kind === "dns") return currentScenarioId === "dnsRoute53AlbAlias" ? "dig app.example.com" : "aws acm describe-certificate";
-    if (runtime.kind === "observability") return currentScenarioId === "observabilityLogRetention" ? "aws logs describe-log-groups" : "aws cloudwatch describe-alarms";
-    if (runtime.kind === "finops") return currentScenarioId === "finopsUnattachedEbsCleanup" ? "aws ec2 describe-volumes" : "aws ce get-cost-and-usage";
-    if (runtime.kind === "policy") return currentScenarioId === "policyKyvernoRequireAppLabel" ? "kyverno test ." : "kubectl apply --dry-run=server -f policy.yaml";
-    if (runtime.kind === "networking") return "Run trace";
-    if (runtime.kind === "pr") return "Review the changed lines";
-    if (runtime.kind === "awsconfig") return "checkov -f main.tf";
-    return "terraform plan";
+  function completionExplanationParagraphs(): string[] {
+    return completionExplanation()
+      .split(/\n{2,}/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean);
   }
 
-  function solutionValidationCommand(): string {
-    if (runtime.kind === "cicd") return "gh run rerun";
-    if (runtime.kind === "terragrunt") return "terragrunt plan";
-    if (runtime.kind === "iam") return solutionInspectionCommand();
-    if (runtime.kind === "scp") return "aws iam simulate-principal-policy";
-    if (runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "policy") return solutionInspectionCommand();
-    if (runtime.kind === "networking") return "Check design";
-    if (runtime.kind === "pr") return "Submit review";
-    if (runtime.kind === "awsconfig") return "terraform plan";
-    return "terraform plan";
+  function completionOutcome(): string {
+    return currentSolution().outcome ?? "";
   }
 
-  function solutionTarget(): string {
-    const tips = scenarios[currentScenarioId].tips ?? [];
-    if (tips.length) return tips[tips.length - 1];
-
-    if (runtime.kind === "networking") return "Update the selected diagram controls so every requirement is satisfied and the packet trace reaches the expected destination.";
-    if (runtime.kind === "pr") return "Select the review decision and findings that match the actual risk in the diff.";
-    if (runtime.kind === "cicd") return "Fix the first failing workflow step without broadening permissions or hiding the failure.";
-    if (runtime.kind === "policy") return "Update policy.yaml so the policy validates the intended admission, authorization, or network behavior.";
-    if (runtime.kind === "iam") return "Reduce the permission scope to the exact principal, action, resource, and condition required by the request.";
-    if (runtime.kind === "scp") return "Keep the SCP deny scoped to the requested organization guardrail while preserving documented exceptions.";
-    if (runtime.kind === "awsconfig") return "Add the missing cloud guardrail in Terraform and keep the plan clean.";
-    return "Apply the smallest change that makes the validation command pass while preserving the stated constraints.";
-  }
-
-  function useCaseExplanation(): string {
-    if (runtime.kind === "terraform") return "This use case mirrors day-to-day infrastructure drift and state repair: the fix is complete only when code, state, and real infrastructure agree.";
-    if (runtime.kind === "awsconfig") return "This use case models pre-deployment cloud configuration review, where guardrails catch unsafe defaults before they reach production.";
-    if (runtime.kind === "terragrunt") return "This use case covers multi-stack IaC operations, where source paths, includes, and dependency outputs need to line up before planning safely.";
-    if (runtime.kind === "cicd") return "This use case reflects CI/CD troubleshooting: the first failing step usually identifies the narrowest workflow, secret, or permission fix.";
-    if (runtime.kind === "iam") return "This use case reinforces least privilege: access should be granted at the smallest useful action, resource, condition, or scope.";
-    if (runtime.kind === "scp") return "This use case separates organization-level guardrails from workload permissions, using explicit denies without breaking intended exceptions.";
-    if (runtime.kind === "policy") return "This use case treats platform policy as code: admission, service mesh, and network controls should be testable before rollout.";
-    if (runtime.kind === "secrets") return "This use case focuses on secret hygiene: correct environment paths, encryption, rotation, and resource policy boundaries matter together.";
-    if (runtime.kind === "dns") return "This use case shows why DNS and TLS fixes are precision work: region, validation records, and alias targets must match exactly.";
-    if (runtime.kind === "observability") return "This use case is about actionable telemetry: alarms and logs only help when dimensions, retention, and notification paths are correct.";
-    if (runtime.kind === "finops") return "This use case connects operational cleanup to spend control: unused capacity and missing lifecycle rules become recurring cost.";
-    if (runtime.kind === "networking") return "This use case models network design reviews, where routes and policy controls must match the intended packet path.";
-    if (runtime.kind === "pr") return "This use case practices review judgment: block risky changes with precise findings and avoid treating harmless context as a defect.";
-    return "This lab is a deterministic troubleshooting exercise: reproduce the failure, make the smallest safe fix, then validate the outcome.";
+  function currentSolution(): NonNullable<Scenario["solution"]> {
+    const solution = scenarios[currentScenarioId].solution;
+    if (!solution) throw new Error(`Scenario ${currentScenarioId} is missing solution metadata.`);
+    return solution;
   }
 
   function iamFixApplied(): boolean {
@@ -4372,6 +3096,72 @@ spec:
     terminalInput = commandHistory[historyIndex] || "";
   }
 
+  function focusTerminalInput(): void {
+    terminalInputElement?.focus();
+  }
+
+  function terminalCommandOptions(): string[] {
+    if (runtime.kind === "awsconfig") return ["terraform init", "checkov -f main.tf", "terraform plan", "check", "help"];
+    if (runtime.kind === "secrets") return ["aws secretsmanager describe-secret", "aws ssm get-parameter", "check", "help"];
+    if (runtime.kind === "dns") return ["aws acm describe-certificate", "dig app.example.com", "check", "help"];
+    if (runtime.kind === "iam") return ["aws iam simulate-principal-policy", "aws sts assume-role-with-web-identity", "aws s3 cp", "aws kms decrypt", "az role assignment list", "check", "help"];
+    if (runtime.kind === "scp") return ["aws organizations describe-policy", "aws iam simulate-principal-policy", "check", "help"];
+    if (runtime.kind === "cicd") return ["gh run view", "gh run rerun", "gh secret list", "gh secret set AWS_ROLE_ARN", "check", "help"];
+    if (runtime.kind === "terragrunt") return ["terragrunt init", "terragrunt validate", "terragrunt plan", "terragrunt run-all plan", "terragrunt hclfmt", "check", "help"];
+    if (runtime.kind === "observability") return ["aws cloudwatch describe-alarms", "aws logs describe-log-groups", "check", "help"];
+    if (runtime.kind === "finops") return ["aws ce get-cost-and-usage", "aws ec2 describe-volumes", "check", "help"];
+    if (runtime.kind === "policy") return ["kyverno test .", "kubectl apply --dry-run=server -f policy.yaml", "check", "help"];
+    return [
+      "terraform init",
+      "terraform plan",
+      "terraform apply",
+      "terraform validate",
+      "terraform state list",
+      "terraform state mv aws_s3_bucket.logs module.logging.aws_s3_bucket.logs",
+      "terraform import aws_s3_bucket.logs prod-logs-training",
+      "terraform import aws_iam_role.app training-app-role",
+      runtime.backend.lockId ? `terraform force-unlock ${runtime.backend.lockId}` : "terraform force-unlock",
+      "checkov -f main.tf",
+      "aws dynamodb scan --table-name tf-locks",
+      "aws s3 ls",
+      "check",
+      "help",
+    ];
+  }
+
+  function completeTerminalInput(): void {
+    const rawInput = terminalInput;
+    const leadingWhitespace = rawInput.match(/^\s*/)?.[0] ?? "";
+    const input = rawInput.trimStart();
+    const normalizedInput = input.toLowerCase();
+    const matches = terminalCommandOptions().filter((command) => command.toLowerCase().startsWith(normalizedInput));
+    if (matches.length === 1) {
+      terminalInput = `${leadingWhitespace}${matches[0]}`;
+      return;
+    }
+    if (matches.length > 1) {
+      const commonPrefix = longestCommonPrefix(matches);
+      if (commonPrefix.length > input.length) {
+        terminalInput = `${leadingWhitespace}${commonPrefix}`;
+        return;
+      }
+      addTerminalLines(["Completions:", ...matches.map((match) => `  ${match}`)]);
+      focusTerminalInput();
+    }
+  }
+
+  function longestCommonPrefix(values: string[]): string {
+    if (!values.length) return "";
+    let prefix = values[0];
+    for (const value of values.slice(1)) {
+      while (!value.toLowerCase().startsWith(prefix.toLowerCase())) {
+        prefix = prefix.slice(0, -1);
+        if (!prefix) return "";
+      }
+    }
+    return prefix;
+  }
+
   function addTerminalLines(lines: string[]): void {
     terminalLines = [...terminalLines, ...lines];
     saveSession();
@@ -4389,26 +3179,26 @@ spec:
     return "badge badge-danger";
   }
 
-  function labHealthClass(solvedState: boolean): string {
-    if (runtime.kind === "cicd" || runtime.kind === "awsconfig" || runtime.kind === "iam" || runtime.kind === "scp" || runtime.kind === "policy" || runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "pr") {
+  function labHealthClass(solvedState: boolean, scenario: Scenario): string {
+    if (scenario.kind === "cicd" || scenario.kind === "awsconfig" || scenario.kind === "iam" || scenario.kind === "scp" || scenario.kind === "policy" || scenario.kind === "secrets" || scenario.kind === "dns" || scenario.kind === "observability" || scenario.kind === "finops" || scenario.kind === "pr") {
       return solvedState ? "badge badge-ok" : "badge badge-danger";
     }
-    return runtime.backend.locked ? "badge badge-danger" : "badge badge-ok";
+    return scenario.backend.locked ? "badge badge-danger" : "badge badge-ok";
   }
 
-  function labHealthLabel(solvedState: boolean): string {
-    if (runtime.kind === "cicd") return solvedState ? "Workflow: passing" : "Workflow: failing";
-    if (runtime.kind === "awsconfig") return solvedState ? "AWS config: passed" : "AWS config: failing";
-    if (runtime.kind === "iam") return solvedState ? "IAM: validated" : "IAM: needs review";
-    if (runtime.kind === "scp") return solvedState ? "SCP: validated" : "SCP: needs review";
-    if (runtime.kind === "policy") return solvedState ? "Policy: passing" : "Policy: failing";
-    if (runtime.kind === "secrets") return solvedState ? "Secrets: healthy" : "Secrets: failing";
-    if (runtime.kind === "dns") return solvedState ? "DNS/TLS: healthy" : "DNS/TLS: failing";
-    if (runtime.kind === "observability") return solvedState ? "Observability: healthy" : "Observability: failing";
-    if (runtime.kind === "finops") return solvedState ? "Cost: optimized" : "Cost: review";
-    if (runtime.kind === "pr") return solvedState ? "Review: accepted" : "Review: pending";
-    if (runtime.kind === "terragrunt") return solvedState ? "Terragrunt: healthy" : `Remote state: ${runtime.backend.key}`;
-    return runtime.backend.locked ? `Backend: locked (${runtime.backend.lockId})` : `Backend: unlocked (${runtime.backend.key})`;
+  function labHealthLabel(solvedState: boolean, scenario: Scenario): string {
+    if (scenario.kind === "cicd") return solvedState ? "Workflow: passing" : "Workflow: failing";
+    if (scenario.kind === "awsconfig") return solvedState ? "AWS config: passed" : "AWS config: failing";
+    if (scenario.kind === "iam") return solvedState ? "IAM: validated" : "IAM: needs review";
+    if (scenario.kind === "scp") return solvedState ? "SCP: validated" : "SCP: needs review";
+    if (scenario.kind === "policy") return solvedState ? "Policy: passing" : "Policy: failing";
+    if (scenario.kind === "secrets") return solvedState ? "Secrets: healthy" : "Secrets: failing";
+    if (scenario.kind === "dns") return solvedState ? "DNS/TLS: healthy" : "DNS/TLS: failing";
+    if (scenario.kind === "observability") return solvedState ? "Observability: healthy" : "Observability: failing";
+    if (scenario.kind === "finops") return solvedState ? "Cost: optimized" : "Cost: review";
+    if (scenario.kind === "pr") return solvedState ? "Review: accepted" : "Review: pending";
+    if (scenario.kind === "terragrunt") return solvedState ? "Terragrunt: healthy" : `Remote state: ${scenario.backend.key}`;
+    return scenario.backend.locked ? `Backend: locked (${scenario.backend.lockId})` : `Backend: unlocked (${scenario.backend.key})`;
   }
 
   function workflowEvent(): string {
@@ -4614,7 +3404,7 @@ spec:
   }
 </script>
 
-<svelte:window on:pointermove={resizeTerminal} on:pointerup={stopTerminalResize} on:keydown={handleGlobalKeydown} />
+<svelte:window on:pointerdown={handleGlobalPointerDown} on:pointermove={resizeTerminal} on:pointerup={stopTerminalResize} on:keydown={handleGlobalKeydown} />
 
 {#if confettiPieces.length}
   <div class="confetti-layer" aria-hidden="true">
@@ -4661,9 +3451,11 @@ spec:
         <h3>Commands</h3>
         <pre>{solutionCommands().join("\n")}</pre>
       {:else}
-        <p>{completionExplanation()}</p>
+        {#each completionExplanationParagraphs() as paragraph}
+          <p>{paragraph}</p>
+        {/each}
         <h3>Outcome</h3>
-        <p>{runtime.awsResources[0]?.note ?? "The scenario validation now matches the expected behavior."}</p>
+        <p>{completionOutcome()}</p>
       {/if}
     </div>
     <div class="lab-modal-actions">
@@ -4739,7 +3531,27 @@ spec:
                   >
                     <span class="scenario-title">{labMenuTitle(id)}</span>
                     {#if completedScenarioIds.includes(id)}
-                      <span class="scenario-check" aria-label="Completed">✓</span>
+                      <span
+                        class="scenario-check"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Mark incomplete"
+                        on:click={(event) => toggleScenarioCompletion(id, event)}
+                        on:keydown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") toggleScenarioCompletion(id, event);
+                        }}
+                      >✓</span>
+                    {:else}
+                      <span
+                        class="scenario-check scenario-check-empty"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Mark complete"
+                        on:click={(event) => toggleScenarioCompletion(id, event)}
+                        on:keydown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") toggleScenarioCompletion(id, event);
+                        }}
+                      ></span>
                     {/if}
                   </button>
                 {/each}
@@ -4779,7 +3591,7 @@ spec:
         <span class={solved ? "badge badge-ok" : "badge badge-warn"}>
           Status: {solved ? "complete" : "in progress"}
         </span>
-        <span class={labHealthClass(solved)}>{labHealthLabel(solved)}</span>
+        <span class={labHealthClass(solved, runtime)}>{labHealthLabel(solved, runtime)}</span>
         {#if incidentMode && !solved}
           <span class="badge badge-warn">incident</span>
         {/if}
@@ -5476,7 +4288,7 @@ dig app.example.com</pre>
           {/each}
         </div>
       {/if}
-      <textarea value={activeFileContent} spellcheck="false" on:input={(event) => updateMainTf(event.currentTarget.value)}></textarea>
+      <textarea value={activeFileContent} spellcheck="false" on:input={(event) => updateMainTf(event.currentTarget.value)} on:keydown={handleEditorKeydown}></textarea>
     </section>
 
     <section class="panel resources-panel">
@@ -5616,7 +4428,10 @@ dig app.example.com</pre>
     </section>
   </section>
 
-  <section class="panel terminal-panel">
+  <section
+    class="panel terminal-panel"
+    role="application"
+  >
     <button
       type="button"
       class="terminal-resize-handle"
@@ -5638,10 +4453,15 @@ dig app.example.com</pre>
     <form on:submit|preventDefault={runCommand}>
       <span>$</span>
       <input
+        bind:this={terminalInputElement}
         bind:value={terminalInput}
         autocomplete="off"
         spellcheck="false"
         on:keydown={(event) => {
+          if (event.key === "Tab") {
+            event.preventDefault();
+            completeTerminalInput();
+          }
           if (event.key === "ArrowUp") {
             event.preventDefault();
             moveHistory(-1);

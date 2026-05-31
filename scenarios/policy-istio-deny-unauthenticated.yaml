@@ -32,6 +32,39 @@ files:
     - selector.matchLabels.app is checkout-api
     - action is ALLOW
     - rules.from.source.requestPrincipals includes "*"
+solution:
+  summary: |
+    Fix an Istio AuthorizationPolicy so checkout-api only accepts requests with an authenticated JWT principal.
+  steps:
+    - The policy should target app checkout-api in the checkout namespace.
+    - Use an ALLOW policy with requestPrincipals so unauthenticated requests are not allowed.
+    - requestPrincipals: ["*"] means any authenticated principal.
+  explanation: |
+    Istio Require Authenticated Requests is complete because the final state now addresses the original failure: Fix an Istio AuthorizationPolicy so checkout-api only accepts requests with an authenticated JWT principal.
+    
+    Key takeaway: requestPrincipals: ["*"] means any authenticated principal. In a real platform team, this prevents cluster guardrails that look documented but are not enforced or testable as code.
+  outcome: |
+    Istio Require Authenticated Requests: The policy-as-code guardrail now enforces the intended Kubernetes, mesh, or network behavior and is testable before rollout.
+  focusFileName: policy.yaml
+  files:
+    "policy.yaml": |
+      apiVersion: security.istio.io/v1beta1
+      kind: AuthorizationPolicy
+      metadata:
+        name: require-jwt-checkout
+        namespace: checkout
+      spec:
+        selector:
+          matchLabels:
+            app: checkout-api
+        action: ALLOW
+        rules:
+          - from:
+              - source:
+                  requestPrincipals:
+                    - "*"
+  commands:
+    - kubectl apply --dry-run=server -f policy.yaml
 backend:
   bucket: policy-as-code
   key: istio-require-authenticated-requests

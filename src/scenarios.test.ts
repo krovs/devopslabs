@@ -73,4 +73,23 @@ describe("scenarios", () => {
     expect(() => validateScenario(baseScenario)).toThrow("invalidNetworking is missing networking");
     expect(() => validateScenario({ ...baseScenario, id: "invalidPr", kind: "pr" })).toThrow("invalidPr is missing prReview");
   });
+
+  it("has auto-apply solution coverage for every scenario", () => {
+    for (const scenario of Object.values(scenarios)) {
+      expect(scenario.solution, `${scenario.id} is missing an auto-apply solution`).toBeDefined();
+    }
+  });
+
+  it("has auto-apply solution replacements that match scenario files", () => {
+    for (const scenario of Object.values(scenarios)) {
+      if (!scenario.solution) continue;
+
+      for (const replacement of scenario.solution.replacements ?? []) {
+        const source = scenario.solution.files?.[replacement.fileName] ?? scenario.files[replacement.fileName];
+
+        expect(source, `${scenario.id} replacement references missing file ${replacement.fileName}`).toBeDefined();
+        expect(source, `${scenario.id} replacement for ${replacement.fileName} does not match the current lab file`).toContain(replacement.search);
+      }
+    }
+  });
 });

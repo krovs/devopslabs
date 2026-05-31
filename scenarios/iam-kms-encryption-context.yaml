@@ -29,6 +29,37 @@ files:
     Not allowed:
     - kms:ScheduleKeyDeletion
     - Decrypt without the payroll encryption context
+solution:
+  summary: |
+    A service can decrypt too broadly with a shared KMS key. Require the expected encryption context for payroll data.
+  steps:
+    - The service only needs kms:Decrypt.
+    - Scope the resource to the payroll key.
+    - Add an encryption context condition for App = payroll.
+    - Avoid kms:* and wildcard resources.
+  explanation: |
+    IAM KMS Encryption Context is complete because the final state now addresses the original failure: A service can decrypt too broadly with a shared KMS key. Require the expected encryption context for payroll data.
+    
+    Key takeaway: Avoid kms:* and wildcard resources. In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
+  outcome: |
+    IAM KMS Encryption Context: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+  focusFileName: kms-policy.json
+  files:
+    "kms-policy.json": |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "DecryptPayroll",
+            "Effect": "Allow",
+            "Action": "kms:Decrypt",
+            "Resource": "arn:aws:kms:eu-west-1:123456789012:key/payroll-key",
+            "Condition": { "StringEquals": { "kms:EncryptionContext:App": "payroll" } }
+          }
+        ]
+      }
+  commands:
+    - aws kms decrypt
 backend:
   bucket: iam-training
   key: kms-encryption-context

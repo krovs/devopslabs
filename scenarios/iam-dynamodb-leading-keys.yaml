@@ -32,6 +32,29 @@ files:
     Not allowed:
     - Access to tenant-b partition keys
     - dynamodb:DeleteTable
+solution:
+  summary: |
+    A tenant service can read every item in a shared DynamoDB table instead of only its tenant partition.
+  steps:
+    - Simulate the policy before editing.
+    - DynamoDB table access can be constrained with dynamodb:LeadingKeys.
+    - Keep read/write item actions but scope access to tenant-a.
+  explanation: |
+    IAM DynamoDB Leading Keys is complete because the final state now addresses the original failure: A tenant service can read every item in a shared DynamoDB table instead of only its tenant partition.
+    
+    Key takeaway: Keep read/write item actions but scope access to tenant-a. In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
+  outcome: |
+    IAM DynamoDB Leading Keys: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+  focusFileName: policy.json
+  replacements:
+    - fileName: policy.json
+      search: |
+              "Resource": "arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders"
+      replace: |
+              "Resource": "arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders",
+              "Condition": { "ForAllValues:StringEquals": { "dynamodb:LeadingKeys": "tenant-a" } }
+  commands:
+    - aws iam simulate-principal-policy
 backend:
   bucket: iam-training
   key: dynamodb-leading-keys

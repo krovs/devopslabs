@@ -24,6 +24,35 @@ files:
           - uses: actions/checkout@v4
           - run: docker build -t ghcr.io/acme/app:${{ github.sha }} .
           - run: docker push ghcr.io/acme/app:${{ github.sha }}
+solution:
+  summary: |
+    A Docker publish workflow fails because docker push runs before logging in to the registry.
+  steps:
+    - Inspect the failed run with gh run view.
+    - The failed step is docker push.
+    - The workflow has registry secrets, but it never logs in.
+    - Add docker/login-action before build and push.
+    - Re-run the workflow.
+  explanation: |
+    GitHub Actions Docker Registry Auth is complete because the final state now addresses the original failure: A Docker publish workflow fails because docker push runs before logging in to the registry.
+    
+    Key takeaway: Re-run the workflow. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+  outcome: |
+    GitHub Actions Docker Registry Auth: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+  focusFileName: .github/workflows/docker-publish.yml
+  replacements:
+    - fileName: .github/workflows/docker-publish.yml
+      search: |
+              - run: docker build
+      replace: |
+              - uses: docker/login-action@v3
+                with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+              - run: docker build
+  commands:
+    - gh run rerun
 backend:
   bucket: github-actions
   key: docker-publish.yml

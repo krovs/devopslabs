@@ -16,6 +16,59 @@ files:
     resource "aws_s3_bucket" "documents" {
       bucket = "prod-documents-training"
     }
+solution:
+  summary: |
+    Spot missing S3 guardrails before deploying a production document bucket.
+  steps:
+    - Run checkov before planning.
+    - The bucket needs server-side encryption.
+    - Public access block and versioning are required guardrails.
+  explanation: |
+    AWS Config Review S3 Baseline is complete because the final state now addresses the original failure: Spot missing S3 guardrails before deploying a production document bucket.
+    
+    Key takeaway: Public access block and versioning are required guardrails. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
+  outcome: |
+    AWS Config Review S3 Baseline: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+  focusFileName: main.tf
+  files:
+    "main.tf": |
+      provider "aws" {
+        region = "eu-west-1"
+      }
+      
+      resource "aws_s3_bucket" "documents" {
+        bucket = "prod-documents-training"
+      }
+      
+      resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
+        bucket = aws_s3_bucket.documents.id
+      
+        rule {
+          apply_server_side_encryption_by_default {
+            sse_algorithm = "AES256"
+          }
+        }
+      }
+      
+      resource "aws_s3_bucket_versioning" "documents" {
+        bucket = aws_s3_bucket.documents.id
+      
+        versioning_configuration {
+          status = "Enabled"
+        }
+      }
+      
+      resource "aws_s3_bucket_public_access_block" "documents" {
+        bucket                  = aws_s3_bucket.documents.id
+        block_public_acls       = true
+        block_public_policy     = true
+        ignore_public_acls      = true
+        restrict_public_buckets = true
+      }
+  commands:
+    - terraform init
+    - checkov -f main.tf
+    - terraform plan
 backend:
   bucket: config-review
   key: s3-baseline
