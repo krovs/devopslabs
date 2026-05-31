@@ -1,0 +1,90 @@
+id: policyKyvernoRequireAppLabel
+kind: policy
+title: Kyverno Require App Label
+description: Fix a Kyverno ClusterPolicy so Pods without the app label are rejected by the admission policy test.
+primaryFile: policy.yaml
+tips:
+  - The policy should validate Pod metadata labels.
+  - Use validationFailureAction Enforce so the policy blocks bad resources.
+  - The pattern needs app: "?*" under metadata.labels.
+files:
+  "policy.yaml": |
+    apiVersion: kyverno.io/v1
+    kind: ClusterPolicy
+    metadata:
+      name: require-app-label
+    spec:
+      validationFailureAction: Audit
+      rules:
+        - name: require-app-label
+          match:
+            any:
+              - resources:
+                  kinds:
+                    - Pod
+          validate:
+            message: Pods should define useful ownership metadata.
+            pattern:
+              metadata:
+                labels:
+                  team: "?*"
+  "kyverno-test.yaml": |
+    name: app-label-policy
+    policies:
+      - policy.yaml
+    resources:
+      - resources/pod-with-app-label.yaml
+      - resources/pod-missing-app-label.yaml
+    results:
+      - policy: require-app-label
+        rule: require-app-label
+        resource: pod-with-app-label
+        kind: Pod
+        result: pass
+      - policy: require-app-label
+        rule: require-app-label
+        resource: pod-missing-app-label
+        kind: Pod
+        result: fail
+  "resources/pod-missing-app-label.yaml": |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: pod-missing-app-label
+      labels:
+        team: platform
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.27
+  "resources/pod-with-app-label.yaml": |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: pod-with-app-label
+      labels:
+        app: checkout
+        team: platform
+    spec:
+      containers:
+        - name: app
+          image: nginx:1.27
+backend:
+  bucket: policy-as-code
+  key: kyverno-require-app-label
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: policy_as_code
+    name: require-app-label
+    id: kyverno/require-app-label
+    status: failed
+    note: Kyverno policy audits the wrong label and does not enforce the app label.
+stateResources:
+  - address: cluster.kind
+    id: dev-platform
+  - address: namespace.default
+    id: default
+flags:
+  policyValidated: false

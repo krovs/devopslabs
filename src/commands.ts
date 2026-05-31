@@ -9,6 +9,7 @@ export type CommandHandlers = {
   iamAssumeRoleWithWebIdentity: () => string[];
   iamS3Cp: () => string[];
   iamKmsDecrypt: () => string[];
+  azureRoleAssignmentList: () => string[];
   organizationsDescribePolicy: () => string[];
   githubRunView: () => string[];
   githubRunRerun: () => string[];
@@ -34,6 +35,8 @@ export type CommandHandlers = {
   logsDescribeLogGroups: () => string[];
   costAndUsage: () => string[];
   ec2DescribeVolumes: () => string[];
+  kyvernoTest: () => string[];
+  kubectlDryRun: () => string[];
   checkScenario: () => string[];
 };
 
@@ -62,6 +65,7 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "aws sts assume-role-with-web-identity") return handlers.iamAssumeRoleWithWebIdentity();
     if (input === "aws s3 cp") return handlers.iamS3Cp();
     if (input === "aws kms decrypt") return handlers.iamKmsDecrypt();
+    if (input === "az role assignment list") return handlers.azureRoleAssignmentList();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -104,6 +108,13 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     return unknownCommand(command);
   }
 
+  if (runtime.kind === "policy") {
+    if (input === "kyverno test .") return handlers.kyvernoTest();
+    if (input === "kubectl apply --dry-run=server -f policy.yaml") return handlers.kubectlDryRun();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
   if (input === "terraform init") return handlers.terraformInit();
   if (input === "terraform state list") return handlers.terraformStateList();
   if (input === "terraform validate") return handlers.terraformValidate();
@@ -134,7 +145,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "iam") {
-    return ["Available commands:", "  aws iam simulate-principal-policy", "  aws sts assume-role-with-web-identity", "  aws s3 cp", "  aws kms decrypt", "  check", "  help"];
+    return ["Available commands:", "  aws iam simulate-principal-policy", "  aws sts assume-role-with-web-identity", "  aws s3 cp", "  aws kms decrypt", "  az role assignment list", "  check", "  help"];
   }
 
   if (runtime.kind === "scp") {
@@ -155,6 +166,10 @@ function commandHelp(runtime: Scenario): string[] {
 
   if (runtime.kind === "finops") {
     return ["Available commands:", "  aws ce get-cost-and-usage", "  aws ec2 describe-volumes", "  check", "  help"];
+  }
+
+  if (runtime.kind === "policy") {
+    return ["Available commands:", "  kyverno test .", "  kubectl apply --dry-run=server -f policy.yaml", "  check", "  help"];
   }
 
   return [

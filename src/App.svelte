@@ -64,8 +64,8 @@
     completedScenarioIds?: string[];
   };
 
-  type ThemeName = "latte" | "mocha" | "cyberpunk";
-  type MenuGroupId = "terraform" | "awsconfig" | "cicd" | "terragrunt" | "iam" | "scp" | "secrets" | "dns" | "observability" | "finops" | "pr" | "networking";
+  type ThemeName = "latte" | "mocha" | "dracula" | "cyberpunk";
+  type MenuGroupId = "terraform" | "awsconfig" | "cicd" | "terragrunt" | "iam" | "scp" | "policy" | "secrets" | "dns" | "observability" | "finops" | "pr" | "networking";
   type DifficultyTier = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
   const scenarioIds = Object.keys(scenarios);
@@ -75,6 +75,7 @@
   const cicdScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "cicd");
   const iamScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "iam");
   const scpScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "scp");
+  const policyScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "policy");
   const secretsScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "secrets");
   const dnsScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "dns");
   const observabilityScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "observability");
@@ -82,32 +83,34 @@
   const prScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "pr");
   const networkingScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "networking");
   const labGroups: { id: MenuGroupId; title: string; ids: string[] }[] = [
-    { id: "terraform", title: "Terraform", ids: terraformScenarioIds },
-    { id: "awsconfig", title: "AWS Config Review", ids: awsConfigScenarioIds },
-    { id: "cicd", title: "CI/CD", ids: cicdScenarioIds },
-    { id: "terragrunt", title: "Terragrunt", ids: terragruntScenarioIds },
-    { id: "iam", title: "IAM", ids: iamScenarioIds },
-    { id: "scp", title: "SCP", ids: scpScenarioIds },
-    { id: "secrets", title: "Secrets", ids: secretsScenarioIds },
-    { id: "dns", title: "DNS/TLS", ids: dnsScenarioIds },
+    { id: "terraform", title: "Infra as Code", ids: terraformScenarioIds },
+    { id: "awsconfig", title: "Configuration Review", ids: awsConfigScenarioIds },
+    { id: "cicd", title: "Delivery Pipelines", ids: cicdScenarioIds },
+    { id: "terragrunt", title: "Stack Orchestration", ids: terragruntScenarioIds },
+    { id: "iam", title: "Identity & Access", ids: iamScenarioIds },
+    { id: "scp", title: "Organization Policy", ids: scpScenarioIds },
+    { id: "policy", title: "Policy as Code", ids: policyScenarioIds },
+    { id: "secrets", title: "Secrets Management", ids: secretsScenarioIds },
+    { id: "dns", title: "DNS & TLS", ids: dnsScenarioIds },
     { id: "observability", title: "Observability", ids: observabilityScenarioIds },
     { id: "finops", title: "FinOps", ids: finopsScenarioIds },
-    { id: "pr", title: "PR Review", ids: prScenarioIds },
-    { id: "networking", title: "Networking", ids: networkingScenarioIds },
+    { id: "pr", title: "Change Review", ids: prScenarioIds },
+    { id: "networking", title: "Network Design", ids: networkingScenarioIds },
   ];
-  const labGroupDetails: Record<MenuGroupId, { description: string }> = {
-    terraform: { description: "State, modules, drift, imports, and plans." },
-    awsconfig: { description: "AWS guardrails, encryption, backup, and audit baselines." },
-    cicd: { description: "GitHub Actions failures, gates, secrets, and deploy flow." },
-    terragrunt: { description: "Stack wiring, source paths, dependencies, and formatting." },
-    iam: { description: "Least privilege policies, conditions, trust, and KMS access." },
-    scp: { description: "Organization guardrails, explicit denies, and exceptions." },
-    secrets: { description: "Secret paths, rotation, KMS keys, and resource policies." },
-    dns: { description: "Route 53 aliases, ACM validation, and CloudFront regions." },
-    observability: { description: "CloudWatch alarms, logs, dimensions, and retention." },
-    finops: { description: "Cost signals, waste reduction, lifecycle, and NAT spend." },
-    pr: { description: "Review risky diffs and identify blocking findings." },
-    networking: { description: "Routes, subnet design, security controls, and packet paths." },
+  const labGroupDetails: Record<MenuGroupId, { providers: string[]; description: string }> = {
+    terraform: { providers: ["Generic", "AWS"], description: "State, modules, drift, imports, and plans." },
+    awsconfig: { providers: ["AWS"], description: "Cloud guardrails, encryption, backup, and audit baselines." },
+    cicd: { providers: ["GitHub", "AWS"], description: "Pipeline failures, gates, secrets, and deploy flow." },
+    terragrunt: { providers: ["Generic"], description: "Stack wiring, source paths, dependencies, and formatting." },
+    iam: { providers: ["AWS", "Azure"], description: "Least privilege policies, role assignments, trust, and KMS access." },
+    scp: { providers: ["AWS"], description: "Organization guardrails, explicit denies, and exceptions." },
+    policy: { providers: ["K8S"], description: "Admission, workload, and network policies tested as code." },
+    secrets: { providers: ["AWS"], description: "Secret paths, rotation, KMS keys, and resource policies." },
+    dns: { providers: ["AWS"], description: "Aliases, certificate validation, and edge regions." },
+    observability: { providers: ["AWS"], description: "Alarms, logs, dimensions, and retention." },
+    finops: { providers: ["AWS"], description: "Cost signals, waste reduction, lifecycle, and NAT spend." },
+    pr: { providers: ["Generic", "AWS"], description: "Review risky diffs and identify blocking findings." },
+    networking: { providers: ["AWS"], description: "Routes, subnet design, security controls, and packet paths." },
   };
   const sessionStorageKey = "terraform-sim-session";
   const sessionVersion = 10;
@@ -147,10 +150,15 @@
     iamDynamoDbLeadingKeys: "rare",
     iamGithubOidcEnvironmentTrust: "epic",
     iamKmsEncryptionContext: "legendary",
+    iamAzureBlobReaderScope: "uncommon",
     scpDenyLeavingOrg: "common",
     scpBlankDenyRootUser: "uncommon",
     scpBlankRequireImdsv2: "rare",
     scpRegionRestrictionBreakGlass: "legendary",
+    policyKyvernoRequireAppLabel: "common",
+    policyKubernetesDefaultDenyIngress: "common",
+    policyIstioDenyUnauthenticated: "uncommon",
+    policyCiliumAllowDnsEgress: "rare",
     secretsSsmEnvironmentPath: "common",
     secretsManagerRotationKms: "uncommon",
     secretsManagerResourcePolicy: "rare",
@@ -159,8 +167,10 @@
     dnsAcmWildcardValidation: "rare",
     observabilityLogRetention: "common",
     observabilityAlb5xxAlarmDimension: "uncommon",
+    observabilityAlarmAction: "rare",
     finopsS3Lifecycle: "common",
     finopsNatGatewayCostSpike: "uncommon",
+    finopsUnattachedEbsCleanup: "rare",
     prSecurityGroupAdminCidrReview: "common",
     prGithubActionsWriteAllReview: "uncommon",
     prTerraformPublicS3Review: "rare",
@@ -208,11 +218,13 @@
   let networkDragDistance = 0;
   let networkPointerNodeId: string | null = null;
   let wasSolved = isSolved();
+  let activeLabModal: "solution" | "completion" | null = null;
+  let completionModalScenarioId: string | null = null;
   let confettiPieces: ConfettiPiece[] = [];
   let confettiTimeout: number | undefined;
   let saveSessionTimeout: number | undefined;
 
-  $: solved = isSolved();
+  $: solved = Boolean(runtime && currentScenarioId && activeFileName) && isSolved();
   $: pageHeading = currentPage === "docs" ? "Documentation" : currentPage === "index" ? "DevOpsLabs" : incidentMode && !solved ? incidentDisplayTitle(currentScenarioId) : runtime.title;
   $: pageSubheading = getPageDescription(solved);
   $: scenarioTips = scenarios[currentScenarioId].tips ?? [];
@@ -229,11 +241,12 @@
   $: selectedNetworkControls = getSelectedNetworkControls(runtime, selectedNetworkNode);
   $: networkTraces = runtime.networking?.traces ?? [];
   $: selectedTrace = getSelectedTrace(networkTraces, selectedTraceId);
-  $: if (isSolved() && !completedScenarioIds.includes(currentScenarioId)) {
+  $: if (solved && !completedScenarioIds.includes(currentScenarioId)) {
     completedScenarioIds = [...completedScenarioIds, currentScenarioId];
     saveSession();
   }
   $: document.body.classList.toggle("dark-mode", theme === "mocha");
+  $: document.body.classList.toggle("dracula-mode", theme === "dracula");
   $: document.body.classList.toggle("cyberpunk-mode", theme === "cyberpunk");
   $: localStorage.setItem("terraform-sim-theme", theme);
   $: localStorage.setItem("terraform-sim-incident-mode", String(incidentMode));
@@ -360,7 +373,7 @@
 
   function getInitialTheme(): ThemeName {
     const savedTheme = localStorage.getItem("terraform-sim-theme");
-    if (savedTheme === "latte" || savedTheme === "mocha" || savedTheme === "cyberpunk") return savedTheme;
+    if (savedTheme === "latte" || savedTheme === "mocha" || savedTheme === "dracula" || savedTheme === "cyberpunk") return savedTheme;
     if (savedTheme === "dark") return "mocha";
     if (savedTheme === "light") return "latte";
     return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "mocha" : "latte";
@@ -377,7 +390,7 @@
 
     try {
       const parsed = JSON.parse(raw) as MenuGroupId[];
-      const valid = parsed.filter((group) => ["terraform", "awsconfig", "cicd", "terragrunt", "iam", "scp", "secrets", "dns", "observability", "finops", "pr", "networking"].includes(group));
+      const valid = parsed.filter((group) => ["terraform", "awsconfig", "cicd", "terragrunt", "iam", "scp", "policy", "secrets", "dns", "observability", "finops", "pr", "networking"].includes(group));
       return valid.length ? valid : fallback;
     } catch {
       return fallback;
@@ -386,7 +399,7 @@
 
   function scenarioMenuGroup(id: string): MenuGroupId {
     const kind = scenarios[id].kind ?? "terraform";
-    if (kind === "awsconfig" || kind === "cicd" || kind === "terragrunt" || kind === "iam" || kind === "scp" || kind === "secrets" || kind === "dns" || kind === "observability" || kind === "finops" || kind === "pr" || kind === "networking") return kind;
+    if (kind === "awsconfig" || kind === "cicd" || kind === "terragrunt" || kind === "iam" || kind === "scp" || kind === "policy" || kind === "secrets" || kind === "dns" || kind === "observability" || kind === "finops" || kind === "pr" || kind === "networking") return kind;
     return "terraform";
   }
 
@@ -396,18 +409,28 @@
       : [...openMenuGroups, group];
   }
 
-  function filteredScenarioIds(ids: string[]): string[] {
-    const queryTokens = menuSearchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  function setIncidentMode(event: Event): void {
+    incidentMode = (event.currentTarget as HTMLInputElement).checked;
+    openMenuGroups = [...openMenuGroups];
+  }
+
+  function providerClass(provider: string): string {
+    return `provider-${provider.toLowerCase()}`;
+  }
+
+  function filteredScenarioIds(ids: string[], query: string): string[] {
+    const queryTokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (!queryTokens.length) return ids;
     return ids.filter((id) => {
       const scenario = scenarios[id];
-      const searchable = `${scenario.title} ${id} ${scenarioKindLabel(scenario)}`.toLowerCase();
+      const providers = labGroupDetails[scenarioMenuGroup(id)].providers.join(" ");
+      const searchable = `${scenario.title} ${id} ${scenarioKindLabel(scenario)} ${providers}`.toLowerCase();
       return queryTokens.every((token) => searchable.includes(token));
     });
   }
 
-  function menuGroupVisible(ids: string[]): boolean {
-    return filteredScenarioIds(ids).length > 0;
+  function menuGroupVisible(ids: string[], query: string): boolean {
+    return filteredScenarioIds(ids, query).length > 0;
   }
 
   function groupCompletionLabel(ids: string[]): string {
@@ -420,18 +443,19 @@
   }
 
   function scenarioKindLabel(scenario: Scenario): string {
-    if (scenario.kind === "cicd") return "CI/CD";
-    if (scenario.kind === "awsconfig") return "AWS Config";
-    if (scenario.kind === "terragrunt") return "Terragrunt";
-    if (scenario.kind === "networking") return "Networking";
-    if (scenario.kind === "iam") return "IAM";
-    if (scenario.kind === "scp") return "SCP";
-    if (scenario.kind === "secrets") return "Secrets";
-    if (scenario.kind === "dns") return "DNS/TLS";
+    if (scenario.kind === "cicd") return "Delivery Pipeline";
+    if (scenario.kind === "awsconfig") return "Configuration Review";
+    if (scenario.kind === "terragrunt") return "Stack Orchestration";
+    if (scenario.kind === "networking") return "Network Design";
+    if (scenario.kind === "iam") return "Identity & Access";
+    if (scenario.kind === "scp") return "Organization Policy";
+    if (scenario.kind === "policy") return "Policy as Code";
+    if (scenario.kind === "secrets") return "Secrets Management";
+    if (scenario.kind === "dns") return "DNS & TLS";
     if (scenario.kind === "observability") return "Observability";
     if (scenario.kind === "finops") return "FinOps";
-    if (scenario.kind === "pr") return "PR Review";
-    return "Terraform";
+    if (scenario.kind === "pr") return "Change Review";
+    return "Infra as Code";
   }
 
   function scenarioKindIds(scenario: Scenario): string[] {
@@ -441,6 +465,7 @@
     if (scenario.kind === "networking") return networkingScenarioIds;
     if (scenario.kind === "iam") return iamScenarioIds;
     if (scenario.kind === "scp") return scpScenarioIds;
+    if (scenario.kind === "policy") return policyScenarioIds;
     if (scenario.kind === "secrets") return secretsScenarioIds;
     if (scenario.kind === "dns") return dnsScenarioIds;
     if (scenario.kind === "observability") return observabilityScenarioIds;
@@ -475,6 +500,7 @@
     if (runtime.kind === "dns") return "A hostname or certificate is unhealthy. Inspect DNS records, alias targets, validation records, and certificate region.";
     if (runtime.kind === "observability") return "Monitoring is missing or misleading. Inspect alarms, logs, dimensions, retention, and the smallest telemetry fix.";
     if (runtime.kind === "finops") return "Cloud spend has drifted. Inspect the cost signal, identify the waste source, and apply the smallest cost control.";
+    if (runtime.kind === "policy") return "A platform policy is not enforcing the intended workload guardrail. Inspect the policy, run the policy test, and apply the smallest rule fix.";
     if (runtime.kind === "pr") return "A pull request needs review. Inspect the diff, identify the risky lines, and submit the correct review decision.";
     return "An infrastructure deployment is unhealthy. Reproduce the failure, inspect state and configuration, then apply the smallest safe repair.";
   }
@@ -539,6 +565,8 @@
     traceResult = [];
     networkCheckAttempted = false;
     wasSolved = isSolved();
+    activeLabModal = null;
+    completionModalScenarioId = null;
     confettiPieces = [];
     if (confettiTimeout) window.clearTimeout(confettiTimeout);
     resetNetworkPan();
@@ -721,7 +749,7 @@
     return runtime.prReview?.findings.filter((finding) => finding.selected) ?? [];
   }
 
-  function markOperationalScenarioSolved(flag: "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated", note: string): void {
+  function markOperationalScenarioSolved(flag: "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated" | "policyValidated", note: string): void {
     runtime.flags[flag] = true;
     runtime.awsResources[0].status = "exists";
     runtime.awsResources[0].note = note;
@@ -817,6 +845,15 @@
       );
     }
 
+    if (currentScenarioId === "observabilityAlarmAction") {
+      const config = runtime.files["alarm.json"] ?? "";
+      return (
+        config.includes('"alarmActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"]') &&
+        config.includes('"okActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"]') &&
+        !config.includes('"alarmActions": []')
+      );
+    }
+
     return false;
   }
 
@@ -836,6 +873,76 @@
         config.includes('"transitionAfterDays": 30') &&
         config.includes('"storageClass": "STANDARD_IA"') &&
         config.includes('"expireTempExportsAfterDays": 14')
+      );
+    }
+
+    if (currentScenarioId === "finopsUnattachedEbsCleanup") {
+      const config = runtime.files["volume-cleanup.json"] ?? "";
+      return (
+        config.includes('"deleteUnattached": true') &&
+        config.includes('"snapshotBeforeDelete": true') &&
+        config.includes('"minimumUnattachedDays": 14')
+      );
+    }
+
+    return false;
+  }
+
+  function policyFixApplied(): boolean {
+    if (currentScenarioId === "policyKyvernoRequireAppLabel") {
+      const policy = runtime.files["policy.yaml"] ?? "";
+      return (
+        policy.includes("kind: ClusterPolicy") &&
+        policy.includes("validationFailureAction: Enforce") &&
+        policy.includes("message: Pods must define the app label.") &&
+        policy.includes("pattern:") &&
+        policy.includes("metadata:") &&
+        policy.includes("labels:") &&
+        policy.includes("app: \"?*\"")
+      );
+    }
+
+    if (currentScenarioId === "policyKubernetesDefaultDenyIngress") {
+      const policy = runtime.files["policy.yaml"] ?? "";
+      return (
+        policy.includes("kind: NetworkPolicy") &&
+        policy.includes("name: default-deny-ingress") &&
+        policy.includes("namespace: payments") &&
+        policy.includes("podSelector: {}") &&
+        policy.includes("policyTypes:") &&
+        policy.includes("- Ingress") &&
+        policy.includes("ingress: []")
+      );
+    }
+
+    if (currentScenarioId === "policyIstioDenyUnauthenticated") {
+      const policy = runtime.files["policy.yaml"] ?? "";
+      return (
+        policy.includes("kind: AuthorizationPolicy") &&
+        policy.includes("name: require-jwt-checkout") &&
+        policy.includes("namespace: checkout") &&
+        policy.includes("selector:") &&
+        policy.includes("matchLabels:") &&
+        policy.includes("app: checkout-api") &&
+        policy.includes("action: ALLOW") &&
+        policy.includes("requestPrincipals:") &&
+        policy.includes("- \"*\"")
+      );
+    }
+
+    if (currentScenarioId === "policyCiliumAllowDnsEgress") {
+      const policy = runtime.files["policy.yaml"] ?? "";
+      return (
+        policy.includes("kind: CiliumNetworkPolicy") &&
+        policy.includes("name: allow-dns-egress") &&
+        policy.includes("namespace: platform") &&
+        policy.includes("matchLabels:") &&
+        policy.includes("app: worker") &&
+        policy.includes("toEndpoints:") &&
+        policy.includes("k8s-app: kube-dns") &&
+        policy.includes("toPorts:") &&
+        policy.includes("port: \"53\"") &&
+        policy.includes("protocol: UDP")
       );
     }
 
@@ -946,6 +1053,1350 @@
     scrollTerminal();
   }
 
+  function openSolutionModal(): void {
+    activeLabModal = "solution";
+  }
+
+  function closeLabModal(): void {
+    activeLabModal = null;
+  }
+
+  function updateScenarioFiles(patches: Record<string, string>, focusFileName?: string): void {
+    runtime.files = { ...runtime.files, ...patches };
+    if (focusFileName && runtime.files[focusFileName] !== undefined) {
+      activeFileName = focusFileName;
+    }
+    runtime = runtime;
+  }
+
+  function applySolution(): void {
+    const terminalOutput: string[] = [];
+
+    if (runtime.kind === "networking" && runtime.networking) {
+      runtime.networking.controls = runtime.networking.controls.map((control) => ({
+        ...control,
+        value: control.answer,
+      }));
+      runtime = runtime;
+      checkNetworkingScenario();
+      saveSession();
+      return;
+    }
+
+    if (runtime.kind === "pr" && runtime.prReview) {
+      runtime.prReview.decision = runtime.prReview.expectedDecision;
+      runtime.prReview.findings = runtime.prReview.findings.map((finding) => ({
+        ...finding,
+        selected: finding.required,
+      }));
+      runtime = runtime;
+      submitPrReview();
+      saveSession();
+      return;
+    }
+
+    if (runtime.kind === "cicd") {
+      switch (currentScenarioId) {
+        case "githubActionsMissingSecret":
+          terminalOutput.push(...githubSecretSet("AWS_ROLE_ARN"));
+          terminalOutput.push(...githubRunRerun());
+          break;
+        case "githubActionsWrongWorkingDirectory":
+          updateScenarioFiles(
+            {
+              ".github/workflows/terraform-check.yml": `name: terraform-check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check
+      - run: terraform init
+      - run: terraform validate
+`,
+            },
+            ".github/workflows/terraform-check.yml",
+          );
+          terminalOutput.push(...githubRunRerun());
+          break;
+        case "githubActionsAwsOidcTrust":
+          updateScenarioFiles(
+            {
+              "trust-policy.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:acme/platform:ref:refs/heads/main"
+        }
+      }
+    }
+  ]
+}`,
+            },
+            "trust-policy.json",
+          );
+          terminalOutput.push(...githubRunRerun());
+          break;
+        case "githubActionsCheckovGate":
+          updateScenarioFiles(
+            {
+              ".github/workflows/iac-security.yml": `name: iac-security
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  checkov:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          cat > main.tf <<'EOF'
+          resource "aws_s3_bucket" "artifacts" {
+            bucket = "training-artifacts"
+            acl    = "private"
+          }
+          EOF
+      - run: checkov -f main.tf
+`,
+            },
+            ".github/workflows/iac-security.yml",
+          );
+          terminalOutput.push(...githubRunRerun());
+          break;
+        case "githubActionsOverbroadPermissions":
+          updateScenarioFiles(
+            {
+              ".github/workflows/deploy-permissions.yml": `name: deploy-permissions
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "deploy"
+`,
+            },
+            ".github/workflows/deploy-permissions.yml",
+          );
+          terminalOutput.push(...githubRunRerun());
+          break;
+        case "githubActionsNodeCachePath":
+          updateScenarioFiles(
+            {
+              ".github/workflows/node-ci.yml": `name: node-ci
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+`,
+            },
+            ".github/workflows/node-ci.yml",
+          );
+          terminalOutput.push(...githubRunRerun());
+          break;
+        case "githubActionsDockerRegistryAuth":
+          updateScenarioFiles(
+            {
+              ".github/workflows/docker-publish.yml": `name: docker-publish
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: \${{ github.actor }}
+          password: \${{ secrets.GITHUB_TOKEN }}
+      - run: docker build -t ghcr.io/acme/app:\${{ github.sha }} .
+      - run: docker push ghcr.io/acme/app:\${{ github.sha }}
+`,
+            },
+            ".github/workflows/docker-publish.yml",
+          );
+          terminalOutput.push(...githubRunRerun());
+          break;
+        case "githubActionsEnvironmentApproval":
+          updateScenarioFiles(
+            {
+              ".github/workflows/prod-deploy.yml": `name: prod-deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./deploy.sh
+`,
+            },
+            ".github/workflows/prod-deploy.yml",
+          );
+          terminalOutput.push(...githubRunRerun());
+          break;
+        case "githubActionsMatrixNodeVersion":
+          updateScenarioFiles(
+            {
+              ".github/workflows/test-matrix.yml": `name: test-matrix
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: \${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm test
+`,
+            },
+            ".github/workflows/test-matrix.yml",
+          );
+          terminalOutput.push(...githubRunRerun());
+          break;
+        default:
+          terminalOutput.push("No auto-apply solution is configured for this workflow.");
+          break;
+      }
+
+      if (terminalOutput.length && terminalOutput[0] !== "No auto-apply solution is configured for this workflow.") {
+        addTerminalLines(terminalOutput);
+      }
+      celebrateIfScenarioCompleted();
+      saveSession();
+      return;
+    }
+
+    if (runtime.kind === "terraform" || runtime.kind === "awsconfig" || runtime.kind === "terragrunt") {
+      switch (currentScenarioId) {
+        case "terragruntMissingInclude":
+          updateScenarioFiles(
+            {
+              "live/dev/app/terragrunt.hcl": `include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "../../../modules/app"
+}
+
+inputs = {
+  name = "orders-api"
+}
+`,
+            },
+            "live/dev/app/terragrunt.hcl",
+          );
+          terminalOutput.push(...terragruntInit(), ...terragruntValidate(), ...terragruntPlan());
+          break;
+        case "terragruntBadDependencyOutput":
+          updateScenarioFiles(
+            {
+              "live/dev/network/terragrunt.hcl": `include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "../../../modules/network"
+}
+
+mock_outputs = {
+  vpc_id = "vpc-0badcafe"
+}
+`,
+            },
+            "live/dev/network/terragrunt.hcl",
+          );
+          terminalOutput.push(...terragruntInit(), ...terragruntValidate(), ...terragruntRunAllPlan());
+          break;
+        case "terragruntWrongSourceRef":
+          updateScenarioFiles(
+            {
+              "live/dev/app/terragrunt.hcl": `include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "../../../modules/app"
+}
+
+inputs = {
+  name = "orders-api"
+}
+`,
+            },
+            "live/dev/app/terragrunt.hcl",
+          );
+          terminalOutput.push(...terragruntInit(), ...terragruntPlan());
+          break;
+        case "terragruntHclfmt":
+          updateScenarioFiles(
+            {
+              "live/dev/app/terragrunt.hcl": `include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "../../../modules/app"
+}
+
+inputs = {
+  name = "orders-api"
+}
+`,
+            },
+            "live/dev/app/terragrunt.hcl",
+          );
+          terminalOutput.push(...terragruntInit(), ...terragruntHclfmt(), ...terragruntValidate(), ...terragruntPlan());
+          break;
+        case "terraformCheckovPublicS3":
+          updateScenarioFiles(
+            {
+              "main.tf": `terraform {
+  backend "s3" {
+    bucket         = "tf-state-training"
+    key            = "security/s3.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "tf-locks"
+  }
+}
+
+provider "aws" {
+  region = "eu-west-1"
+}
+
+resource "aws_s3_bucket" "artifacts" {
+  bucket = "training-artifacts-public"
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_public_access_block" "artifacts" {
+  bucket                  = aws_s3_bucket.artifacts.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
+          break;
+        case "terraformValidateBadReference":
+          updateScenarioFiles(
+            {
+              "main.tf": `terraform {
+  backend "s3" {
+    bucket         = "tf-state-training"
+    key            = "validate/logs.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "tf-locks"
+  }
+}
+
+provider "aws" {
+  region = "eu-west-1"
+}
+
+resource "aws_s3_bucket" "logs" {
+  bucket = "training-validation-logs"
+}
+
+output "bucket_name" {
+  value = aws_s3_bucket.logs.bucket
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...terraformValidate(), ...terraformPlan());
+          break;
+        case "terraformModuleMissingOutput":
+          updateScenarioFiles(
+            {
+              "modules/s3/main.tf": `variable "name" {
+  type = string
+}
+
+resource "aws_s3_bucket" "this" {
+  bucket = var.name
+}
+
+output "bucket_name" {
+  value = aws_s3_bucket.this.bucket
+}
+`,
+            },
+            "modules/s3/main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...terraformValidate(), ...terraformPlan());
+          break;
+        case "terraformModuleWrongSource":
+          updateScenarioFiles(
+            {
+              "main.tf": `terraform {
+  backend "s3" {
+    bucket         = "tf-state-training"
+    key            = "modules/network.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "tf-locks"
+  }
+}
+
+provider "aws" {
+  region = "eu-west-1"
+}
+
+module "network" {
+  source = "./modules/network"
+  name   = "training-network"
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...terraformPlan());
+          break;
+        case "terraformModuleMissingVariable":
+          updateScenarioFiles(
+            {
+              "main.tf": `terraform {
+  backend "s3" {
+    bucket         = "tf-state-training"
+    key            = "modules/queue.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "tf-locks"
+  }
+}
+
+provider "aws" {
+  region = "eu-west-1"
+}
+
+module "queue" {
+  source      = "./modules/queue"
+  name        = "orders"
+  environment = "dev"
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...terraformValidate(), ...terraformPlan());
+          break;
+        case "terraformModuleSecurityGroup":
+          updateScenarioFiles(
+            {
+              "modules/security-group/main.tf": `variable "name" {
+  type = string
+}
+
+variable "ingress_cidr" {
+  type    = string
+  default = "10.0.0.0/16"
+}
+
+resource "aws_security_group" "this" {
+  name = var.name
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.ingress_cidr]
+  }
+}
+`,
+            },
+            "modules/security-group/main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
+          break;
+        case "terraformStateFolderMigration":
+          terminalOutput.push(...terraformInit(), ...terraformStateMv("aws_s3_bucket.logs", "module.logging.aws_s3_bucket.logs"), ...terraformPlan());
+          break;
+        case "manualSecurityGroupDrift":
+          updateScenarioFiles(
+            {
+              "main.tf": `terraform {
+  backend "s3" {
+    bucket         = "tf-state-training"
+    key            = "network/web.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "tf-locks"
+  }
+}
+
+provider "aws" {
+  region = "eu-west-1"
+}
+
+resource "aws_security_group" "web" {
+  name = "training-web-sg"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...terraformPlan());
+          break;
+        case "interruptedApplyLock":
+          terminalOutput.push(...terraformInit(), ...scanLocks(), ...forceUnlock(runtime.backend.lockId ?? ""), ...terraformImport("aws_s3_bucket.logs", "prod-logs-training"), ...terraformPlan());
+          break;
+        case "missingIamImport":
+          terminalOutput.push(...terraformInit(), ...terraformImport("aws_iam_role.app", "training-app-role"), ...terraformPlan());
+          break;
+        case "awsConfigS3Baseline":
+          updateScenarioFiles(
+            {
+              "main.tf": `provider "aws" {
+  region = "eu-west-1"
+}
+
+resource "aws_s3_bucket" "documents" {
+  bucket = "prod-documents-training"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
+  bucket = aws_s3_bucket.documents.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "documents" {
+  bucket = aws_s3_bucket.documents.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "documents" {
+  bucket                  = aws_s3_bucket.documents.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
+          break;
+        case "awsConfigRdsPublicBackup":
+          updateScenarioFiles(
+            {
+              "main.tf": `provider "aws" {
+  region = "eu-west-1"
+}
+
+resource "aws_db_instance" "app" {
+  identifier              = "prod-app-db"
+  engine                  = "postgres"
+  instance_class          = "db.t3.medium"
+  allocated_storage       = 50
+  username                = "app"
+  publicly_accessible     = false
+  backup_retention_period = 30
+  deletion_protection     = true
+  skip_final_snapshot     = false
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
+          break;
+        case "awsConfigCloudWatchRetention":
+          updateScenarioFiles(
+            {
+              "main.tf": `provider "aws" {
+  region = "eu-west-1"
+}
+
+resource "aws_cloudwatch_log_group" "api" {
+  name              = "/aws/lambda/prod-api"
+  retention_in_days = 30
+}
+
+resource "aws_lambda_function" "api" {
+  function_name = "prod-api"
+  role          = "arn:aws:iam::123456789012:role/prod-api"
+  handler       = "index.handler"
+  runtime       = "nodejs20.x"
+  filename      = "function.zip"
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
+          break;
+        case "awsConfigCloudTrailBaseline":
+          updateScenarioFiles(
+            {
+              "main.tf": `provider "aws" {
+  region = "eu-west-1"
+}
+
+resource "aws_cloudtrail" "governance" {
+  name                          = "org-governance"
+  s3_bucket_name                = "org-cloudtrail-logs"
+  is_multi_region_trail         = true
+  include_global_service_events = true
+  enable_log_file_validation    = true
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
+          break;
+        case "awsConfigBlankS3SecureBucket":
+          updateScenarioFiles(
+            {
+              "main.tf": `provider "aws" {
+  region = "eu-west-1"
+}
+
+resource "aws_s3_bucket" "secure_logs" {
+  bucket = "secure-logs"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "secure_logs" {
+  bucket = aws_s3_bucket.secure_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "secure_logs" {
+  bucket = aws_s3_bucket.secure_logs.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "secure_logs" {
+  bucket                  = aws_s3_bucket.secure_logs.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+`,
+            },
+            "main.tf",
+          );
+          terminalOutput.push(...terraformInit(), ...checkovScan(), ...terraformPlan());
+          break;
+        default:
+          terminalOutput.push("No auto-apply solution is configured for this infrastructure scenario.");
+          break;
+      }
+
+      if (terminalOutput.length && terminalOutput[0] !== "No auto-apply solution is configured for this infrastructure scenario.") {
+        addTerminalLines(terminalOutput);
+      }
+      celebrateIfScenarioCompleted();
+      saveSession();
+      return;
+    }
+
+    if (runtime.kind === "iam" || runtime.kind === "scp" || runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "policy") {
+      switch (currentScenarioId) {
+        case "iamS3PrefixLeastPrivilege":
+          updateScenarioFiles(
+            {
+              "policy.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ArtifactsList",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::company-artifacts",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": "team-a/*"
+        }
+      }
+    },
+    {
+      "Sid": "ArtifactsObjectAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::company-artifacts/team-a/*"
+    }
+  ]
+}
+`,
+            },
+            "policy.json",
+          );
+          terminalOutput.push(...iamSimulatePrincipalPolicy());
+          break;
+        case "iamDynamoDbLeadingKeys":
+          updateScenarioFiles(
+            {
+              "policy.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TenantTableAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:Query"
+      ],
+      "Resource": "arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders",
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "dynamodb:LeadingKeys": "tenant-a"
+        }
+      }
+    }
+  ]
+}
+`,
+            },
+            "policy.json",
+          );
+          terminalOutput.push(...iamSimulatePrincipalPolicy());
+          break;
+        case "iamGithubOidcEnvironmentTrust":
+          updateScenarioFiles(
+            {
+              "trust-policy.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": "repo:acme/platform:environment:production"
+        }
+      }
+    }
+  ]
+}
+`,
+            },
+            "trust-policy.json",
+          );
+          terminalOutput.push(...iamAssumeRoleWithWebIdentity());
+          break;
+        case "iamKmsEncryptionContext":
+          updateScenarioFiles(
+            {
+              "kms-policy.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DecryptPayroll",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "arn:aws:kms:eu-west-1:123456789012:key/payroll-key",
+      "Condition": {
+        "StringEquals": {
+          "kms:EncryptionContext:App": "payroll"
+        }
+      }
+    }
+  ]
+}
+`,
+            },
+            "kms-policy.json",
+          );
+          terminalOutput.push(...iamKmsDecrypt());
+          break;
+        case "iamAzureBlobReaderScope":
+          updateScenarioFiles(
+            {
+              "role-assignment.json": `{
+  "principalName": "reporting-api",
+  "roleDefinitionName": "Storage Blob Data Reader",
+  "scope": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports"
+}
+`,
+            },
+            "role-assignment.json",
+          );
+          terminalOutput.push(...azureRoleAssignmentList());
+          break;
+        case "iamBlankSecretsReadonly":
+          updateScenarioFiles(
+            {
+              "policy.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowSecretRead",
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:eu-west-1:123456789012:secret:prod/db/password-abc123"
+    }
+  ]
+}
+`,
+            },
+            "policy.json",
+          );
+          terminalOutput.push(...checkScenario());
+          break;
+        case "iamBlankCloudWatchLogsWrite":
+          updateScenarioFiles(
+            {
+              "policy.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowLogWrite",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:eu-west-1:123456789012:log-group:/aws/ecs/payments-api:*"
+    }
+  ]
+}
+`,
+            },
+            "policy.json",
+          );
+          terminalOutput.push(...checkScenario());
+          break;
+        case "scpDenyLeavingOrg":
+          updateScenarioFiles(
+            {
+              "scp.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyLeaveOrganization",
+      "Effect": "Deny",
+      "Action": "organizations:LeaveOrganization",
+      "Resource": "arn:aws:organizations::*"
+    },
+    {
+      "Sid": "BaselineOrganizations",
+      "Effect": "Allow",
+      "Action": "organizations:DescribeOrganization",
+      "Resource": "arn:aws:organizations::*"
+    }
+  ]
+}
+`,
+            },
+            "scp.json",
+          );
+          terminalOutput.push(...scpSimulatePrincipalPolicy());
+          break;
+        case "scpRegionRestrictionBreakGlass":
+          updateScenarioFiles(
+            {
+              "scp.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyUnsupportedRegions",
+      "Effect": "Deny",
+      "NotAction": [
+        "iam:*",
+        "organizations:*",
+        "route53:*",
+        "cloudfront:*"
+      ],
+      "Resource": "arn:aws:*:*:*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:RequestedRegion": [
+            "eu-west-1",
+            "eu-central-1"
+          ]
+        },
+        "ArnNotLike": {
+          "aws:PrincipalArn": "arn:aws:iam::*:role/BreakGlassAdmin"
+        }
+      }
+    }
+  ]
+}
+`,
+            },
+            "scp.json",
+          );
+          terminalOutput.push(...scpSimulatePrincipalPolicy());
+          break;
+        case "scpBlankDenyRootUser":
+          updateScenarioFiles(
+            {
+              "scp.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyRootUser",
+      "Effect": "Deny",
+      "Action": [
+        "ec2:TerminateInstances",
+        "s3:DeleteBucket"
+      ],
+      "Resource": "arn:aws:iam::*:root",
+      "Condition": {
+        "StringLike": {
+          "aws:PrincipalArn": "arn:aws:iam::*:root"
+        }
+      }
+    },
+    {
+      "Sid": "BillingView",
+      "Effect": "Allow",
+      "Action": "aws-portal:ViewBilling",
+      "Resource": "arn:aws:iam::*:root"
+    }
+  ]
+}
+`,
+            },
+            "scp.json",
+          );
+          terminalOutput.push(...checkScenario());
+          break;
+        case "scpBlankRequireImdsv2":
+          updateScenarioFiles(
+            {
+              "scp.json": `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RequireImdsv2",
+      "Effect": "Deny",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:*:*:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:MetadataHttpTokens": "optional"
+        }
+      }
+    }
+  ]
+}
+`,
+            },
+            "scp.json",
+          );
+          terminalOutput.push(...checkScenario());
+          break;
+        case "secretsManagerRotationKms":
+          updateScenarioFiles(
+            {
+              "secret-config.json": `{
+  "name": "prod/db/password",
+  "kmsKeyId": "alias/prod-secrets-kms",
+  "rotationEnabled": true,
+  "rotationDays": 30
+}
+`,
+            },
+            "secret-config.json",
+          );
+          terminalOutput.push(...secretsManagerDescribeSecret());
+          break;
+        case "secretsSsmEnvironmentPath":
+          updateScenarioFiles(
+            {
+              "app-config.yaml": `service: checkout-api
+environment: staging
+databasePasswordParameter: /staging/checkout/db/password
+withDecryption: true
+`,
+            },
+            "app-config.yaml",
+          );
+          terminalOutput.push(...secretsSsmGetParameter());
+          break;
+        case "secretsManagerResourcePolicy":
+          updateScenarioFiles(
+            {
+              "resource-policy.json": `{
+  "secretName": "prod/payments/api-key",
+  "blockPublicPolicy": true,
+  "policy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "AllowAuditRead",
+        "Effect": "Allow",
+        "Principal": "arn:aws:iam::210987654321:role/security-audit",
+        "Action": "secretsmanager:GetSecretValue",
+        "Resource": "arn:aws:secretsmanager:eu-west-1:123456789012:secret:prod/payments/api-key"
+      }
+    ]
+  }
+}
+`,
+            },
+            "resource-policy.json",
+          );
+          terminalOutput.push(...secretsManagerDescribeSecret());
+          break;
+        case "dnsAcmCloudFrontCertificate":
+          updateScenarioFiles(
+            {
+              "certificate.json": `{
+  "domainName": "app.example.com",
+  "region": "us-east-1",
+  "validationRecordName": "_9f3b.app.example.com",
+  "validationRecordValue": "_7a1d.acm-validations.aws"
+}
+`,
+            },
+            "certificate.json",
+          );
+          terminalOutput.push(...dnsAcmDescribeCertificate());
+          break;
+        case "dnsRoute53AlbAlias":
+          updateScenarioFiles(
+            {
+              "route53-record.json": `{
+  "name": "app.example.com",
+  "type": "A",
+  "value": "app-prod-456.eu-west-1.elb.amazonaws.com",
+  "aliasHostedZoneId": "Z32O12XQLNTSW2",
+  "evaluateTargetHealth": true
+}
+`,
+            },
+            "route53-record.json",
+          );
+          terminalOutput.push(...dnsDigApp());
+          break;
+        case "dnsAcmWildcardValidation":
+          updateScenarioFiles(
+            {
+              "certificate.json": `{
+  "domainName": "*.example.com",
+  "region": "us-east-1",
+  "status": "ISSUED",
+  "validationRecordName": "_a1b2.example.com",
+  "validationRecordValue": "_c3d4.acm-validations.aws",
+  "hostedZone": "example.com"
+}
+`,
+            },
+            "certificate.json",
+          );
+          terminalOutput.push(...dnsAcmDescribeCertificate());
+          break;
+        case "observabilityAlb5xxAlarmDimension":
+          updateScenarioFiles(
+            {
+              "alarm.json": `{
+  "alarmName": "alb-5xx-prod",
+  "namespace": "AWS/ApplicationELB",
+  "metricName": "HTTPCode_ELB_5XX_Count",
+  "dimensions": [
+    {
+      "name": "LoadBalancer",
+      "value": "app/prod-web/50dc6c495c0c9188"
+    }
+  ],
+  "threshold": 5,
+  "evaluationPeriods": 2
+}
+`,
+            },
+            "alarm.json",
+          );
+          terminalOutput.push(...cloudWatchDescribeAlarms());
+          break;
+        case "observabilityLogRetention":
+          updateScenarioFiles(
+            {
+              "log-group.json": `{
+  "logGroupName": "/aws/ecs/payments-api",
+  "retentionInDays": 30,
+  "kmsKeyId": "alias/logs-kms"
+}
+`,
+            },
+            "log-group.json",
+          );
+          terminalOutput.push(...logsDescribeLogGroups());
+          break;
+        case "observabilityAlarmAction":
+          updateScenarioFiles(
+            {
+              "alarm.json": `{
+  "alarmName": "api-latency-critical",
+  "namespace": "AWS/ApplicationELB",
+  "metricName": "TargetResponseTime",
+  "threshold": 1.5,
+  "evaluationPeriods": 3,
+  "alarmActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"],
+  "okActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"]
+}
+`,
+            },
+            "alarm.json",
+          );
+          terminalOutput.push(...cloudWatchDescribeAlarms());
+          break;
+        case "finopsNatGatewayCostSpike":
+          updateScenarioFiles(
+            {
+              "nat-gateways.json": `{
+  "vpc": "prod-shared",
+  "natGatewayCount": 2,
+  "privateWorkloadAzs": ["eu-west-1a", "eu-west-1b"],
+  "removeIdleGateways": true
+}
+`,
+            },
+            "nat-gateways.json",
+          );
+          terminalOutput.push(...costAndUsage());
+          break;
+        case "finopsS3Lifecycle":
+          updateScenarioFiles(
+            {
+              "lifecycle.json": `{
+  "bucket": "prod-platform-logs",
+  "accessLogs": {
+    "transitionAfterDays": 30,
+    "storageClass": "STANDARD_IA"
+  },
+  "tempExports": {
+    "expireTempExportsAfterDays": 14
+  }
+}
+`,
+            },
+            "lifecycle.json",
+          );
+          terminalOutput.push(...costAndUsage());
+          break;
+        case "finopsUnattachedEbsCleanup":
+          updateScenarioFiles(
+            {
+              "volume-cleanup.json": `{
+  "volumeId": "vol-0abc123",
+  "state": "available",
+  "unattachedDays": 41,
+  "minimumUnattachedDays": 14,
+  "snapshotBeforeDelete": true,
+  "deleteUnattached": true
+}
+`,
+            },
+            "volume-cleanup.json",
+          );
+          terminalOutput.push(...ec2DescribeVolumes());
+          break;
+        case "policyKyvernoRequireAppLabel":
+          updateScenarioFiles(
+            {
+              "policy.yaml": `apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-app-label
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: require-app-label
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: Pods must define the app label.
+        pattern:
+          metadata:
+            labels:
+              app: "?*"
+`,
+            },
+            "policy.yaml",
+          );
+          terminalOutput.push(...kyvernoTest());
+          break;
+        case "policyKubernetesDefaultDenyIngress":
+          updateScenarioFiles(
+            {
+              "policy.yaml": `apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: payments
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress: []
+`,
+            },
+            "policy.yaml",
+          );
+          terminalOutput.push(...kubectlDryRun());
+          break;
+        case "policyIstioDenyUnauthenticated":
+          updateScenarioFiles(
+            {
+              "policy.yaml": `apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: require-jwt-checkout
+  namespace: checkout
+spec:
+  selector:
+    matchLabels:
+      app: checkout-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            requestPrincipals:
+              - "*"
+`,
+            },
+            "policy.yaml",
+          );
+          terminalOutput.push(...kubectlDryRun());
+          break;
+        case "policyCiliumAllowDnsEgress":
+          updateScenarioFiles(
+            {
+              "policy.yaml": `apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: platform
+spec:
+  endpointSelector:
+    matchLabels:
+      app: worker
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+`,
+            },
+            "policy.yaml",
+          );
+          terminalOutput.push(...kubectlDryRun());
+          break;
+        default:
+          terminalOutput.push("No auto-apply solution is configured for this lab.");
+          break;
+      }
+
+      if (terminalOutput.length && terminalOutput[0] !== "No auto-apply solution is configured for this lab.") {
+        addTerminalLines(terminalOutput);
+      }
+      celebrateIfScenarioCompleted();
+      saveSession();
+      return;
+    }
+
+    terminalOutput.push("No auto-apply solution is configured for this lab.");
+    addTerminalLines(terminalOutput);
+    saveSession();
+  }
+
   function commandHandlers(): CommandHandlers {
     return {
       secretsManagerDescribeSecret,
@@ -956,6 +2407,7 @@
       iamAssumeRoleWithWebIdentity,
       iamS3Cp,
       iamKmsDecrypt,
+      azureRoleAssignmentList,
       organizationsDescribePolicy,
       githubRunView,
       githubRunRerun,
@@ -981,6 +2433,8 @@
       logsDescribeLogGroups,
       costAndUsage,
       ec2DescribeVolumes,
+      kyvernoTest,
+      kubectlDryRun,
       checkScenario,
     };
   }
@@ -1046,6 +2500,31 @@
         "MetricName: HTTPCode_ELB_5XX_Count",
         "Dimensions: LoadBalancerName=prod-web",
         "StateValue: INSUFFICIENT_DATA",
+      ];
+    }
+
+    if (currentScenarioId === "observabilityAlarmAction") {
+      if (observabilityFixApplied()) {
+        markOperationalScenarioSolved("observabilityValidated", "Critical alarm notifies the on-call SNS topic for alarm and recovery states.");
+        return [
+          "AlarmName: api-latency-critical",
+          "MetricName: TargetResponseTime",
+          "AlarmActions: arn:aws:sns:eu-west-1:123456789012:oncall-critical",
+          "OKActions: arn:aws:sns:eu-west-1:123456789012:oncall-critical",
+          "StateValue: OK",
+        ];
+      }
+
+      runtime.awsResources[0].status = "failed";
+      runtime.awsResources[0].note = "Critical alarm still has no notification actions.";
+      runtime = runtime;
+      return [
+        "AlarmName: api-latency-critical",
+        "MetricName: TargetResponseTime",
+        "AlarmActions: []",
+        "OKActions: []",
+        "StateValue: ALARM",
+        "Finding: no on-call topic is notified.",
       ];
     }
 
@@ -1124,10 +2603,74 @@
     return ["No Cost Explorer data for this scenario."];
   }
 
+  function kyvernoTest(): string[] {
+    if (currentScenarioId !== "policyKyvernoRequireAppLabel") {
+      return ["No Kyverno test suite is configured for this scenario."];
+    }
+
+    if (policyFixApplied()) {
+      markOperationalScenarioSolved("policyValidated", "Kyverno policy enforces the required app label on Pods.");
+      return [
+        "Executing kyverno test .",
+        "app-label-policy",
+        "  pass: pod-with-app-label accepted",
+        "  pass: pod-missing-app-label rejected",
+        "Test Summary: 2 passed, 0 failed",
+      ];
+    }
+
+    runtime.awsResources[0].status = "failed";
+    runtime.awsResources[0].note = "Kyverno test still allows a Pod without the required app label.";
+    runtime = runtime;
+    return [
+      "Executing kyverno test .",
+      "app-label-policy",
+      "  pass: pod-with-app-label accepted",
+      "  fail: pod-missing-app-label was accepted",
+      "Test Summary: 1 passed, 1 failed",
+    ];
+  }
+
+  function kubectlDryRun(): string[] {
+    if (!["policyKubernetesDefaultDenyIngress", "policyIstioDenyUnauthenticated", "policyCiliumAllowDnsEgress"].includes(currentScenarioId)) {
+      return ["No Kubernetes server dry-run is configured for this scenario."];
+    }
+
+    if (policyFixApplied()) {
+      markOperationalScenarioSolved("policyValidated", policySuccessNote());
+      return [
+        `${runtime.awsResources[0].id} configured (server dry run)`,
+        policySuccessNote(),
+      ];
+    }
+
+    runtime.awsResources[0].status = "failed";
+    runtime.awsResources[0].note = policyFailureNote();
+    runtime = runtime;
+    return [`${runtime.awsResources[0].id} configured (server dry run)`, `warning: ${policyFailureNote()}`];
+  }
+
+  function policySuccessNote(): string {
+    if (currentScenarioId === "policyKubernetesDefaultDenyIngress") return "Namespace default deny ingress policy is valid and ready to apply.";
+    if (currentScenarioId === "policyIstioDenyUnauthenticated") return "Istio authorization policy allows only authenticated JWT callers to checkout-api.";
+    if (currentScenarioId === "policyCiliumAllowDnsEgress") return "Cilium policy allows worker egress to kube-dns on UDP/53 only.";
+    return "Policy-as-code validation passed.";
+  }
+
+  function policyFailureNote(): string {
+    if (currentScenarioId === "policyKubernetesDefaultDenyIngress") return "NetworkPolicy still selects only labeled pods or keeps an ingress allow rule.";
+    if (currentScenarioId === "policyIstioDenyUnauthenticated") return "Istio policy still allows unauthenticated callers or targets the wrong workload.";
+    if (currentScenarioId === "policyCiliumAllowDnsEgress") return "Cilium policy still misses kube-dns endpoint selection or UDP/53 port scoping.";
+    return "Policy-as-code guardrail is still misconfigured.";
+  }
+
   function ec2DescribeVolumes(): string[] {
-    if (finopsFixApplied()) {
+    if (currentScenarioId === "finopsUnattachedEbsCleanup" && finopsFixApplied()) {
+      markOperationalScenarioSolved("finopsValidated", "Unattached EBS volume is snapshotted and removed after the retention window.");
       return ["Volumes: []", "No unattached candidate volumes remain in this lab."];
     }
+
+    if (currentScenarioId !== "finopsUnattachedEbsCleanup") return ["No EC2 volume inventory for this scenario."];
 
     return [
       "VolumeId: vol-0abc123",
@@ -1870,6 +3413,33 @@
     ];
   }
 
+  function azureRoleAssignmentList(): string[] {
+    if (currentScenarioId !== "iamAzureBlobReaderScope") {
+      return ["az role assignment list is not the validation command for this lab."];
+    }
+
+    if (iamFixApplied()) {
+      markIamScenarioSolved("Azure RBAC grants Storage Blob Data Reader only at the reports container scope.");
+      return [
+        "principalName: reporting-api",
+        "roleDefinitionName: Storage Blob Data Reader",
+        "scope: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports",
+        "canRead: reports",
+        "canWrite: denied",
+      ];
+    }
+
+    runtime.awsResources[0].status = "failed";
+    runtime.awsResources[0].note = "Azure role assignment is still too broad or grants write/admin access.";
+    runtime = runtime;
+    return [
+      "principalName: reporting-api",
+      "roleDefinitionName: Owner",
+      "scope: /subscriptions/00000000-0000-0000-0000-000000000000",
+      "Finding: subscription Owner is broader than read-only access to the reports container.",
+    ];
+  }
+
   function markIamScenarioSolved(note: string): void {
     runtime.flags.iamValidated = true;
     runtime.awsResources[0].status = "exists";
@@ -2087,6 +3657,12 @@
     if (runtime.kind === "finops") {
       if (!finopsFixApplied()) return ["Not complete: cost optimization configuration still misses the required cost control."];
       markOperationalScenarioSolved("finopsValidated", "FinOps validation passed.");
+      return ["Scenario complete."];
+    }
+
+    if (runtime.kind === "policy") {
+      if (!policyFixApplied()) return ["Not complete: policy-as-code guardrail still does not enforce the required workload behavior."];
+      markOperationalScenarioSolved("policyValidated", "Policy-as-code validation passed.");
       return ["Scenario complete."];
     }
 
@@ -2373,7 +3949,11 @@
     if (solved && !completedScenarioIds.includes(currentScenarioId)) {
       completedScenarioIds = [...completedScenarioIds, currentScenarioId];
     }
-    if (solved && !wasSolved) launchConfetti();
+    if (solved && !wasSolved) {
+      completionModalScenarioId = currentScenarioId;
+      activeLabModal = "completion";
+      launchConfetti();
+    }
     wasSolved = solved;
   }
 
@@ -2404,6 +3984,7 @@
     if (runtime.kind === "dns") return Boolean(runtime.flags.dnsValidated);
     if (runtime.kind === "observability") return Boolean(runtime.flags.observabilityValidated);
     if (runtime.kind === "finops") return Boolean(runtime.flags.finopsValidated);
+    if (runtime.kind === "policy") return Boolean(runtime.flags.policyValidated);
     if (runtime.kind === "awsconfig") return Boolean(runtime.flags.configValidated && runtime.flags.cleanPlan);
     if (currentScenarioId === "githubActionsMissingSecret") return Boolean(runtime.flags.secretsConfigured && runtime.flags.runPassing);
     if (currentScenarioId === "githubActionsWrongWorkingDirectory") return Boolean(runtime.flags.workflowFixed && runtime.flags.runPassing);
@@ -2432,6 +4013,91 @@
       return runtime.files[activeFileName].includes('cidr_blocks = ["0.0.0.0/0"]');
     }
     return false;
+  }
+
+  function solutionSummary(): string {
+    return scenarios[currentScenarioId].solution?.summary ?? solutionTarget();
+  }
+
+  function solutionSteps(): string[] {
+    return scenarios[currentScenarioId].solution?.steps ?? [
+      `Inspect the failure using ${solutionInspectionCommand()}.`,
+      solutionTarget(),
+      `Run ${solutionValidationCommand()} until it reports a clean result.`,
+      "Finish with check when the validation output matches the required behavior.",
+    ];
+  }
+
+  function solutionCommands(): string[] {
+    return scenarios[currentScenarioId].solution?.commands ?? [solutionInspectionCommand(), solutionValidationCommand(), "check"];
+  }
+
+  function completionExplanation(): string {
+    return scenarios[currentScenarioId].solution?.explanation ?? useCaseExplanation();
+  }
+
+  function solutionInspectionCommand(): string {
+    if (runtime.kind === "cicd") return "gh run view";
+    if (runtime.kind === "terragrunt") return "terragrunt validate";
+    if (runtime.kind === "iam") {
+      if (currentScenarioId === "iamAzureBlobReaderScope") return "az role assignment list";
+      if (currentScenarioId === "iamGithubOidcEnvironmentTrust") return "aws sts assume-role-with-web-identity";
+      if (currentScenarioId === "iamKmsEncryptionContext") return "aws kms decrypt";
+      return "aws iam simulate-principal-policy";
+    }
+    if (runtime.kind === "scp") return "aws organizations describe-policy";
+    if (runtime.kind === "secrets") return currentScenarioId === "secretsSsmEnvironmentPath" ? "aws ssm get-parameter" : "aws secretsmanager describe-secret";
+    if (runtime.kind === "dns") return currentScenarioId === "dnsRoute53AlbAlias" ? "dig app.example.com" : "aws acm describe-certificate";
+    if (runtime.kind === "observability") return currentScenarioId === "observabilityLogRetention" ? "aws logs describe-log-groups" : "aws cloudwatch describe-alarms";
+    if (runtime.kind === "finops") return currentScenarioId === "finopsUnattachedEbsCleanup" ? "aws ec2 describe-volumes" : "aws ce get-cost-and-usage";
+    if (runtime.kind === "policy") return currentScenarioId === "policyKyvernoRequireAppLabel" ? "kyverno test ." : "kubectl apply --dry-run=server -f policy.yaml";
+    if (runtime.kind === "networking") return "Run trace";
+    if (runtime.kind === "pr") return "Review the changed lines";
+    if (runtime.kind === "awsconfig") return "checkov -f main.tf";
+    return "terraform plan";
+  }
+
+  function solutionValidationCommand(): string {
+    if (runtime.kind === "cicd") return "gh run rerun";
+    if (runtime.kind === "terragrunt") return "terragrunt plan";
+    if (runtime.kind === "iam") return solutionInspectionCommand();
+    if (runtime.kind === "scp") return "aws iam simulate-principal-policy";
+    if (runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "policy") return solutionInspectionCommand();
+    if (runtime.kind === "networking") return "Check design";
+    if (runtime.kind === "pr") return "Submit review";
+    if (runtime.kind === "awsconfig") return "terraform plan";
+    return "terraform plan";
+  }
+
+  function solutionTarget(): string {
+    const tips = scenarios[currentScenarioId].tips ?? [];
+    if (tips.length) return tips[tips.length - 1];
+
+    if (runtime.kind === "networking") return "Update the selected diagram controls so every requirement is satisfied and the packet trace reaches the expected destination.";
+    if (runtime.kind === "pr") return "Select the review decision and findings that match the actual risk in the diff.";
+    if (runtime.kind === "cicd") return "Fix the first failing workflow step without broadening permissions or hiding the failure.";
+    if (runtime.kind === "policy") return "Update policy.yaml so the policy validates the intended admission, authorization, or network behavior.";
+    if (runtime.kind === "iam") return "Reduce the permission scope to the exact principal, action, resource, and condition required by the request.";
+    if (runtime.kind === "scp") return "Keep the SCP deny scoped to the requested organization guardrail while preserving documented exceptions.";
+    if (runtime.kind === "awsconfig") return "Add the missing cloud guardrail in Terraform and keep the plan clean.";
+    return "Apply the smallest change that makes the validation command pass while preserving the stated constraints.";
+  }
+
+  function useCaseExplanation(): string {
+    if (runtime.kind === "terraform") return "This use case mirrors day-to-day infrastructure drift and state repair: the fix is complete only when code, state, and real infrastructure agree.";
+    if (runtime.kind === "awsconfig") return "This use case models pre-deployment cloud configuration review, where guardrails catch unsafe defaults before they reach production.";
+    if (runtime.kind === "terragrunt") return "This use case covers multi-stack IaC operations, where source paths, includes, and dependency outputs need to line up before planning safely.";
+    if (runtime.kind === "cicd") return "This use case reflects CI/CD troubleshooting: the first failing step usually identifies the narrowest workflow, secret, or permission fix.";
+    if (runtime.kind === "iam") return "This use case reinforces least privilege: access should be granted at the smallest useful action, resource, condition, or scope.";
+    if (runtime.kind === "scp") return "This use case separates organization-level guardrails from workload permissions, using explicit denies without breaking intended exceptions.";
+    if (runtime.kind === "policy") return "This use case treats platform policy as code: admission, service mesh, and network controls should be testable before rollout.";
+    if (runtime.kind === "secrets") return "This use case focuses on secret hygiene: correct environment paths, encryption, rotation, and resource policy boundaries matter together.";
+    if (runtime.kind === "dns") return "This use case shows why DNS and TLS fixes are precision work: region, validation records, and alias targets must match exactly.";
+    if (runtime.kind === "observability") return "This use case is about actionable telemetry: alarms and logs only help when dimensions, retention, and notification paths are correct.";
+    if (runtime.kind === "finops") return "This use case connects operational cleanup to spend control: unused capacity and missing lifecycle rules become recurring cost.";
+    if (runtime.kind === "networking") return "This use case models network design reviews, where routes and policy controls must match the intended packet path.";
+    if (runtime.kind === "pr") return "This use case practices review judgment: block risky changes with precise findings and avoid treating harmless context as a defect.";
+    return "This lab is a deterministic troubleshooting exercise: reproduce the failure, make the smallest safe fix, then validate the outcome.";
   }
 
   function iamFixApplied(): boolean {
@@ -2483,6 +4149,18 @@
         policy.includes("tenant-a") &&
         !policy.includes('"dynamodb:*"') &&
         !policy.includes('"Resource": "*"')
+      );
+    }
+
+    if (currentScenarioId === "iamAzureBlobReaderScope") {
+      const assignment = runtime.files["role-assignment.json"] ?? "";
+      return (
+        assignment.includes('"principalName": "reporting-api"') &&
+        assignment.includes('"roleDefinitionName": "Storage Blob Data Reader"') &&
+        assignment.includes('"scope": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports"') &&
+        !assignment.includes('"roleDefinitionName": "Owner"') &&
+        !assignment.includes('"roleDefinitionName": "Contributor"') &&
+        !assignment.includes('"scope": "/subscriptions/00000000-0000-0000-0000-000000000000"')
       );
     }
 
@@ -2711,24 +4389,25 @@
     return "badge badge-danger";
   }
 
-  function labHealthClass(): string {
-    if (runtime.kind === "cicd" || runtime.kind === "awsconfig" || runtime.kind === "iam" || runtime.kind === "scp" || runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "pr") {
-      return isSolved() ? "badge badge-ok" : "badge badge-danger";
+  function labHealthClass(solvedState: boolean): string {
+    if (runtime.kind === "cicd" || runtime.kind === "awsconfig" || runtime.kind === "iam" || runtime.kind === "scp" || runtime.kind === "policy" || runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "pr") {
+      return solvedState ? "badge badge-ok" : "badge badge-danger";
     }
     return runtime.backend.locked ? "badge badge-danger" : "badge badge-ok";
   }
 
-  function labHealthLabel(): string {
-    if (runtime.kind === "cicd") return isSolved() ? "Workflow: passing" : "Workflow: failing";
-    if (runtime.kind === "awsconfig") return isSolved() ? "AWS config: passed" : "AWS config: failing";
-    if (runtime.kind === "iam") return isSolved() ? "IAM: validated" : "IAM: needs review";
-    if (runtime.kind === "scp") return isSolved() ? "SCP: validated" : "SCP: needs review";
-    if (runtime.kind === "secrets") return isSolved() ? "Secrets: healthy" : "Secrets: failing";
-    if (runtime.kind === "dns") return isSolved() ? "DNS/TLS: healthy" : "DNS/TLS: failing";
-    if (runtime.kind === "observability") return isSolved() ? "Observability: healthy" : "Observability: failing";
-    if (runtime.kind === "finops") return isSolved() ? "Cost: optimized" : "Cost: review";
-    if (runtime.kind === "pr") return isSolved() ? "Review: accepted" : "Review: pending";
-    if (runtime.kind === "terragrunt") return isSolved() ? "Terragrunt: healthy" : `Remote state: ${runtime.backend.key}`;
+  function labHealthLabel(solvedState: boolean): string {
+    if (runtime.kind === "cicd") return solvedState ? "Workflow: passing" : "Workflow: failing";
+    if (runtime.kind === "awsconfig") return solvedState ? "AWS config: passed" : "AWS config: failing";
+    if (runtime.kind === "iam") return solvedState ? "IAM: validated" : "IAM: needs review";
+    if (runtime.kind === "scp") return solvedState ? "SCP: validated" : "SCP: needs review";
+    if (runtime.kind === "policy") return solvedState ? "Policy: passing" : "Policy: failing";
+    if (runtime.kind === "secrets") return solvedState ? "Secrets: healthy" : "Secrets: failing";
+    if (runtime.kind === "dns") return solvedState ? "DNS/TLS: healthy" : "DNS/TLS: failing";
+    if (runtime.kind === "observability") return solvedState ? "Observability: healthy" : "Observability: failing";
+    if (runtime.kind === "finops") return solvedState ? "Cost: optimized" : "Cost: review";
+    if (runtime.kind === "pr") return solvedState ? "Review: accepted" : "Review: pending";
+    if (runtime.kind === "terragrunt") return solvedState ? "Terragrunt: healthy" : `Remote state: ${runtime.backend.key}`;
     return runtime.backend.locked ? `Backend: locked (${runtime.backend.lockId})` : `Backend: unlocked (${runtime.backend.key})`;
   }
 
@@ -2876,7 +4555,7 @@
     }
 
     if (currentScenarioId === "githubActionsEnvironmentApproval") {
-      return file.includes("name: production") && !file.includes("name: prod");
+      return file.includes("environment:\n      name: production") && !file.includes("environment:\n      name: prod");
     }
 
     if (currentScenarioId === "githubActionsMatrixNodeVersion") {
@@ -2960,12 +4639,49 @@
   <button class="menu-backdrop" type="button" aria-label="Close menu" on:click={() => (isMenuOpen = false)}></button>
 {/if}
 
+{#if activeLabModal}
+  <button class="modal-backdrop" type="button" aria-label="Close dialog" on:click={closeLabModal}></button>
+  <div class="lab-modal" role="dialog" aria-modal="true" aria-labelledby="lab-modal-title">
+    <div class="lab-modal-header">
+      <div>
+        <p>{activeLabModal === "solution" ? "Solution guide" : "Lab complete"}</p>
+        <h2 id="lab-modal-title">{activeLabModal === "solution" ? runtime.title : scenarios[completionModalScenarioId ?? currentScenarioId]?.title ?? runtime.title}</h2>
+      </div>
+      <button type="button" class="menu-close-button" aria-label="Close dialog" on:click={closeLabModal}>×</button>
+    </div>
+    <div class="lab-modal-body">
+      {#if activeLabModal === "solution"}
+        <p>{solutionSummary()}</p>
+        <h3>Steps</h3>
+        <ol>
+          {#each solutionSteps() as step}
+            <li>{step}</li>
+          {/each}
+        </ol>
+        <h3>Commands</h3>
+        <pre>{solutionCommands().join("\n")}</pre>
+      {:else}
+        <p>{completionExplanation()}</p>
+        <h3>Outcome</h3>
+        <p>{runtime.awsResources[0]?.note ?? "The scenario validation now matches the expected behavior."}</p>
+      {/if}
+    </div>
+    <div class="lab-modal-actions">
+      {#if activeLabModal === "solution"}
+        <button type="button" class="solution-apply-button" on:click={applySolution}>Apply solution</button>
+      {/if}
+      <button type="button" on:click={closeLabModal}>Close</button>
+    </div>
+  </div>
+{/if}
+
 <aside class:open={isMenuOpen} class="app-menu" aria-label="Application menu" aria-hidden={!isMenuOpen}>
   <div class="menu-header">
     <button type="button" class="menu-close-button" aria-label="Close menu" on:click={() => (isMenuOpen = false)}>×</button>
     <div class="theme-dots" aria-label="Theme">
       <button type="button" class="theme-dot theme-dot-latte" class:active={theme === "latte"} aria-label="Latte theme" on:click={() => (theme = "latte")}></button>
       <button type="button" class="theme-dot theme-dot-mocha" class:active={theme === "mocha"} aria-label="Mocha theme" on:click={() => (theme = "mocha")}></button>
+      <button type="button" class="theme-dot theme-dot-dracula" class:active={theme === "dracula"} aria-label="Dracula theme" on:click={() => (theme = "dracula")}></button>
       <button type="button" class="theme-dot theme-dot-cyberpunk" class:active={theme === "cyberpunk"} aria-label="Cyber theme" on:click={() => (theme = "cyberpunk")}></button>
     </div>
   </div>
@@ -2984,7 +4700,7 @@
           <strong>Incident Mode</strong>
           <small>Hide lab names and direct requirements for unsolved labs.</small>
         </span>
-        <input type="checkbox" bind:checked={incidentMode}>
+        <input type="checkbox" checked={incidentMode} on:change={setIncidentMode}>
       </label>
     </div>
   </section>
@@ -2996,7 +4712,7 @@
       </span>
     </label>
     {#each labGroups as group}
-      {#if menuGroupVisible(group.ids)}
+      {#if menuGroupVisible(group.ids, menuSearchQuery)}
         <div class="menu-lab-group">
           <button
             type="button"
@@ -3004,27 +4720,31 @@
             aria-expanded={openMenuGroups.includes(group.id) || Boolean(menuSearchQuery.trim())}
             on:click={() => toggleMenuGroup(group.id)}
           >
-            <span>{group.title}</span>
+            <span>
+              <strong>{group.title}</strong>
+            </span>
             <small>{groupCompletionLabel(group.ids)}</small>
           </button>
           {#if openMenuGroups.includes(group.id) || menuSearchQuery.trim()}
-            <div class="scenario-list">
-              {#each filteredScenarioIds(group.ids) as id}
-                <button
-                  type="button"
-                  class={`scenario-difficulty ${scenarioDifficultyClass(id)}`}
-                  class:active={id === currentScenarioId}
-                  class:completed={completedScenarioIds.includes(id)}
-                  aria-current={id === currentScenarioId ? "page" : undefined}
-                  on:click={() => selectScenario(id)}
-                >
-                  <span class="scenario-title">{labMenuTitle(id)}</span>
-                  {#if completedScenarioIds.includes(id)}
-                    <span class="scenario-check" aria-label="Completed">✓</span>
-                  {/if}
-                </button>
-              {/each}
-            </div>
+            {#key incidentMode}
+              <div class="scenario-list">
+                {#each filteredScenarioIds(group.ids, menuSearchQuery) as id}
+                  <button
+                    type="button"
+                    class={`scenario-difficulty ${scenarioDifficultyClass(id)}`}
+                    class:active={id === currentScenarioId}
+                    class:completed={completedScenarioIds.includes(id)}
+                    aria-current={id === currentScenarioId ? "page" : undefined}
+                    on:click={() => selectScenario(id)}
+                  >
+                    <span class="scenario-title">{labMenuTitle(id)}</span>
+                    {#if completedScenarioIds.includes(id)}
+                      <span class="scenario-check" aria-label="Completed">✓</span>
+                    {/if}
+                  </button>
+                {/each}
+              </div>
+            {/key}
           {/if}
         </div>
       {/if}
@@ -3056,14 +4776,17 @@
     </div>
     {#if currentPage === "labs"}
       <div class="topbar-badges">
-        <span class={isSolved() ? "badge badge-ok" : "badge badge-warn"}>
-          Status: {isSolved() ? "complete" : "in progress"}
+        <span class={solved ? "badge badge-ok" : "badge badge-warn"}>
+          Status: {solved ? "complete" : "in progress"}
         </span>
-        <span class={labHealthClass()}>{labHealthLabel()}</span>
-        {#if incidentMode && !isSolved()}
+        <span class={labHealthClass(solved)}>{labHealthLabel(solved)}</span>
+        {#if incidentMode && !solved}
           <span class="badge badge-warn">incident</span>
         {/if}
       </div>
+      {#if !incidentMode}
+        <button type="button" class="solution-button" on:click={openSolutionModal}>Show solution</button>
+      {/if}
       <button type="button" class="reset-button" on:click={() => loadScenario(currentScenarioId)}>Reset</button>
     {/if}
   </header>
@@ -3077,6 +4800,7 @@
         <a href="#wiki-terragrunt">Terragrunt</a>
         <a href="#wiki-github">GitHub Actions</a>
         <a href="#wiki-iam">IAM</a>
+        <a href="#wiki-policy">Policy as Code</a>
         <a href="#wiki-secrets">Secrets</a>
         <a href="#wiki-dns">DNS/TLS</a>
         <a href="#wiki-networking">Networking</a>
@@ -3106,7 +4830,7 @@
         </section>
 
         <section id="wiki-terraform">
-          <h2>Terraform</h2>
+          <h2>Infra as Code</h2>
           <p>
             Terraform labs focus on the relationship between configuration, remote infrastructure, and state.
             A clean fix usually makes the state address, the code address, and the real AWS object agree.
@@ -3138,7 +4862,7 @@ terraform force-unlock &lt;lock-id&gt;</pre>
         </section>
 
         <section id="wiki-aws-config">
-          <h2>AWS Config Review</h2>
+          <h2>Configuration Review</h2>
           <p>
             AWS Config Review labs are Terraform exercises focused on spotting missing AWS guardrails before
             deployment. The goal is to identify bad or incomplete service configuration, fix the Terraform, then
@@ -3230,11 +4954,33 @@ gh secret set AWS_ROLE_ARN</pre>
           <pre>aws iam simulate-principal-policy
 aws sts assume-role-with-web-identity
 aws s3 cp
-aws kms decrypt</pre>
+aws kms decrypt
+az role assignment list</pre>
           <p>
-            For least privilege, check all three dimensions: action, resource, and condition. A policy that allows
-            the happy path can still be wrong if it also allows another prefix, another branch, or decrypt without
-            the required encryption context.
+            For least privilege, check all three dimensions: action, resource, and condition or scope. A policy that
+            allows the happy path can still be wrong if it also allows another prefix, another branch, decrypt without
+            the required encryption context, or a subscription-wide Azure role assignment where a container scope is enough.
+          </p>
+        </section>
+
+        <section id="wiki-policy">
+          <h2>Policy as Code</h2>
+          <p>
+            Policy as Code labs model platform and workload guardrails. These are separate from organization policy:
+            they run close to Kubernetes admission, service mesh authorization, or runtime network enforcement.
+          </p>
+          <div class="wiki-diagram" aria-label="Policy as code validation flow">
+            <div class="diagram-node">Policy<br><span>Kyverno, Istio, Cilium</span></div>
+            <div class="diagram-arrow">-></div>
+            <div class="diagram-node">Validation<br><span>test or dry-run</span></div>
+            <div class="diagram-arrow">-></div>
+            <div class="diagram-node">Guardrail<br><span>admission or traffic control</span></div>
+          </div>
+          <pre>kyverno test .
+kubectl apply --dry-run=server -f policy.yaml</pre>
+          <p>
+            Use these labs for Kubernetes NetworkPolicy, Kyverno admission policy, Istio AuthorizationPolicy, and
+            CiliumNetworkPolicy patterns. Organization-wide cloud guardrails still belong in Organization Policy.
           </p>
         </section>
 
@@ -3382,6 +5128,8 @@ dig app.example.com</pre>
               <GroupSecurity size={32} />
             {:else if group.id === "scp"}
               <IbmSecurity size={32} />
+            {:else if group.id === "policy"}
+              <DocumentTasks size={32} />
             {:else if group.id === "secrets"}
               <CertificateCheck size={32} />
             {:else if group.id === "dns"}
@@ -3398,6 +5146,11 @@ dig app.example.com</pre>
           </span>
           <span class="lab-index-content">
             <strong>{group.title}</strong>
+            <span class="lab-index-providers">
+              {#each labGroupDetails[group.id].providers as provider}
+                <span class={providerClass(provider)}>{provider}</span>
+              {/each}
+            </span>
             <small>{labGroupDetails[group.id].description}</small>
           </span>
           <span class="lab-index-count">{groupCompletionLabel(group.ids)}</span>

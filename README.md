@@ -2,7 +2,7 @@
 
 A small Svelte + TypeScript web app for practicing DevOps and cloud troubleshooting scenarios.
 
-The app simulates Terraform, Terragrunt, GitHub Actions, AWS service misconfiguration reviews, IAM, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, DNS, or certificate services.
+The app simulates infrastructure as code, Terragrunt, GitHub Actions, cloud configuration reviews, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, DNS, Kubernetes, Kyverno, Istio, Cilium, or certificate services.
 
 ## Features
 
@@ -12,11 +12,12 @@ The app simulates Terraform, Terragrunt, GitHub Actions, AWS service misconfigur
   - Resource/state/context view or CI/CD pipeline dashboard
 - Diagram-first networking workspace for VPN, Direct Connect, VPC, subnet, route table, security group, NACL, and WAF labs
 - Diff-first PR review workspace with review decisions and finding selection
-- Observability and FinOps scenarios for CloudWatch, logs, Cost Explorer, and lifecycle tuning
+- Policy as Code scenarios for Kubernetes, Kyverno, Istio, and Cilium policy patterns
+- Observability and FinOps scenarios for CloudWatch, logs, Cost Explorer, and cost-resource cleanup
 - YAML-backed scenarios bundled at build time
 - Collapsible side menu with completion counts
 - Incident Mode to hide giveaway lab names and direct requirements
-- Catppuccin Latte, Catppuccin Mocha, and Cyberpunk Pink themes
+- Catppuccin Latte, Catppuccin Mocha, Dracula, and Cyberpunk Pink themes
 - Command history with arrow keys
 - Scenario reset and completion checks
 - Saved progress in `localStorage`
@@ -103,6 +104,7 @@ gh secret set <name>
 aws iam simulate-principal-policy
 aws sts assume-role-with-web-identity
 aws kms decrypt
+az role assignment list
 aws organizations describe-policy
 aws secretsmanager describe-secret
 aws ssm get-parameter
@@ -112,6 +114,8 @@ aws cloudwatch describe-alarms
 aws logs describe-log-groups
 aws ce get-cost-and-usage
 aws ec2 describe-volumes
+kyverno test .
+kubectl apply --dry-run=server -f policy.yaml
 check
 help
 ```
@@ -161,12 +165,17 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 - IAM GitHub OIDC environment trust policy
 - IAM KMS encryption context policy
 - IAM DynamoDB leading keys tenant isolation policy
+- IAM Azure Blob Storage reader role assignment scope
 - IAM blank build for Secrets Manager read-only access
 - IAM blank build for CloudWatch Logs write access
 - SCP deny leaving AWS Organization guardrail
 - SCP region restriction with break-glass exception
 - SCP blank build to deny root-user actions
 - SCP blank build to require EC2 IMDSv2
+- Kyverno require app label admission policy
+- Kubernetes default deny ingress NetworkPolicy
+- Istio AuthorizationPolicy requiring authenticated requests
+- CiliumNetworkPolicy allowing DNS egress only
 - Secrets Manager rotation and KMS configuration
 - SSM Parameter Store environment path mismatch
 - Secrets Manager resource policy public access hardening
@@ -175,8 +184,10 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 - DNS/TLS ACM wildcard certificate public hosted-zone validation
 - CloudWatch ALB 5xx alarm dimension mismatch
 - CloudWatch Logs retention cost and compliance gap
+- CloudWatch critical alarm missing notification action
 - FinOps NAT Gateway cost spike from idle AZ gateways
 - FinOps S3 lifecycle cost control for logs and temporary exports
+- FinOps unattached EBS cleanup with snapshot-before-delete
 - PR review for Terraform public S3 exposure
 - PR review for GitHub Actions `write-all` permissions
 - PR review for IAM wildcard policy
@@ -185,9 +196,9 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 ## Add A Scenario
 
 1. Create a new `.yaml` file in `scenarios/`.
-2. Import it in `src/scenarios.ts` with `?raw`.
-3. Add it to `scenarioSources`.
-4. Keep the same structure as the existing scenario YAML files.
+2. Add its `id` to `scenarioOrder` in `src/scenarios.ts`.
+3. Keep the same structure as the existing scenario YAML files.
+4. Add simulator behavior in `src/App.svelte` if the lab needs new command output or completion checks.
 
 Minimal shape:
 
@@ -219,8 +230,9 @@ Scenario kinds:
 - `kind: awsconfig`: uses Terraform files plus `checkov -f main.tf` to spot missing AWS services or unsafe AWS settings.
 - `kind: terragrunt`: uses Terragrunt commands and stack/source/dependency validation.
 - `kind: cicd`: uses GitHub Actions commands and the pipeline dashboard.
-- `kind: iam`: uses IAM simulation commands and least-privilege checks.
+- `kind: iam`: uses identity simulation or inspection commands and least-privilege checks across AWS and Azure-style exercises.
 - `kind: scp`: uses AWS Organizations policy inspection and IAM-style simulation to model SCP deny guardrails.
+- `kind: policy`: uses policy-as-code validation commands such as `kyverno test .` and Kubernetes server dry-run.
 - `kind: secrets`: uses Secrets Manager or SSM Parameter Store validation commands.
 - `kind: dns`: uses ACM and DNS lookup validation commands.
 - `kind: observability`: uses CloudWatch alarm and log group inspection commands.
@@ -230,13 +242,15 @@ Scenario kinds:
 
 Networking scenarios add a `networking` block with `nodes`, `links`, selectable `controls`, and optional packet `traces`. Traces are deterministic probes that show the intended packet path and the component-level failure without highlighting the exact control answer.
 
-IAM scenarios use `kind: iam` and regular scenario files. They use the terminal for deterministic AWS-style validation commands such as `aws iam simulate-principal-policy`, `aws sts assume-role-with-web-identity`, `aws s3 cp`, and `aws kms decrypt`.
+IAM scenarios use `kind: iam` and regular scenario files. They use the terminal for deterministic identity validation commands such as `aws iam simulate-principal-policy`, `aws sts assume-role-with-web-identity`, `aws s3 cp`, `aws kms decrypt`, and `az role assignment list`.
+
+Policy as Code scenarios use `kind: policy` and model platform/workload guardrails rather than cloud organization guardrails. Current labs cover Kubernetes NetworkPolicy, Kyverno admission policy, Istio AuthorizationPolicy, and CiliumNetworkPolicy patterns.
 
 Incident Mode is a menu option that hides unsolved lab names and direct scenario descriptions. It replaces them with generic incident context, changes tips into optional clues, and keeps solved labs visible for review.
 
 PR review scenarios use `kind: pr` and a `prReview` block. They render a diff-oriented workspace where the user chooses a review decision and selects the findings that should block or approve the change.
 
-Secrets scenarios use `kind: secrets` and model Secrets Manager or SSM Parameter Store failures. DNS/TLS scenarios use `kind: dns` and model Route 53, ACM, CloudFront certificate, and ALB alias issues.
+Secrets scenarios use `kind: secrets` and model Secrets Manager or SSM Parameter Store failures. DNS/TLS scenarios use `kind: dns` and model Route 53, ACM, CloudFront certificate, and ALB alias issues. Observability scenarios use `kind: observability` for CloudWatch alarm and log-group checks. FinOps scenarios use `kind: finops` for cost signals and cleanup controls.
 
 The current YAML parser intentionally supports only the subset used by these scenario files: nested objects, arrays of objects, booleans, `null`, empty arrays, strings, and block strings with `|`.
 

@@ -1,0 +1,43 @@
+id: finopsUnattachedEbsCleanup
+kind: finops
+title: Unattached EBS Cleanup
+description: An old unattached EBS volume is still accruing storage cost because cleanup is disabled.
+primaryFile: volume-cleanup.json
+tips:
+  - Inspect unattached volume inventory before changing cleanup.
+  - Snapshot before deleting old unattached volumes.
+  - Only delete volumes that have been unattached for at least 14 days.
+files:
+  "volume-cleanup.json": |
+    {
+      "volumeId": "vol-0abc123",
+      "state": "available",
+      "unattachedDays": 41,
+      "minimumUnattachedDays": 30,
+      "snapshotBeforeDelete": false,
+      "deleteUnattached": false
+    }
+  "cost-notes.md": |
+    Required:
+    - minimumUnattachedDays: 14
+    - snapshotBeforeDelete: true
+    - deleteUnattached: true
+backend:
+  bucket: finops-training
+  key: unattached-ebs-cleanup
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: ebs_volume
+    name: vol-0abc123
+    id: vol-0abc123
+    status: failed
+    note: Unattached EBS volume remains available and billable.
+stateResources:
+  - address: volume
+    id: vol-0abc123
+  - address: owner
+    id: platform
+flags:
+  finopsValidated: false

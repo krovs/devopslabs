@@ -39,6 +39,7 @@ export type ScenarioFlags = {
   configValidated?: boolean;
   observabilityValidated?: boolean;
   finopsValidated?: boolean;
+  policyValidated?: boolean;
 };
 
 export type NetworkNode = {
@@ -115,11 +116,17 @@ export type PrReviewModel = {
 
 export type Scenario = {
   id: string;
-  kind?: "terraform" | "terragrunt" | "cicd" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops";
+  kind?: "terraform" | "terragrunt" | "cicd" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops" | "policy";
   title: string;
   description: string;
   primaryFile?: string;
   tips?: string[];
+  solution?: {
+    summary?: string;
+    steps?: string[];
+    commands?: string[];
+    explanation?: string;
+  };
   files: Record<string, string>;
   backend: Backend;
   awsResources: AwsResource[];

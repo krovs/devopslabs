@@ -1,0 +1,53 @@
+id: policyIstioDenyUnauthenticated
+kind: policy
+title: Istio Require Authenticated Requests
+description: Fix an Istio AuthorizationPolicy so checkout-api only accepts requests with an authenticated JWT principal.
+primaryFile: policy.yaml
+tips:
+  - The policy should target app checkout-api in the checkout namespace.
+  - Use an ALLOW policy with requestPrincipals so unauthenticated requests are not allowed.
+  - requestPrincipals: ["*"] means any authenticated principal.
+files:
+  "policy.yaml": |
+    apiVersion: security.istio.io/v1beta1
+    kind: AuthorizationPolicy
+    metadata:
+      name: require-jwt-checkout
+      namespace: checkout
+    spec:
+      selector:
+        matchLabels:
+          app: checkout
+      action: ALLOW
+      rules:
+        - to:
+            - operation:
+                methods: ["GET", "POST"]
+  "requirements.md": |
+    Goal:
+    Only authenticated callers may reach checkout-api.
+
+    Required:
+    - metadata.namespace is checkout
+    - selector.matchLabels.app is checkout-api
+    - action is ALLOW
+    - rules.from.source.requestPrincipals includes "*"
+backend:
+  bucket: policy-as-code
+  key: istio-require-authenticated-requests
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: policy_as_code
+    name: require-jwt-checkout
+    id: authorizationpolicy/checkout/require-jwt-checkout
+    status: failed
+    note: AuthorizationPolicy targets the wrong workload and does not require an authenticated principal.
+stateResources:
+  - address: cluster.kind
+    id: dev-platform
+  - address: namespace.checkout
+    id: checkout
+flags:
+  policyValidated: false

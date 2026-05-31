@@ -1,0 +1,45 @@
+id: iamAzureBlobReaderScope
+kind: iam
+title: Azure Blob Reader Scope
+description: An Azure managed identity has subscription Owner access but only needs read access to one storage container.
+primaryFile: role-assignment.json
+tips:
+  - Inspect the role assignment before editing.
+  - Use the smallest built-in role that can read blob data.
+  - Scope the assignment to the reports container, not the subscription.
+files:
+  "role-assignment.json": |
+    {
+      "principalName": "reporting-api",
+      "principalType": "ServicePrincipal",
+      "roleDefinitionName": "Owner",
+      "scope": "/subscriptions/00000000-0000-0000-0000-000000000000"
+    }
+  "request.txt": |
+    Principal: reporting-api
+    Required:
+    - Read blobs from the reports container
+    - No write access
+    - No subscription-wide permissions
+
+    Target scope:
+    /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports
+backend:
+  bucket: iam-training
+  key: azure-blob-reader-scope
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: azure_role_assignment
+    name: reporting-api-blob-reader
+    id: /subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleAssignments/reporting-api
+    status: failed
+    note: Managed identity has subscription Owner instead of container-scoped blob read access.
+stateResources:
+  - address: azure.managed_identity
+    id: reporting-api
+  - address: azure.storage_container
+    id: proddata/reports
+flags:
+  iamValidated: false

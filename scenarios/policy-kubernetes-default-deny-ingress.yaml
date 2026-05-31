@@ -1,0 +1,56 @@
+id: policyKubernetesDefaultDenyIngress
+kind: policy
+title: Kubernetes Default Deny Ingress
+description: Fix a Kubernetes NetworkPolicy so every Pod in the payments namespace denies ingress by default.
+primaryFile: policy.yaml
+tips:
+  - A namespace default deny policy selects every Pod with podSelector: {}.
+  - Default deny ingress has policyTypes containing Ingress and no ingress rules.
+  - Do not keep an allow rule for monitoring in the default deny policy.
+files:
+  "policy.yaml": |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: default-deny-ingress
+      namespace: payments
+    spec:
+      podSelector:
+        matchLabels:
+          app: api
+      policyTypes:
+        - Ingress
+      ingress:
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  name: monitoring
+  "requirements.md": |
+    Goal:
+    Deny ingress to every Pod in the payments namespace by default.
+
+    Required shape:
+    - metadata.name is default-deny-ingress
+    - metadata.namespace is payments
+    - spec.podSelector selects every Pod
+    - policyTypes includes Ingress
+    - ingress has no allow rules
+backend:
+  bucket: policy-as-code
+  key: kubernetes-default-deny-ingress
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: policy_as_code
+    name: default-deny-ingress
+    id: networkpolicy/payments/default-deny-ingress
+    status: failed
+    note: NetworkPolicy only selects app=api and keeps an ingress allow rule.
+stateResources:
+  - address: cluster.kind
+    id: dev-platform
+  - address: namespace.payments
+    id: payments
+flags:
+  policyValidated: false

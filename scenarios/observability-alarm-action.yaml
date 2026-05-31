@@ -1,0 +1,42 @@
+id: observabilityAlarmAction
+kind: observability
+title: CloudWatch Alarm Missing Action
+description: A critical latency alarm enters ALARM state but never notifies the on-call SNS topic.
+primaryFile: alarm.json
+tips:
+  - Describe the alarm to confirm whether it has actions.
+  - Critical alarms need an alarm action.
+  - Add the on-call SNS topic to both alarmActions and okActions.
+files:
+  "alarm.json": |
+    {
+      "alarmName": "api-latency-critical",
+      "namespace": "AWS/ApplicationELB",
+      "metricName": "TargetResponseTime",
+      "threshold": 1.5,
+      "evaluationPeriods": 3,
+      "alarmActions": [],
+      "okActions": []
+    }
+  "target.txt": |
+    Required notification topic:
+    arn:aws:sns:eu-west-1:123456789012:oncall-critical
+backend:
+  bucket: observability-training
+  key: alarm-missing-action
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudwatch_alarm
+    name: api-latency-critical
+    id: api-latency-critical
+    status: failed
+    note: Critical alarm has no alarmActions or okActions.
+stateResources:
+  - address: sns.topic
+    id: arn:aws:sns:eu-west-1:123456789012:oncall-critical
+  - address: service
+    id: checkout-api
+flags:
+  observabilityValidated: false
