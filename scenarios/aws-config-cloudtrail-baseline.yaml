@@ -1,6 +1,6 @@
 id: awsConfigCloudTrailBaseline
 kind: awsconfig
-title: AWS Config Review CloudTrail Baseline
+title: IaC Security Baselines CloudTrail Baseline
 description: A governance trail exists but does not cover every region or log file validation.
 primaryFile: main.tf
 tips:
@@ -28,11 +28,11 @@ solution:
     - Log file validation helps detect tampering.
     - Global service events should be included.
   explanation: |
-    AWS Config Review CloudTrail Baseline is complete because the final state now addresses the original failure: A governance trail exists but does not cover every region or log file validation.
+    IaC Security Baselines CloudTrail Baseline is complete because the final state now addresses the original failure: A governance trail exists but does not cover every region or log file validation.
     
     Key takeaway: Global service events should be included. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
   outcome: |
-    AWS Config Review CloudTrail Baseline: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+    IaC Security Baselines CloudTrail Baseline: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
   focusFileName: main.tf
   replacements:
     - fileName: main.tf

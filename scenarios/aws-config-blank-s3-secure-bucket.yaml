@@ -1,6 +1,6 @@
 id: awsConfigBlankS3SecureBucket
 kind: awsconfig
-title: AWS Config Blank S3 Secure Bucket
+title: IaC Security Baselines Blank S3 Secure Bucket
 description: Build a secure S3 bucket Terraform configuration from an empty file.
 primaryFile: main.tf
 tips:
@@ -24,11 +24,11 @@ solution:
     - The lab expects encryption, versioning, and public access block.
     - Use Checkov before running plan.
   explanation: |
-    AWS Config Blank S3 Secure Bucket is complete because the final state now addresses the original failure: Build a secure S3 bucket Terraform configuration from an empty file.
+    IaC Security Baselines Blank S3 Secure Bucket is complete because the final state now addresses the original failure: Build a secure S3 bucket Terraform configuration from an empty file.
     
     Key takeaway: Use Checkov before running plan. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
   outcome: |
-    AWS Config Blank S3 Secure Bucket: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+    IaC Security Baselines Blank S3 Secure Bucket: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
   focusFileName: main.tf
   files:
     "main.tf": |

@@ -1,6 +1,6 @@
 id: awsConfigRdsPublicBackup
 kind: awsconfig
-title: AWS Config Review RDS Public Backup
+title: IaC Security Baselines RDS Public Backup
 description: Review an RDS Terraform resource that is public and has weak recovery settings.
 primaryFile: main.tf
 tips:
@@ -32,11 +32,11 @@ solution:
     - Production RDS should keep backups.
     - Deletion protection prevents accidental destructive changes.
   explanation: |
-    AWS Config Review RDS Public Backup is complete because the final state now addresses the original failure: Review an RDS Terraform resource that is public and has weak recovery settings.
+    IaC Security Baselines RDS Public Backup is complete because the final state now addresses the original failure: Review an RDS Terraform resource that is public and has weak recovery settings.
     
     Key takeaway: Deletion protection prevents accidental destructive changes. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
   outcome: |
-    AWS Config Review RDS Public Backup: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+    IaC Security Baselines RDS Public Backup: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
   focusFileName: main.tf
   replacements:
     - fileName: main.tf

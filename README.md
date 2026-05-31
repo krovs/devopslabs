@@ -2,7 +2,7 @@
 
 A small Svelte + TypeScript web app for practicing DevOps and cloud troubleshooting scenarios.
 
-The app simulates infrastructure as code, Terragrunt, GitHub Actions, cloud configuration reviews, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, DNS, Kubernetes, Kyverno, Istio, Cilium, or certificate services.
+The app simulates IaC, Terragrunt, GitHub Actions, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, DNS, Kubernetes, Kyverno, Istio, Cilium, or certificate services.
 
 ## Features
 
@@ -134,11 +134,11 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 - Terraform module failure from a missing required input variable
 - Terraform module Checkov failure from an unsafe security group default
 - Terraform folder/module migration that requires a state address move
-- AWS Config Review S3 baseline missing encryption, versioning, and public access block
-- AWS Config Review RDS public access, weak backup retention, and deletion protection
-- AWS Config Review CloudWatch log group missing retention
-- AWS Config Review CloudTrail single-region trail without log validation
-- AWS Config blank build for a secure S3 bucket baseline
+- IaC Security Baselines S3 baseline missing encryption, versioning, and public access block
+- IaC Security Baselines RDS public access, weak backup retention, and deletion protection
+- IaC Security Baselines CloudWatch log group missing retention
+- IaC Security Baselines CloudTrail single-region trail without log validation
+- IaC Security Baselines blank build for a secure S3 bucket baseline
 - Terragrunt missing root include
 - Terragrunt dependency output mismatch
 - Terragrunt wrong module source reference

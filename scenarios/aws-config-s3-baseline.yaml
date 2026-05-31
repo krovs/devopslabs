@@ -1,6 +1,6 @@
 id: awsConfigS3Baseline
 kind: awsconfig
-title: AWS Config Review S3 Baseline
+title: IaC Security Baselines S3 Baseline
 description: Spot missing S3 guardrails before deploying a production document bucket.
 primaryFile: main.tf
 tips:
@@ -24,11 +24,11 @@ solution:
     - The bucket needs server-side encryption.
     - Public access block and versioning are required guardrails.
   explanation: |
-    AWS Config Review S3 Baseline is complete because the final state now addresses the original failure: Spot missing S3 guardrails before deploying a production document bucket.
+    IaC Security Baselines S3 Baseline is complete because the final state now addresses the original failure: Spot missing S3 guardrails before deploying a production document bucket.
     
     Key takeaway: Public access block and versioning are required guardrails. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
   outcome: |
-    AWS Config Review S3 Baseline: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+    IaC Security Baselines S3 Baseline: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
   focusFileName: main.tf
   files:
     "main.tf": |

@@ -499,29 +499,24 @@ select {
   background: color-mix(in srgb, var(--difficulty-color), var(--control-bg) 91%);
 }
 
-.scenario-list button.difficulty-common,
-.lab-index-list button.difficulty-common {
-  --difficulty-color: #ffffff;
+.scenario-list button.difficulty-easy,
+.lab-index-list button.difficulty-easy {
+  --difficulty-color: #a6e3a1;
 }
 
-.scenario-list button.difficulty-uncommon,
-.lab-index-list button.difficulty-uncommon {
-  --difficulty-color: #40a02b;
+.scenario-list button.difficulty-normal,
+.lab-index-list button.difficulty-normal {
+  --difficulty-color: #f9e2af;
 }
 
-.scenario-list button.difficulty-rare,
-.lab-index-list button.difficulty-rare {
-  --difficulty-color: #1e66f5;
-}
-
-.scenario-list button.difficulty-epic,
-.lab-index-list button.difficulty-epic {
-  --difficulty-color: #8839ef;
+.scenario-list button.difficulty-hard,
+.lab-index-list button.difficulty-hard {
+  --difficulty-color: #cba6f7;
 }
 
 .scenario-list button.difficulty-legendary,
 .lab-index-list button.difficulty-legendary {
-  --difficulty-color: #ff7a00;
+  --difficulty-color: #fab387;
 }
 
 .scenario-title {

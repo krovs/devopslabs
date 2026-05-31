@@ -68,7 +68,7 @@
 
   type ThemeName = "latte" | "mocha" | "dracula" | "cyberpunk";
   type MenuGroupId = "terraform" | "awsconfig" | "cicd" | "terragrunt" | "iam" | "scp" | "policy" | "secrets" | "dns" | "observability" | "finops" | "pr" | "networking";
-  type DifficultyTier = "common" | "uncommon" | "rare" | "epic" | "legendary";
+  type DifficultyTier = "easy" | "normal" | "hard" | "legendary";
 
   const scenarioIds = Object.keys(scenarios);
   const terraformScenarioIds = scenarioIds.filter((id) => (scenarios[id].kind ?? "terraform") === "terraform");
@@ -85,8 +85,8 @@
   const prScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "pr");
   const networkingScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "networking");
   const labGroups: { id: MenuGroupId; title: string; ids: string[] }[] = [
-    { id: "terraform", title: "Infra as Code", ids: terraformScenarioIds },
-    { id: "awsconfig", title: "Configuration Review", ids: awsConfigScenarioIds },
+    { id: "terraform", title: "IaC", ids: terraformScenarioIds },
+    { id: "awsconfig", title: "IaC Security Baselines", ids: awsConfigScenarioIds },
     { id: "cicd", title: "Delivery Pipelines", ids: cicdScenarioIds },
     { id: "terragrunt", title: "Stack Orchestration", ids: terragruntScenarioIds },
     { id: "iam", title: "Identity & Access", ids: iamScenarioIds },
@@ -118,73 +118,73 @@
   const sessionVersion = 10;
   const confettiColors = ["#a6e3a1", "#89b4fa", "#f9e2af", "#f38ba8", "#cba6f7", "#94e2d5"];
   const scenarioDifficultyTiers: Partial<Record<string, DifficultyTier>> = {
-    terraformValidateBadReference: "common",
-    terraformModuleMissingVariable: "common",
-    terraformModuleWrongSource: "uncommon",
-    terraformModuleMissingOutput: "uncommon",
-    terraformCheckovPublicS3: "uncommon",
-    terraformModuleSecurityGroup: "rare",
-    manualSecurityGroupDrift: "rare",
-    missingIamImport: "rare",
-    interruptedApplyLock: "epic",
+    terraformValidateBadReference: "easy",
+    terraformModuleMissingVariable: "easy",
+    terraformModuleWrongSource: "normal",
+    terraformModuleMissingOutput: "normal",
+    terraformCheckovPublicS3: "normal",
+    terraformModuleSecurityGroup: "hard",
+    manualSecurityGroupDrift: "hard",
+    missingIamImport: "hard",
+    interruptedApplyLock: "hard",
     terraformStateFolderMigration: "legendary",
-    awsConfigCloudWatchRetention: "common",
-    awsConfigS3Baseline: "uncommon",
-    awsConfigBlankS3SecureBucket: "uncommon",
-    awsConfigRdsPublicBackup: "rare",
-    awsConfigCloudTrailBaseline: "epic",
-    terragruntHclfmt: "common",
-    terragruntMissingInclude: "uncommon",
-    terragruntWrongSourceRef: "rare",
-    terragruntBadDependencyOutput: "epic",
-    githubActionsMissingSecret: "common",
-    githubActionsWrongWorkingDirectory: "common",
-    githubActionsNodeCachePath: "uncommon",
-    githubActionsDockerRegistryAuth: "uncommon",
-    githubActionsEnvironmentApproval: "uncommon",
-    githubActionsMatrixNodeVersion: "rare",
-    githubActionsCheckovGate: "rare",
-    githubActionsOverbroadPermissions: "rare",
+    awsConfigCloudWatchRetention: "easy",
+    awsConfigS3Baseline: "normal",
+    awsConfigBlankS3SecureBucket: "normal",
+    awsConfigRdsPublicBackup: "hard",
+    awsConfigCloudTrailBaseline: "hard",
+    terragruntHclfmt: "easy",
+    terragruntMissingInclude: "normal",
+    terragruntWrongSourceRef: "hard",
+    terragruntBadDependencyOutput: "hard",
+    githubActionsMissingSecret: "easy",
+    githubActionsWrongWorkingDirectory: "easy",
+    githubActionsNodeCachePath: "normal",
+    githubActionsDockerRegistryAuth: "normal",
+    githubActionsEnvironmentApproval: "normal",
+    githubActionsMatrixNodeVersion: "hard",
+    githubActionsCheckovGate: "hard",
+    githubActionsOverbroadPermissions: "hard",
     githubActionsAwsOidcTrust: "legendary",
-    iamBlankSecretsReadonly: "common",
-    iamBlankCloudWatchLogsWrite: "uncommon",
-    iamS3PrefixLeastPrivilege: "uncommon",
-    iamDynamoDbLeadingKeys: "rare",
-    iamGithubOidcEnvironmentTrust: "epic",
+    iamBlankSecretsReadonly: "easy",
+    iamBlankCloudWatchLogsWrite: "normal",
+    iamS3PrefixLeastPrivilege: "normal",
+    iamDynamoDbLeadingKeys: "hard",
+    iamGithubOidcEnvironmentTrust: "hard",
     iamKmsEncryptionContext: "legendary",
-    iamAzureBlobReaderScope: "uncommon",
-    scpDenyLeavingOrg: "common",
-    scpBlankDenyRootUser: "uncommon",
-    scpBlankRequireImdsv2: "rare",
+    iamAzureBlobReaderScope: "normal",
+    scpDenyLeavingOrg: "easy",
+    scpBlankDenyRootUser: "normal",
+    scpBlankRequireImdsv2: "hard",
     scpRegionRestrictionBreakGlass: "legendary",
-    policyKyvernoRequireAppLabel: "common",
-    policyKubernetesDefaultDenyIngress: "common",
-    policyIstioDenyUnauthenticated: "uncommon",
-    policyCiliumAllowDnsEgress: "rare",
-    secretsSsmEnvironmentPath: "common",
-    secretsManagerRotationKms: "uncommon",
-    secretsManagerResourcePolicy: "rare",
-    dnsRoute53AlbAlias: "common",
-    dnsAcmCloudFrontCertificate: "uncommon",
-    dnsAcmWildcardValidation: "rare",
-    observabilityLogRetention: "common",
-    observabilityAlb5xxAlarmDimension: "uncommon",
-    observabilityAlarmAction: "rare",
-    finopsS3Lifecycle: "common",
-    finopsNatGatewayCostSpike: "uncommon",
-    finopsUnattachedEbsCleanup: "rare",
-    prSecurityGroupAdminCidrReview: "common",
-    prGithubActionsWriteAllReview: "uncommon",
-    prTerraformPublicS3Review: "rare",
-    prIamWildcardPolicyReview: "epic",
-    networkingSshCidrHardening: "common",
-    networkingSecurityGroupAlbApp: "uncommon",
-    networkingVpcPublicPrivateSubnets: "uncommon",
-    networkingVpcNatEgress: "rare",
-    networkingVpcDbIsolation: "rare",
-    networkingNaclEphemeralReturn: "rare",
-    networkingSiteToSiteVpn: "epic",
-    networkingWafAlbProtection: "epic",
+    policyKyvernoRequireAppLabel: "easy",
+    policyKubernetesDefaultDenyIngress: "easy",
+    policyIstioDenyUnauthenticated: "normal",
+    policyCiliumAllowDnsEgress: "hard",
+    secretsSsmEnvironmentPath: "easy",
+    secretsManagerRotationKms: "normal",
+    secretsManagerResourcePolicy: "hard",
+    dnsRoute53AlbAlias: "easy",
+    dnsAcmCloudFrontCertificate: "normal",
+    dnsAcmWildcardValidation: "hard",
+    observabilityLogRetention: "easy",
+    observabilityAlb5xxAlarmDimension: "normal",
+    observabilityAlarmAction: "hard",
+    finopsS3Lifecycle: "easy",
+    finopsNatGatewayCostSpike: "normal",
+    finopsUnattachedEbsCleanup: "hard",
+    prSecurityGroupAdminCidrReview: "easy",
+    prGithubActionsWriteAllReview: "normal",
+    prTerraformPublicS3Review: "hard",
+    prIamWildcardPolicyReview: "hard",
+    networkingSshCidrHardening: "easy",
+    networkingSecurityGroupAlbApp: "normal",
+    networkingVpcPublicPrivateSubnets: "normal",
+    networkingVpcNatEgress: "hard",
+    networkingVpcDbIsolation: "hard",
+    networkingNaclEphemeralReturn: "hard",
+    networkingSiteToSiteVpn: "hard",
+    networkingWafAlbProtection: "hard",
     networkingDirectConnectMultiVpc: "legendary",
   };
   const savedSession = getSavedSession();
@@ -238,7 +238,7 @@
   $: workflowResource = runtime.awsResources[0];
   $: repositorySecrets = runtime.stateResources.filter((resource) => resource.address.startsWith("secret."));
   $: repositoryPaths = runtime.stateResources.filter((resource) => resource.address.startsWith("path."));
-  $: leftResourceTitle = runtime.kind === "terragrunt" ? "Terragrunt Stack" : runtime.kind === "iam" ? "IAM" : runtime.kind === "scp" ? "SCP" : runtime.kind === "secrets" ? "Secrets" : runtime.kind === "dns" ? "DNS/TLS" : runtime.kind === "observability" ? "Observability" : runtime.kind === "finops" ? "Cost" : runtime.kind === "awsconfig" ? "AWS Config" : "AWS";
+  $: leftResourceTitle = runtime.kind === "terragrunt" ? "Terragrunt Stack" : runtime.kind === "iam" ? "IAM" : runtime.kind === "scp" ? "SCP" : runtime.kind === "secrets" ? "Secrets" : runtime.kind === "dns" ? "DNS/TLS" : runtime.kind === "observability" ? "Observability" : runtime.kind === "finops" ? "Cost" : runtime.kind === "awsconfig" ? "IaC Security" : "AWS";
   $: rightResourceTitle = runtime.kind === "terragrunt" ? "Stack State" : runtime.kind === "iam" || runtime.kind === "scp" || runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "awsconfig" ? "Context" : "Terraform State";
   $: selectedNetworkNode = runtime.networking?.nodes.find((node) => node.id === selectedNetworkNodeId) ?? null;
   $: networkingRequirementSections = parseRequirementSections(runtime.files[activeFileName] ?? "");
@@ -457,12 +457,12 @@
   }
 
   function scenarioDifficultyClass(id: string): string {
-    return `difficulty-${scenarioDifficultyTiers[id] ?? "common"}`;
+    return `difficulty-${scenarioDifficultyTiers[id] ?? "easy"}`;
   }
 
   function scenarioKindLabel(scenario: Scenario): string {
     if (scenario.kind === "cicd") return "Delivery Pipeline";
-    if (scenario.kind === "awsconfig") return "Configuration Review";
+    if (scenario.kind === "awsconfig") return "IaC Security Baselines";
     if (scenario.kind === "terragrunt") return "Stack Orchestration";
     if (scenario.kind === "networking") return "Network Design";
     if (scenario.kind === "iam") return "Identity & Access";
@@ -473,7 +473,7 @@
     if (scenario.kind === "observability") return "Observability";
     if (scenario.kind === "finops") return "FinOps";
     if (scenario.kind === "pr") return "Change Review";
-    return "Infra as Code";
+    return "IaC";
   }
 
   function scenarioKindIds(scenario: Scenario): string[] {
@@ -3607,8 +3607,8 @@
     <section class="wiki-layout" aria-label="Documentation">
       <nav class="wiki-toc" aria-label="Documentation sections">
         <a href="#wiki-workflow">Workflow</a>
-        <a href="#wiki-terraform">Terraform</a>
-        <a href="#wiki-aws-config">AWS Config</a>
+        <a href="#wiki-terraform">IaC</a>
+        <a href="#wiki-iac-security-baselines">IaC Security</a>
         <a href="#wiki-terragrunt">Terragrunt</a>
         <a href="#wiki-github">GitHub Actions</a>
         <a href="#wiki-iam">IAM</a>
@@ -3642,7 +3642,7 @@
         </section>
 
         <section id="wiki-terraform">
-          <h2>Infra as Code</h2>
+          <h2>IaC</h2>
           <p>
             Terraform labs focus on the relationship between configuration, remote infrastructure, and state.
             A clean fix usually makes the state address, the code address, and the real AWS object agree.
@@ -3673,14 +3673,14 @@ terraform force-unlock &lt;lock-id&gt;</pre>
           </p>
         </section>
 
-        <section id="wiki-aws-config">
-          <h2>Configuration Review</h2>
+        <section id="wiki-iac-security-baselines">
+          <h2>IaC Security Baselines</h2>
           <p>
-            AWS Config Review labs are Terraform exercises focused on spotting missing AWS guardrails before
-            deployment. The goal is to identify bad or incomplete service configuration, fix the Terraform, then
-            pass the simulated Checkov gate.
+            IaC Security Baselines labs are Terraform exercises focused on spotting missing cloud guardrails
+            before deployment. The goal is to identify bad or incomplete service configuration, fix the Terraform,
+            then pass the simulated Checkov gate.
           </p>
-          <div class="wiki-diagram" aria-label="AWS configuration review flow">
+          <div class="wiki-diagram" aria-label="IaC security baseline review flow">
             <div class="diagram-node">Terraform<br><span>AWS service config</span></div>
             <div class="diagram-arrow">-></div>
             <div class="diagram-node">Policy Scan<br><span>checkov -f main.tf</span></div>
