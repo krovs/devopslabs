@@ -33,11 +33,19 @@ solution:
     - Use an explicit Deny for organizations:LeaveOrganization.
     - Keep the deny scoped to the specific action instead of denying all Organizations APIs.
   explanation: |
-    SCP Deny Leaving Organization is complete because the final state now addresses the original failure: Member accounts can leave the AWS Organization because the baseline SCP does not deny LeaveOrganization.
+    Member accounts can leave the AWS Organization because the baseline SCP does not deny LeaveOrganization.
+    
+    The organization policy now enforces the guardrail while preserving the intended exception or allowed path. The solved path covers scps set guardrails; they do not grant permissions, use an explicit deny for organizations:leaveorganization, and keep the deny scoped to the specific action instead of denying all organizations apis.
+    
+    Operationally, this matters because account-level behavior is controlled centrally without blocking the wrong principals or regions.
+    
+    The organization policy now enforces the guardrail while preserving the intended exception or allowed path. The solved path covers aws iam simulate-principal-policy.
+    
+    Operationally, this matters because account-level behavior is controlled centrally without blocking the wrong principals or regions.
     
     Key takeaway: Keep the deny scoped to the specific action instead of denying all Organizations APIs. In a real platform team, this prevents organization guardrails that either over-block valid operations or leave risky exceptions unmanaged.
   outcome: |
-    SCP Deny Leaving Organization: The organization guardrail now enforces the intended deny behavior without breaking the documented exception path.
+    SCP Deny Leaving Organization: The organization policy now enforces the guardrail while preserving the intended exception or allowed path.
   focusFileName: scp.json
   files:
     "scp.json": |

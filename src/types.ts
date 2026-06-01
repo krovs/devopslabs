@@ -41,6 +41,10 @@ export type ScenarioFlags = {
   finopsValidated?: boolean;
   policyValidated?: boolean;
   gitopsValidated?: boolean;
+  linuxValidated?: boolean;
+  kubernetesValidated?: boolean;
+  linuxResourcesChecked?: boolean;
+  kubernetesEventsChecked?: boolean;
 };
 
 export type NetworkNode = {
@@ -123,7 +127,7 @@ export type ScenarioSolutionReplacement = {
 
 export type Scenario = {
   id: string;
-  kind?: "terraform" | "terragrunt" | "cicd" | "gitops" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops" | "policy";
+  kind?: "terraform" | "terragrunt" | "cicd" | "gitops" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops" | "policy" | "linux" | "kubernetes";
   title: string;
   description: string;
   primaryFile?: string;

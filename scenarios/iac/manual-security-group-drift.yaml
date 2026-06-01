@@ -42,11 +42,13 @@ solution:
     - For this scenario, accept the manual change by updating main.tf to use cidr_blocks = ["0.0.0.0/0"].
     - Save the file, then run terraform plan again.
   explanation: |
-    Manual Security Group Drift is complete because the final state now addresses the original failure: Someone changed a security group rule outside Terraform. Bring code and reality back into agreement.
+    Someone changed a security group rule outside Terraform. Bring code and reality back into agreement.
     
-    Key takeaway: Save the file, then run terraform plan again. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+    Terraform state, configuration, and the simulated remote resource model now agree. The solved path covers initialization and planning.
+    
+    Operationally, this matters because future plans are easier to trust because the drift, import, module, or state issue has been handled at the right layer.
   outcome: |
-    Manual Security Group Drift: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+    Manual Security Group Drift: Terraform state, configuration, and the simulated remote resource model now agree.
   focusFileName: main.tf
   replacements:
     - fileName: main.tf

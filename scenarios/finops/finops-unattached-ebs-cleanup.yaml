@@ -30,11 +30,13 @@ solution:
     - Snapshot before deleting old unattached volumes.
     - Only delete volumes that have been unattached for at least 14 days.
   explanation: |
-    Unattached EBS Cleanup is complete because the final state now addresses the original failure: An old unattached EBS volume is still accruing storage cost because cleanup is disabled.
+    An old unattached EBS volume is still accruing storage cost because cleanup is disabled.
     
-    Key takeaway: Only delete volumes that have been unattached for at least 14 days. In a real platform team, this prevents small unused resources or missing lifecycle controls becoming recurring operational spend.
+    The cost-control setting now targets the waste source without removing required workload capability. The solved path covers aws ec2 describe-volumes.
+    
+    Operationally, this matters because spend reduction is tied to an explainable resource lifecycle or architecture change.
   outcome: |
-    Unattached EBS Cleanup: The cost control now removes waste or adds lifecycle behavior without changing the workload requirement.
+    Unattached EBS Cleanup: The cost-control setting now targets the waste source without removing required workload capability.
   focusFileName: volume-cleanup.json
   files:
     "volume-cleanup.json": |

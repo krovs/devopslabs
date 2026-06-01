@@ -39,11 +39,13 @@ solution:
     - ListBucket uses the bucket ARN and a prefix condition.
     - Avoid s3:* and avoid Resource *.
   explanation: |
-    IAM S3 Prefix Least Privilege is complete because the final state now addresses the original failure: A deployment role can read and write every object in the artifacts bucket. Restrict it to the team-a prefix without breaking ListBucket.
+    A deployment role can read and write every object in the artifacts bucket. Restrict it to the team-a prefix without breaking ListBucket.
     
-    Key takeaway: Avoid s3:* and avoid Resource *. In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
+    The policy or trust document now grants the requested access path without broadening unrelated actions, resources, or conditions. The solved path covers aws iam simulate-principal-policy.
+    
+    Operationally, this matters because least privilege is preserved while the legitimate workload still works.
   outcome: |
-    IAM S3 Prefix Least Privilege: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+    IAM S3 Prefix Least Privilege: The policy or trust document now grants the requested access path without broadening unrelated actions, resources, or conditions.
   focusFileName: policy.json
   files:
     "policy.json": |

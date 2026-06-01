@@ -39,11 +39,13 @@ solution:
     - Change the workflow working-directory to infra/dev.
     - Re-run the workflow and verify the latest run is passing.
   explanation: |
-    GitHub Actions Wrong Working Directory is complete because the final state now addresses the original failure: A Terraform validation workflow fails because it runs from the wrong folder.
+    A Terraform validation workflow fails because it runs from the wrong folder.
     
-    Key takeaway: Re-run the workflow and verify the latest run is passing. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+    The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason. The solved path covers workflow rerun.
+    
+    Operationally, this matters because pipeline failures point to real delivery problems instead of missing secrets, wrong paths, weak permissions, or incomplete auth setup.
   outcome: |
-    GitHub Actions Wrong Working Directory: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+    GitHub Actions Wrong Working Directory: The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason.
   focusFileName: .github/workflows/terraform-check.yml
   replacements:
     - fileName: .github/workflows/terraform-check.yml

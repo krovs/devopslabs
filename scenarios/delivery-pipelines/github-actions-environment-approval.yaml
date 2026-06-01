@@ -1,13 +1,13 @@
 id: githubActionsEnvironmentApproval
 kind: cicd
 title: GitHub Actions Environment Approval
-description: A production deploy workflow is blocked because the job targets the wrong environment name.
+description: A production deploy workflow cannot reach the protected approval gate because the job targets an environment named prod, while the repository only protects production.
 primaryFile: .github/workflows/prod-deploy.yml
 tips:
-  - gh run view shows the deployment is waiting for an environment that is not configured.
-  - Repository context shows the protected environment is production.
-  - The workflow currently targets prod.
-  - Change environment.name to production.
+  - gh run view shows the job targets environment prod.
+  - The repository has a protected environment named production.
+  - prod and production are different GitHub environments.
+  - Change only environment.name from prod to production.
   - Re-run the workflow.
 files:
   ".github/workflows/prod-deploy.yml": |
@@ -26,26 +26,26 @@ files:
           - run: ./deploy.sh
 solution:
   summary: |
-    A production deploy workflow is blocked because the job targets the wrong environment name.
+    The workflow is not waiting on the real production approval gate. It created or targeted prod instead of the protected production environment.
   steps:
-    - gh run view shows the deployment is waiting for an environment that is not configured.
+    - gh run view shows the job targets environment prod.
     - Repository context shows the protected environment is production.
-    - The workflow currently targets prod.
-    - Change environment.name to production.
+    - prod and production are different GitHub environments.
+    - Change only environment.name from prod to production.
     - Re-run the workflow.
   explanation: |
-    GitHub Actions Environment Approval is complete because the final state now addresses the original failure: A production deploy workflow is blocked because the job targets the wrong environment name.
+    GitHub Actions Environment Approval is complete because the deploy job now targets the protected production environment instead of an unprotected or missing prod environment.
     
-    Key takeaway: Re-run the workflow. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+    Key takeaway: GitHub environment names are exact. A short alias like prod can bypass the intended approval model or fail because the expected protected environment is named production.
   outcome: |
-    GitHub Actions Environment Approval: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+    The next run reaches the intended production approval gate and no longer targets the wrong environment name.
   focusFileName: .github/workflows/prod-deploy.yml
   replacements:
     - fileName: .github/workflows/prod-deploy.yml
       search: |
-        name: prod
+          name: prod
       replace: |
-        name: production
+          name: production
   commands:
     - gh run rerun
 backend:

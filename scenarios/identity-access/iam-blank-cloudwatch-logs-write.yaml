@@ -27,11 +27,13 @@ solution:
     - Scope access to the payments-api log group.
     - Avoid logs:* and Resource "*".
   explanation: |
-    IAM Blank CloudWatch Logs Write is complete because the final state now addresses the original failure: Build a minimal log-writer policy from an empty file for an ECS task role.
+    Build a minimal log-writer policy from an empty file for an ECS task role.
     
-    Key takeaway: Avoid logs:* and Resource "*". In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
+    The policy or trust document now grants the requested access path without broadening unrelated actions, resources, or conditions. The solved path covers scenario validation.
+    
+    Operationally, this matters because least privilege is preserved while the legitimate workload still works.
   outcome: |
-    IAM Blank CloudWatch Logs Write: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+    IAM Blank CloudWatch Logs Write: The policy or trust document now grants the requested access path without broadening unrelated actions, resources, or conditions.
   focusFileName: policy.json
   files:
     "policy.json": |

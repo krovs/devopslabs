@@ -34,12 +34,19 @@ export const scenarioOrderByGroup = {
     "githubActionsCheckovGate",
     "githubActionsOverbroadPermissions",
     "githubActionsAwsOidcTrust",
+    "jenkinsMissingCredentialsBinding",
   ],
   gitops: [
     "gitopsArgoCdTargetRevisionDrift",
     "gitopsArgoCdPruneSelfHeal",
     "gitopsFluxWrongKustomizationPath",
     "gitopsFluxSuspendedKustomization",
+  ],
+  linuxBasics: [
+    "linuxServiceLogTriage",
+  ],
+  kubernetesBasics: [
+    "kubernetesImagePullBackOffTriage",
   ],
   identityAccess: [
     "iamBlankSecretsReadonly",

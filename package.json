@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "validate:scenarios": "node scripts/validate-scenarios.mjs"
+    "validate:scenarios": "node scripts/validate-scenarios.mjs",
+    "audit:scenarios": "node scripts/audit-scenarios.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",

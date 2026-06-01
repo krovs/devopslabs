@@ -1,0 +1,94 @@
+id: kubernetesImagePullBackOffTriage
+kind: kubernetes
+title: Kubernetes Rollout And Events Triage
+description: A Kubernetes pod is stuck in ImagePullBackOff; inspect pods, events, logs, rollout state, and scaling before repairing the image tag.
+primaryFile: deployment.yaml
+tips:
+  - Start with kubectl get pods.
+  - Use kubectl get events and describe the pod to inspect why it is failing.
+  - Logs are unavailable until the image can be pulled.
+  - The cluster rejects the latest image tag.
+  - Change the image to ghcr.io/acme/checkout-api:1.4.2.
+  - Restart the rollout, scale to two replicas, and verify rollout status.
+files:
+  "deployment.yaml": |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: checkout-api
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: checkout-api
+      template:
+        metadata:
+          labels:
+            app: checkout-api
+        spec:
+          containers:
+            - name: checkout-api
+              image: ghcr.io/acme/checkout-api:latest
+              ports:
+                - containerPort: 8080
+  "runbook.md": |
+    Goal:
+    - Get checkout-api running.
+
+    Constraints:
+    - Inspect pod state, events, logs, and rollout status before changing the manifest.
+    - Use an immutable approved image tag.
+    - Roll out the deployment after the manifest is fixed.
+    - Scale checkout-api to two replicas.
+solution:
+  summary: |
+    The pod cannot pull the latest tag because the cluster requires approved immutable image tags.
+  steps:
+    - Run kubectl get pods to find the failed pod.
+    - Run kubectl get events and kubectl describe pod checkout-api to inspect events.
+    - Run kubectl logs checkout-api to confirm logs are unavailable while the image cannot pull.
+    - Replace ghcr.io/acme/checkout-api:latest with ghcr.io/acme/checkout-api:1.4.2.
+    - Run kubectl rollout restart deployment checkout-api.
+    - Run kubectl scale deployment checkout-api --replicas=2.
+    - Run kubectl rollout status deployment checkout-api.
+  explanation: |
+    ImagePullBackOff is often a registry, tag, or policy problem. Events and describe output identify the rejected tag. After the manifest is fixed, rollout restart, scale, and rollout status verify that the deployment controller converges.
+  outcome: |
+    checkout-api rolls out with the approved 1.4.2 image tag, scales to two replicas, and reaches a healthy rollout state.
+  focusFileName: deployment.yaml
+  replacements:
+    - fileName: deployment.yaml
+      search: |
+        image: ghcr.io/acme/checkout-api:latest
+      replace: |
+        image: ghcr.io/acme/checkout-api:1.4.2
+  commands:
+    - kubectl get events
+    - kubectl describe pod checkout-api
+    - kubectl rollout restart deployment checkout-api
+    - kubectl scale deployment checkout-api --replicas=2
+    - kubectl rollout status deployment checkout-api
+backend:
+  bucket: kubernetes
+  key: checkout-api
+  table: workloads
+  locked: false
+  lockId: null
+awsResources:
+  - type: deployment
+    name: checkout-api
+    id: default/checkout-api
+    status: failed
+    note: Pod is ImagePullBackOff because the latest tag is rejected.
+stateResources:
+  - address: pod.checkout-api
+    id: ImagePullBackOff
+  - address: image.checkout-api
+    id: latest
+  - address: deployment.checkout-api.replicas
+    id: "1"
+flags:
+  initialized: false
+  validationPassed: false
+  kubernetesEventsChecked: false
+  kubernetesValidated: false

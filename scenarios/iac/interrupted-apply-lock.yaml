@@ -35,11 +35,13 @@ solution:
     - The bucket already exists in AWS but is missing from state. Import aws_s3_bucket.logs with the bucket name.
     - A clean terraform plan is the final confirmation.
   explanation: |
-    Interrupted Apply With Lock is complete because the final state now addresses the original failure: An apply died mid-run. The S3 bucket exists, state missed it, and the DynamoDB lock is still present.
+    An apply died mid-run. The S3 bucket exists, state missed it, and the DynamoDB lock is still present.
     
-    Key takeaway: A clean terraform plan is the final confirmation. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+    Terraform state, configuration, and the simulated remote resource model now agree. The solved path covers initialization, aws dynamodb scan --table-name tf-locks, terraform force-unlock b9f3b20f-apply-crash, and terraform import aws_s3_bucket.logs prod-logs-training.
+    
+    Operationally, this matters because future plans are easier to trust because the drift, import, module, or state issue has been handled at the right layer.
   outcome: |
-    Interrupted Apply With Lock: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+    Interrupted Apply With Lock: Terraform state, configuration, and the simulated remote resource model now agree.
   commands:
     - terraform init
     - aws dynamodb scan --table-name tf-locks

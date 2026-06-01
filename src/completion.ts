@@ -9,6 +9,7 @@ import type { Scenario, ScenarioFlags } from "./types";
 type OperationalCompletionFlag = Extract<
   keyof ScenarioFlags,
   "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated" | "policyValidated" | "gitopsValidated"
+  | "linuxValidated" | "kubernetesValidated"
 >;
 
 function markFirstResource(runtime: Scenario, status: string, note: string): void {
@@ -57,6 +58,18 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
   if (runtime.kind === "gitops") {
     if (!gitopsFixApplied(runtime, scenarioId)) return ["Not complete: GitOps reconciliation still points at the wrong desired state or is not reconciling."];
     markOperationalScenarioSolved(runtime, "gitopsValidated", "GitOps reconciliation now matches the intended desired state.");
+    return ["Scenario complete."];
+  }
+
+  if (runtime.kind === "linux") {
+    if (!runtime.flags.linuxValidated) return ["Not complete: inspect the log, restore the missing service environment, and restart the service."];
+    markOperationalScenarioSolved(runtime, "linuxValidated", "Linux service triage completed.");
+    return ["Scenario complete."];
+  }
+
+  if (runtime.kind === "kubernetes") {
+    if (!runtime.flags.kubernetesValidated) return ["Not complete: inspect the pod, fix the deployment image tag, and restart the rollout."];
+    markOperationalScenarioSolved(runtime, "kubernetesValidated", "Kubernetes workload troubleshooting completed.");
     return ["Scenario complete."];
   }
 
@@ -142,6 +155,8 @@ export function isScenarioSolved(runtime: Scenario, scenarioId: string, activeFi
   if (runtime.kind === "finops") return Boolean(runtime.flags.finopsValidated);
   if (runtime.kind === "policy") return Boolean(runtime.flags.policyValidated);
   if (runtime.kind === "gitops") return Boolean(runtime.flags.gitopsValidated);
+  if (runtime.kind === "linux") return Boolean(runtime.flags.linuxValidated);
+  if (runtime.kind === "kubernetes") return Boolean(runtime.flags.kubernetesValidated);
   if (runtime.kind === "awsconfig") return Boolean(runtime.flags.configValidated && runtime.flags.cleanPlan);
   if (scenarioId === "githubActionsMissingSecret") return Boolean(runtime.flags.secretsConfigured && runtime.flags.runPassing);
   if (scenarioId === "githubActionsWrongWorkingDirectory") return Boolean(runtime.flags.workflowFixed && runtime.flags.runPassing);

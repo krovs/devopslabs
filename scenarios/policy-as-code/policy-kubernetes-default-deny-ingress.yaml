@@ -43,11 +43,13 @@ solution:
     - Default deny ingress has policyTypes containing Ingress and no ingress rules.
     - Do not keep an allow rule for monitoring in the default deny policy.
   explanation: |
-    Kubernetes Default Deny Ingress is complete because the final state now addresses the original failure: Fix a Kubernetes NetworkPolicy so every Pod in the payments namespace denies ingress by default.
+    Fix a Kubernetes NetworkPolicy so every Pod in the payments namespace denies ingress by default.
     
-    Key takeaway: Do not keep an allow rule for monitoring in the default deny policy. In a real platform team, this prevents cluster guardrails that look documented but are not enforced or testable as code.
+    The policy-as-code rule now enforces the expected workload behavior and passes its simulated test. The solved path covers kubectl apply --dry-run=server -f policy.yaml.
+    
+    Operationally, this matters because platform controls are validated as code before they are trusted in a shared cluster.
   outcome: |
-    Kubernetes Default Deny Ingress: The policy-as-code guardrail now enforces the intended Kubernetes, mesh, or network behavior and is testable before rollout.
+    Kubernetes Default Deny Ingress: The policy-as-code rule now enforces the expected workload behavior and passes its simulated test.
   focusFileName: policy.yaml
   files:
     "policy.yaml": |

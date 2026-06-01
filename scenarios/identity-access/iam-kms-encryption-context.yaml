@@ -38,11 +38,13 @@ solution:
     - Add an encryption context condition for App = payroll.
     - Avoid kms:* and wildcard resources.
   explanation: |
-    IAM KMS Encryption Context is complete because the final state now addresses the original failure: A service can decrypt too broadly with a shared KMS key. Require the expected encryption context for payroll data.
+    A service can decrypt too broadly with a shared KMS key. Require the expected encryption context for payroll data.
     
-    Key takeaway: Avoid kms:* and wildcard resources. In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
+    The policy or trust document now grants the requested access path without broadening unrelated actions, resources, or conditions. The solved path covers aws kms decrypt.
+    
+    Operationally, this matters because least privilege is preserved while the legitimate workload still works.
   outcome: |
-    IAM KMS Encryption Context: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+    IAM KMS Encryption Context: The policy or trust document now grants the requested access path without broadening unrelated actions, resources, or conditions.
   focusFileName: kms-policy.json
   files:
     "kms-policy.json": |

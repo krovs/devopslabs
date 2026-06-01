@@ -170,7 +170,7 @@ export const scenarioManifest = [
     "id": "githubActionsEnvironmentApproval",
     "kind": "cicd",
     "title": "GitHub Actions Environment Approval",
-    "description": "A production deploy workflow is blocked because the job targets the wrong environment name.",
+    "description": "A production deploy workflow cannot reach the protected approval gate because the job targets an environment named prod, while the repository only protects production.",
     "path": "../scenarios/delivery-pipelines/github-actions-environment-approval.yaml"
   },
   {
@@ -202,6 +202,13 @@ export const scenarioManifest = [
     "path": "../scenarios/delivery-pipelines/github-actions-aws-oidc-trust.yaml"
   },
   {
+    "id": "jenkinsMissingCredentialsBinding",
+    "kind": "cicd",
+    "title": "Jenkins Missing Credentials Binding",
+    "description": "A Jenkins image publish stage fails because docker login runs without binding the registry credentials.",
+    "path": "../scenarios/delivery-pipelines/jenkins-missing-credentials-binding.yaml"
+  },
+  {
     "id": "gitopsArgoCdTargetRevisionDrift",
     "kind": "gitops",
     "title": "Argo CD Target Revision Drift",
@@ -228,6 +235,20 @@ export const scenarioManifest = [
     "title": "Flux Suspended Kustomization",
     "description": "Flux is not applying a production fix because the Kustomization is suspended and pruning is disabled.",
     "path": "../scenarios/gitops/gitops-flux-suspended-kustomization.yaml"
+  },
+  {
+    "id": "linuxServiceLogTriage",
+    "kind": "linux",
+    "title": "Linux Sysadmin Service Triage",
+    "description": "A Linux web service is failed; troubleshoot logs, service status, memory, disk, processes, and sockets before restoring the missing PORT value.",
+    "path": "../scenarios/linux-basics/linux-service-log-triage.yaml"
+  },
+  {
+    "id": "kubernetesImagePullBackOffTriage",
+    "kind": "kubernetes",
+    "title": "Kubernetes Rollout And Events Triage",
+    "description": "A Kubernetes pod is stuck in ImagePullBackOff; inspect pods, events, logs, rollout state, and scaling before repairing the image tag.",
+    "path": "../scenarios/kubernetes-basics/kubernetes-imagepullbackoff-triage.yaml"
   },
   {
     "id": "iamBlankSecretsReadonly",

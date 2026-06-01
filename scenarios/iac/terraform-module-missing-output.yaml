@@ -49,11 +49,13 @@ solution:
     - Add an output named bucket_name that returns aws_s3_bucket.this.bucket.
     - Validate and plan again after adding the output.
   explanation: |
-    Terraform Module Missing Output is complete because the final state now addresses the original failure: A root module consumes an output that the child module does not expose.
+    A root module consumes an output that the child module does not expose.
     
-    Key takeaway: Validate and plan again after adding the output. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+    Terraform state, configuration, and the simulated remote resource model now agree. The solved path covers initialization, validation, and planning.
+    
+    Operationally, this matters because future plans are easier to trust because the drift, import, module, or state issue has been handled at the right layer.
   outcome: |
-    Terraform Module Missing Output: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+    Terraform Module Missing Output: Terraform state, configuration, and the simulated remote resource model now agree.
   focusFileName: modules/s3/main.tf
   replacements:
     - fileName: modules/s3/main.tf

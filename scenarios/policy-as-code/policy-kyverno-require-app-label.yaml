@@ -77,11 +77,13 @@ solution:
     - Use validationFailureAction Enforce so the policy blocks bad resources.
     - The pattern needs app: "?*" under metadata.labels.
   explanation: |
-    Kyverno Require App Label is complete because the final state now addresses the original failure: Fix a Kyverno ClusterPolicy so Pods without the app label are rejected by the admission policy test.
+    Fix a Kyverno ClusterPolicy so Pods without the app label are rejected by the admission policy test.
     
-    Key takeaway: The pattern needs app: "?*" under metadata.labels. In a real platform team, this prevents cluster guardrails that look documented but are not enforced or testable as code.
+    The policy-as-code rule now enforces the expected workload behavior and passes its simulated test. The solved path covers kyverno test ..
+    
+    Operationally, this matters because platform controls are validated as code before they are trusted in a shared cluster.
   outcome: |
-    Kyverno Require App Label: The policy-as-code guardrail now enforces the intended Kubernetes, mesh, or network behavior and is testable before rollout.
+    Kyverno Require App Label: The policy-as-code rule now enforces the expected workload behavior and passes its simulated test.
   focusFileName: policy.yaml
   files:
     "policy.yaml": |

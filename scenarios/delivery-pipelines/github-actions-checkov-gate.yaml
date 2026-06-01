@@ -40,11 +40,13 @@ solution:
     - Change the workflow's inline Terraform example to use acl = "private".
     - Re-run the workflow.
   explanation: |
-    GitHub Actions Checkov Gate is complete because the final state now addresses the original failure: A pull request workflow fails because the Checkov IaC security scan detects a public S3 bucket.
+    A pull request workflow fails because the Checkov IaC security scan detects a public S3 bucket.
     
-    Key takeaway: Re-run the workflow. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+    The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason. The solved path covers workflow rerun.
+    
+    Operationally, this matters because pipeline failures point to real delivery problems instead of missing secrets, wrong paths, weak permissions, or incomplete auth setup.
   outcome: |
-    GitHub Actions Checkov Gate: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+    GitHub Actions Checkov Gate: The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason.
   focusFileName: .github/workflows/iac-security.yml
   replacements:
     - fileName: .github/workflows/iac-security.yml

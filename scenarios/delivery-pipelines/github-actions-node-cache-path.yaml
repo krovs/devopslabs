@@ -38,11 +38,13 @@ solution:
     - Set defaults.run.working-directory to app.
     - Re-run the workflow.
   explanation: |
-    GitHub Actions Node Cache Path is complete because the final state now addresses the original failure: A Node.js CI workflow fails before tests because npm ci cannot find the lockfile in the configured working directory.
+    A Node.js CI workflow fails before tests because npm ci cannot find the lockfile in the configured working directory.
     
-    Key takeaway: Re-run the workflow. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+    The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason. The solved path covers workflow rerun.
+    
+    Operationally, this matters because pipeline failures point to real delivery problems instead of missing secrets, wrong paths, weak permissions, or incomplete auth setup.
   outcome: |
-    GitHub Actions Node Cache Path: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+    GitHub Actions Node Cache Path: The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason.
   focusFileName: .github/workflows/node-ci.yml
   replacements:
     - fileName: .github/workflows/node-ci.yml

@@ -32,11 +32,13 @@ solution:
     - Transition old access logs to Standard-IA after 30 days.
     - Temporary exports should expire after 14 days.
   explanation: |
-    S3 Lifecycle Cost Control is complete because the final state now addresses the original failure: A logs and exports bucket stores all data in S3 Standard forever.
+    A logs and exports bucket stores all data in S3 Standard forever.
     
-    Key takeaway: Temporary exports should expire after 14 days. In a real platform team, this prevents small unused resources or missing lifecycle controls becoming recurring operational spend.
+    The cost-control setting now targets the waste source without removing required workload capability. The solved path covers aws ce get-cost-and-usage.
+    
+    Operationally, this matters because spend reduction is tied to an explainable resource lifecycle or architecture change.
   outcome: |
-    S3 Lifecycle Cost Control: The cost control now removes waste or adds lifecycle behavior without changing the workload requirement.
+    S3 Lifecycle Cost Control: The cost-control setting now targets the waste source without removing required workload capability.
   focusFileName: lifecycle.json
   files:
     "lifecycle.json": |

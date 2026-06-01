@@ -35,11 +35,13 @@ solution:
     - OIDC deployment usually needs id-token: write and contents: read.
     - Re-run the workflow after fixing the permissions block.
   explanation: |
-    GitHub Actions Overbroad Permissions is complete because the final state now addresses the original failure: actionlint blocks a deploy workflow because it grants write-all permissions at workflow scope.
+    actionlint blocks a deploy workflow because it grants write-all permissions at workflow scope.
     
-    Key takeaway: Re-run the workflow after fixing the permissions block. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+    The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason. The solved path covers workflow rerun.
+    
+    Operationally, this matters because pipeline failures point to real delivery problems instead of missing secrets, wrong paths, weak permissions, or incomplete auth setup.
   outcome: |
-    GitHub Actions Overbroad Permissions: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+    GitHub Actions Overbroad Permissions: The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason.
   focusFileName: .github/workflows/deploy-permissions.yml
   replacements:
     - fileName: .github/workflows/deploy-permissions.yml

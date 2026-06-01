@@ -5,7 +5,16 @@ const genericGithubActionsScenarioIds = [
   "githubActionsDockerRegistryAuth",
   "githubActionsEnvironmentApproval",
   "githubActionsMatrixNodeVersion",
+  "jenkinsMissingCredentialsBinding",
 ];
+
+function fileLines(file: string): string[] {
+  return file.split("\n");
+}
+
+function lineIndexContaining(lines: string[], text: string): number {
+  return lines.findIndex((line) => line.includes(text));
+}
 
 function setFirstResource(runtime: Scenario, status: string, note: string): void {
   if (runtime.awsResources[0]) {
@@ -24,6 +33,7 @@ export function workflowEvent(scenarioId: string): string {
   if (scenarioId === "githubActionsDockerRegistryAuth") return "push on main";
   if (scenarioId === "githubActionsEnvironmentApproval") return "workflow_dispatch";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "pull_request on main";
+  if (scenarioId === "jenkinsMissingCredentialsBinding") return "manual build";
   return "workflow_dispatch";
 }
 
@@ -37,6 +47,7 @@ export function workflowJob(scenarioId: string): string {
   if (scenarioId === "githubActionsDockerRegistryAuth") return "publish";
   if (scenarioId === "githubActionsEnvironmentApproval") return "deploy";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "test";
+  if (scenarioId === "jenkinsMissingCredentialsBinding") return "publish-image";
   return "workflow";
 }
 
@@ -51,6 +62,7 @@ export function workflowFailedStep(runtime: Scenario, scenarioId: string): strin
   if (scenarioId === "githubActionsDockerRegistryAuth") return "docker push";
   if (scenarioId === "githubActionsEnvironmentApproval") return "environment approval";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "npm test (node 16)";
+  if (scenarioId === "jenkinsMissingCredentialsBinding") return "docker login";
   return "unknown";
 }
 
@@ -66,15 +78,45 @@ export function genericGithubActionsFixApplied(runtime: Scenario, scenarioId: st
   }
 
   if (scenarioId === "githubActionsDockerRegistryAuth") {
-    return file.includes("docker/login-action") && file.indexOf("docker/login-action") < file.indexOf("docker push");
+    const loginIndex = file.indexOf("docker/login-action@");
+    const buildIndex = file.indexOf("docker build");
+    const pushIndex = file.indexOf("docker push");
+    return loginIndex !== -1
+      && buildIndex !== -1
+      && pushIndex !== -1
+      && loginIndex < buildIndex
+      && buildIndex < pushIndex
+      && file.includes("registry: ghcr.io")
+      && file.includes("username: ${{ github.actor }}")
+      && file.includes("password: ${{ secrets.GITHUB_TOKEN }}");
   }
 
   if (scenarioId === "githubActionsEnvironmentApproval") {
-    return file.includes("environment:\n      name: production") && !file.includes("environment:\n      name: prod");
+    return /^\s*environment:\s*\n\s*name:\s*production\s*$/m.test(file) && !/^\s*name:\s*prod\s*$/m.test(file);
   }
 
   if (scenarioId === "githubActionsMatrixNodeVersion") {
-    return !file.includes("16") && (file.includes("20") || file.includes("22"));
+    return /^\s*strategy:\s*$/m.test(file)
+      && /^\s*matrix:\s*$/m.test(file)
+      && /^\s*node-version:\s*\[(20,\s*22|22,\s*20)\]\s*$/m.test(file)
+      && file.includes("node-version: ${{ matrix.node-version }}")
+      && !/\b16\b/.test(file);
+  }
+
+  if (scenarioId === "jenkinsMissingCredentialsBinding") {
+    const lines = fileLines(file);
+    const withCredentialsIndex = lineIndexContaining(lines, "withCredentials([usernamePassword(");
+    const loginIndex = lineIndexContaining(lines, "docker login");
+    const pushIndex = lineIndexContaining(lines, "docker push");
+    return withCredentialsIndex !== -1
+      && loginIndex !== -1
+      && pushIndex !== -1
+      && withCredentialsIndex < loginIndex
+      && loginIndex < pushIndex
+      && file.includes("credentialsId: 'ghcr-push'")
+      && file.includes("usernameVariable: 'REGISTRY_USER'")
+      && file.includes("passwordVariable: 'REGISTRY_TOKEN'")
+      && file.includes("--password-stdin");
   }
 
   return false;
@@ -85,6 +127,7 @@ export function workflowFailureSummary(scenarioId: string): string {
   if (scenarioId === "githubActionsDockerRegistryAuth") return "denied: unauthenticated request to ghcr.io.";
   if (scenarioId === "githubActionsEnvironmentApproval") return "environment prod is not configured or protected.";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "matrix node-version 16 is unsupported by this project.";
+  if (scenarioId === "jenkinsMissingCredentialsBinding") return "docker login has no registry credentials bound in the Jenkins stage.";
   return "workflow failed.";
 }
 
@@ -93,6 +136,7 @@ export function genericGithubActionsFailureNote(scenarioId: string): string {
   if (scenarioId === "githubActionsDockerRegistryAuth") return "docker push still runs without a registry login.";
   if (scenarioId === "githubActionsEnvironmentApproval") return "workflow still targets prod instead of production.";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "matrix still includes unsupported Node.js 16.";
+  if (scenarioId === "jenkinsMissingCredentialsBinding") return "Jenkinsfile still pushes without binding registry credentials.";
   return "Workflow is still failing.";
 }
 
@@ -101,6 +145,7 @@ export function genericGithubActionsSuccessNote(scenarioId: string): string {
   if (scenarioId === "githubActionsDockerRegistryAuth") return "Workflow logs in to ghcr.io before pushing the image.";
   if (scenarioId === "githubActionsEnvironmentApproval") return "Workflow targets the configured production environment.";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "Matrix only uses supported Node.js versions.";
+  if (scenarioId === "jenkinsMissingCredentialsBinding") return "Jenkins binds registry credentials before docker login and push.";
   return "Workflow completed successfully.";
 }
 
@@ -123,6 +168,10 @@ export function genericGithubActionsLogLines(runtime: Scenario, scenarioId: stri
 
   if (scenarioId === "githubActionsMatrixNodeVersion") {
     return ["matrix.node-version: 16", "npm test", "Error: package requires Node.js >= 20"];
+  }
+
+  if (scenarioId === "jenkinsMissingCredentialsBinding") {
+    return ["docker login ghcr.io", "Error: Cannot perform an interactive login from a non TTY device", "Bind registry credentials before docker login"];
   }
 
   return ["No logs available."];
@@ -273,6 +322,25 @@ export function githubRunView(runtime: Scenario, scenarioId: string): string[] {
   }
 
   return ["No GitHub Actions run data for this scenario."];
+}
+
+export function jenkinsBuildLog(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "jenkinsMissingCredentialsBinding") return ["No Jenkins build is configured for this scenario."];
+  if (runtime.flags.runPassing) return ["job: publish-image", "status: success", "docker login completed with credentialsId ghcr-push", "docker push completed"];
+  return ["job: publish-image", "status: failure", "stage: Publish image", "docker login ghcr.io", "Cannot perform an interactive login from a non TTY device"];
+}
+
+export function jenkinsRebuild(runtime: Scenario, scenarioId: string, activeFileName: string): string[] {
+  if (scenarioId !== "jenkinsMissingCredentialsBinding") return ["No Jenkins build is configured for this scenario."];
+  if (genericGithubActionsFixApplied(runtime, scenarioId, activeFileName)) {
+    runtime.flags.workflowFixed = true;
+    runtime.flags.runPassing = true;
+    setFirstResource(runtime, "success", genericGithubActionsSuccessNote(scenarioId));
+    return ["Rebuilding Jenkins job publish-image...", "Build succeeded."];
+  }
+
+  setFirstResource(runtime, "failed", genericGithubActionsFailureNote(scenarioId));
+  return ["Rebuilding Jenkins job publish-image...", "Build failed: docker login still has no bound credentials."];
 }
 
 export function githubRunRerun(runtime: Scenario, scenarioId: string, activeFileName: string): string[] {

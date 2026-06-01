@@ -24,11 +24,13 @@ solution:
     - Private subnets should not route directly to the internet gateway.
     - Route table association decides whether a subnet is public or private.
   explanation: |
-    Networking VPC Public and Private Subnets is complete because the final state now addresses the original failure: Configure a VPC with public and private subnets, correct route tables, and no accidental public route for private workloads.
+    Configure a VPC with public and private subnets, correct route tables, and no accidental public route for private workloads.
     
-    Key takeaway: Route table association decides whether a subnet is public or private. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+    The diagram controls now satisfy the required route, subnet, security, or attachment path. The solved path covers Set diagram controls to the expected values and Check design.
+    
+    Operationally, this matters because packet flow is explained from source to destination instead of fixed by guessing at individual network settings.
   outcome: |
-    Networking VPC Public and Private Subnets: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+    Networking VPC Public and Private Subnets: The diagram controls now satisfy the required route, subnet, security, or attachment path.
   apply: networkingControls
   commands:
     - Set diagram controls to the expected values

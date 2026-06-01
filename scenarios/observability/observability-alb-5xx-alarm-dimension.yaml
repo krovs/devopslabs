@@ -35,11 +35,13 @@ solution:
     - Application Load Balancers use the AWS/ApplicationELB namespace.
     - The dimension key should be LoadBalancer with the full app/... resource value.
   explanation: |
-    CloudWatch ALB 5xx Alarm Dimension is complete because the final state now addresses the original failure: An ALB 5xx alarm never fires because it uses the classic ELB namespace and dimension shape.
+    An ALB 5xx alarm never fires because it uses the classic ELB namespace and dimension shape.
     
-    Key takeaway: The dimension key should be LoadBalancer with the full app/... resource value. In a real platform team, this prevents alerts and logs that exist but do not preserve the signal needed during an incident.
+    The log retention, alarm dimension, or notification action now models the signal operators need. The solved path covers aws cloudwatch describe-alarms.
+    
+    Operationally, this matters because monitoring produces useful incidents instead of silent failures, noisy alarms, or unbounded log retention.
   outcome: |
-    CloudWatch ALB 5xx Alarm Dimension: The telemetry configuration now preserves the signal needed for alerting, retention, or notification during an incident.
+    CloudWatch ALB 5xx Alarm Dimension: The log retention, alarm dimension, or notification action now models the signal operators need.
   focusFileName: alarm.json
   files:
     "alarm.json": |

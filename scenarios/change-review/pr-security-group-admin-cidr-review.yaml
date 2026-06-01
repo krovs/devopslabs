@@ -34,11 +34,13 @@ solution:
     - The port is not the only risk; source scope matters.
     - The correct review should request changes and identify the internet CIDR.
   explanation: |
-    PR Review Security Group Admin CIDR is complete because the final state now addresses the original failure: Review a Terraform change that opens admin ingress to the internet to unblock maintenance access.
+    Review a Terraform change that opens admin ingress to the internet to unblock maintenance access.
     
-    Key takeaway: The correct review should request changes and identify the internet CIDR. In a real platform team, this prevents risky changes being approved because review findings focus on context instead of the actual blast radius.
+    The review decision and selected findings match the risk introduced by the diff. The solved path covers Select the expected review decision, Select only required findings, and Submit review.
+    
+    Operationally, this matters because code review blocks the unsafe change while leaving harmless context out of the review comment.
   outcome: |
-    PR Review Security Group Admin CIDR: The review now blocks the risky change with the right decision and findings while leaving harmless context unflagged.
+    PR Review Security Group Admin CIDR: The review decision and selected findings match the risk introduced by the diff.
   apply: prReview
   commands:
     - Select the expected review decision

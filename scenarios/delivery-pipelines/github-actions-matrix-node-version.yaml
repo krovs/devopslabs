@@ -40,11 +40,13 @@ solution:
     - Remove 16 or replace it with 22.
     - Re-run the workflow.
   explanation: |
-    GitHub Actions Matrix Node Version is complete because the final state now addresses the original failure: A test matrix fails because one job still runs on an unsupported Node.js version.
+    A test matrix fails because one job still runs on an unsupported Node.js version.
     
-    Key takeaway: Re-run the workflow. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+    The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason. The solved path covers workflow rerun.
+    
+    Operationally, this matters because pipeline failures point to real delivery problems instead of missing secrets, wrong paths, weak permissions, or incomplete auth setup.
   outcome: |
-    GitHub Actions Matrix Node Version: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+    GitHub Actions Matrix Node Version: The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason.
   focusFileName: .github/workflows/test-matrix.yml
   replacements:
     - fileName: .github/workflows/test-matrix.yml

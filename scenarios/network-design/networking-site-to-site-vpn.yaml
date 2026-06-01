@@ -24,11 +24,13 @@ solution:
     - Private subnet return traffic must know the corporate CIDR.
     - Public subnets keep the default route to the internet gateway.
   explanation: |
-    Networking Site-to-Site VPN Routes is complete because the final state now addresses the original failure: Wire an on-prem network to private VPC subnets through a site-to-site VPN without routing private workloads to the internet.
+    Wire an on-prem network to private VPC subnets through a site-to-site VPN without routing private workloads to the internet.
     
-    Key takeaway: Public subnets keep the default route to the internet gateway. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+    The diagram controls now satisfy the required route, subnet, security, or attachment path. The solved path covers Set diagram controls to the expected values and Check design.
+    
+    Operationally, this matters because packet flow is explained from source to destination instead of fixed by guessing at individual network settings.
   outcome: |
-    Networking Site-to-Site VPN Routes: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+    Networking Site-to-Site VPN Routes: The diagram controls now satisfy the required route, subnet, security, or attachment path.
   apply: networkingControls
   commands:
     - Set diagram controls to the expected values

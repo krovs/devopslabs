@@ -1,0 +1,74 @@
+id: linuxServiceLogTriage
+kind: linux
+title: Linux Sysadmin Service Triage
+description: A Linux web service is failed; troubleshoot logs, service status, memory, disk, processes, and sockets before restoring the missing PORT value.
+primaryFile: service.env
+tips:
+  - List the files in the working directory.
+  - Read app.log and search for ERROR.
+  - Check service status and journal entries.
+  - Check disk, memory, processes, and listening sockets before restarting.
+  - Restore PORT=8080 in service.env.
+  - Restart the service.
+files:
+  "service.env": |
+    APP_ENV=training
+    LOG_LEVEL=info
+  "runbook.md": |
+    Goal:
+    - Restore the failed web service.
+
+    Constraints:
+    - Use basic Linux commands to inspect files, logs, service status, memory, disk, processes, and sockets.
+    - Do not change APP_ENV or LOG_LEVEL.
+    - Add the missing PORT value before restarting the service.
+solution:
+  summary: |
+    The service exits because service.env does not define PORT.
+  steps:
+    - Run ls -la to identify the available files.
+    - Run cat app.log, grep ERROR app.log, or journalctl -u web -n 20 to find the failure.
+    - Run systemctl status web to confirm the service is failed.
+    - Run df -h, free -m, ps aux, and ss -tulpn to rule out common host resource problems.
+    - Add PORT=8080 to service.env.
+    - Run sudo systemctl restart web.
+  explanation: |
+    Basic Linux triage starts by locating files, reading logs, narrowing to the error line, checking the service manager, and ruling out common host pressure signals like disk, memory, process, and socket state. The missing PORT setting is the root cause; restarting only works after the environment file is fixed.
+  outcome: |
+    web.service restarts successfully with PORT=8080 configured.
+  focusFileName: service.env
+  replacements:
+    - fileName: service.env
+      search: |
+        LOG_LEVEL=info
+      replace: |
+        LOG_LEVEL=info
+        PORT=8080
+  commands:
+    - df -h
+    - free -m
+    - ps aux
+    - grep ERROR app.log
+    - sudo systemctl restart web
+backend:
+  bucket: linux
+  key: service.env
+  table: services
+  locked: false
+  lockId: null
+awsResources:
+  - type: service
+    name: web.service
+    id: web
+    status: failed
+    note: The service exits because PORT is missing from service.env.
+stateResources:
+  - address: file.service.env
+    id: missing-port
+  - address: log.app.log
+    id: has-error
+flags:
+  initialized: false
+  validationPassed: false
+  linuxResourcesChecked: false
+  linuxValidated: false

@@ -37,11 +37,13 @@ solution:
     - The app needs one secret, not every secret in the account.
     - The correct review should request changes and identify both wildcard action and wildcard resource.
   explanation: |
-    PR Review IAM Wildcard Policy is complete because the final state now addresses the original failure: Review an IAM policy change that fixes an access issue by adding broad Secrets Manager permissions.
+    Review an IAM policy change that fixes an access issue by adding broad Secrets Manager permissions.
     
-    Key takeaway: The correct review should request changes and identify both wildcard action and wildcard resource. In a real platform team, this prevents risky changes being approved because review findings focus on context instead of the actual blast radius.
+    The review decision and selected findings match the risk introduced by the diff. The solved path covers Select the expected review decision, Select only required findings, and Submit review.
+    
+    Operationally, this matters because code review blocks the unsafe change while leaving harmless context out of the review comment.
   outcome: |
-    PR Review IAM Wildcard Policy: The review now blocks the risky change with the right decision and findings while leaving harmless context unflagged.
+    PR Review IAM Wildcard Policy: The review decision and selected findings match the risk introduced by the diff.
   apply: prReview
   commands:
     - Select the expected review decision

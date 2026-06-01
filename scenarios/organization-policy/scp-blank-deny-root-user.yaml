@@ -23,11 +23,13 @@ solution:
     - SCP Deny statements can match root users with aws:PrincipalArn.
     - Keep a billing exception so account teams can still view billing data.
   explanation: |
-    SCP Blank Deny Root User is complete because the final state now addresses the original failure: Build an SCP from a blank policy that denies root-user actions while preserving a billing exception.
+    Build an SCP from a blank policy that denies root-user actions while preserving a billing exception.
     
-    Key takeaway: Keep a billing exception so account teams can still view billing data. In a real platform team, this prevents organization guardrails that either over-block valid operations or leave risky exceptions unmanaged.
+    The organization policy now enforces the guardrail while preserving the intended exception or allowed path. The solved path covers scenario validation.
+    
+    Operationally, this matters because account-level behavior is controlled centrally without blocking the wrong principals or regions.
   outcome: |
-    SCP Blank Deny Root User: The organization guardrail now enforces the intended deny behavior without breaking the documented exception path.
+    SCP Blank Deny Root User: The organization policy now enforces the guardrail while preserving the intended exception or allowed path.
   focusFileName: scp.json
   files:
     "scp.json": |

@@ -48,11 +48,13 @@ solution:
     - Fix the source to ../../../modules/app.
     - Re-run terragrunt init and terragrunt plan.
   explanation: |
-    Terragrunt Wrong Module Source is complete because the final state now addresses the original failure: Terragrunt init fails because the live stack points at the wrong module path.
+    Terragrunt init fails because the live stack points at the wrong module path.
     
-    Key takeaway: Re-run terragrunt init and terragrunt plan. In a real platform team, this prevents multi-stack drift from broken includes, source paths, dependency outputs, or formatting gates.
+    The Terragrunt stack can initialize, validate, and plan with the intended source, include, dependency, or formatting state. The solved path covers terragrunt init and terragrunt plan.
+    
+    Operationally, this matters because stack composition problems are fixed in the live configuration rather than hidden by one-off local changes.
   outcome: |
-    Terragrunt Wrong Module Source: The Terragrunt stack now resolves its source, inherited settings, dependency values, and validation path correctly.
+    Terragrunt Wrong Module Source: The Terragrunt stack can initialize, validate, and plan with the intended source, include, dependency, or formatting state.
   focusFileName: live/dev/app/terragrunt.hcl
   files:
     "live/dev/app/terragrunt.hcl": |

@@ -24,11 +24,13 @@ solution:
     - App instances should allow port 8080 only from the ALB security group.
     - Do not open app instances directly to the internet.
   explanation: |
-    Networking ALB to App Security Group is complete because the final state now addresses the original failure: Fix security group rules so internet traffic reaches the ALB and only the ALB can reach the application instances.
+    Fix security group rules so internet traffic reaches the ALB and only the ALB can reach the application instances.
     
-    Key takeaway: Do not open app instances directly to the internet. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+    The diagram controls now satisfy the required route, subnet, security, or attachment path. The solved path covers Set diagram controls to the expected values and Check design.
+    
+    Operationally, this matters because packet flow is explained from source to destination instead of fixed by guessing at individual network settings.
   outcome: |
-    Networking ALB to App Security Group: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+    Networking ALB to App Security Group: The diagram controls now satisfy the required route, subnet, security, or attachment path.
   apply: networkingControls
   commands:
     - Set diagram controls to the expected values

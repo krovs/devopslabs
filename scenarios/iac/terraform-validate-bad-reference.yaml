@@ -39,11 +39,13 @@ solution:
     - Fix the output reference, then validate again.
     - A clean plan completes the lab.
   explanation: |
-    Terraform Validate Bad Reference is complete because the final state now addresses the original failure: Validation fails because an output references a resource name that does not exist.
+    Validation fails because an output references a resource name that does not exist.
     
-    Key takeaway: A clean plan completes the lab. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+    Terraform state, configuration, and the simulated remote resource model now agree. The solved path covers initialization, validation, and planning.
+    
+    Operationally, this matters because future plans are easier to trust because the drift, import, module, or state issue has been handled at the right layer.
   outcome: |
-    Terraform Validate Bad Reference: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+    Terraform Validate Bad Reference: Terraform state, configuration, and the simulated remote resource model now agree.
   focusFileName: main.tf
   replacements:
     - fileName: main.tf

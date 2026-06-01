@@ -25,11 +25,13 @@ solution:
     - Default action should allow normal requests when rules block bad patterns.
     - Managed SQL injection and common rule sets are a common baseline.
   explanation: |
-    Networking WAF ALB Protection is complete because the final state now addresses the original failure: Attach a WAF web ACL to the public ALB and block suspicious requests while allowing normal traffic.
+    Attach a WAF web ACL to the public ALB and block suspicious requests while allowing normal traffic.
     
-    Key takeaway: Managed SQL injection and common rule sets are a common baseline. In a real platform team, this prevents packet paths that look connected on a diagram but fail because one route, CIDR, or control is wrong.
+    The diagram controls now satisfy the required route, subnet, security, or attachment path. The solved path covers Set diagram controls to the expected values and Check design.
+    
+    Operationally, this matters because packet flow is explained from source to destination instead of fixed by guessing at individual network settings.
   outcome: |
-    Networking WAF ALB Protection: The diagram controls now match the required packet path, so traffic reaches the intended destination without opening the wrong route.
+    Networking WAF ALB Protection: The diagram controls now satisfy the required route, subnet, security, or attachment path.
   apply: networkingControls
   commands:
     - Set diagram controls to the expected values

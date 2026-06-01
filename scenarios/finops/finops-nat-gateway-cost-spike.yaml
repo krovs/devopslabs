@@ -30,11 +30,13 @@ solution:
     - Keep high availability for the two active workload AZs.
     - Remove idle NAT gateways instead of collapsing all egress into one AZ.
   explanation: |
-    NAT Gateway Cost Spike is complete because the final state now addresses the original failure: VPC costs doubled after extra NAT gateways were created in AZs with no private workloads.
+    VPC costs doubled after extra NAT gateways were created in AZs with no private workloads.
     
-    Key takeaway: Remove idle NAT gateways instead of collapsing all egress into one AZ. In a real platform team, this prevents small unused resources or missing lifecycle controls becoming recurring operational spend.
+    The cost-control setting now targets the waste source without removing required workload capability. The solved path covers aws ce get-cost-and-usage.
+    
+    Operationally, this matters because spend reduction is tied to an explainable resource lifecycle or architecture change.
   outcome: |
-    NAT Gateway Cost Spike: The cost control now removes waste or adds lifecycle behavior without changing the workload requirement.
+    NAT Gateway Cost Spike: The cost-control setting now targets the waste source without removing required workload capability.
   focusFileName: nat-gateways.json
   files:
     "nat-gateways.json": |

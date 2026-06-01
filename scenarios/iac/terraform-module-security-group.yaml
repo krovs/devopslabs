@@ -57,11 +57,13 @@ solution:
     - Restrict the module default to 10.0.0.0/16.
     - Re-run checkov and terraform plan.
   explanation: |
-    Terraform Module Security Group Checkov is complete because the final state now addresses the original failure: A reusable security group module defaults ingress to 0.0.0.0/0 and fails a security scan.
+    A reusable security group module defaults ingress to 0.0.0.0/0 and fails a security scan.
     
-    Key takeaway: Re-run checkov and terraform plan. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+    Terraform state, configuration, and the simulated remote resource model now agree. The solved path covers initialization, security scanning, and planning.
+    
+    Operationally, this matters because future plans are easier to trust because the drift, import, module, or state issue has been handled at the right layer.
   outcome: |
-    Terraform Module Security Group Checkov: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+    Terraform Module Security Group Checkov: Terraform state, configuration, and the simulated remote resource model now agree.
   focusFileName: modules/security-group/main.tf
   replacements:
     - fileName: modules/security-group/main.tf

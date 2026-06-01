@@ -32,11 +32,13 @@ solution:
     - Production RDS should keep backups.
     - Deletion protection prevents accidental destructive changes.
   explanation: |
-    IaC Security Baselines RDS Public Backup is complete because the final state now addresses the original failure: Review an RDS Terraform resource that is public and has weak recovery settings.
+    Review an RDS Terraform resource that is public and has weak recovery settings.
     
-    Key takeaway: Deletion protection prevents accidental destructive changes. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
+    The Terraform configuration now includes the missing security baseline and the simulated Checkov gate can pass. The solved path covers initialization, security scanning, and planning.
+    
+    Operationally, this matters because cloud guardrails are reviewed before deployment instead of being discovered after resources are already live.
   outcome: |
-    IaC Security Baselines RDS Public Backup: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+    IaC Security Baselines RDS Public Backup: The Terraform configuration now includes the missing security baseline and the simulated Checkov gate can pass.
   focusFileName: main.tf
   replacements:
     - fileName: main.tf

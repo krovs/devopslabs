@@ -40,11 +40,13 @@ solution:
     - A public ACL and missing public access block should not be approved for artifact storage.
     - The correct review should request changes and mention the S3 exposure.
   explanation: |
-    PR Review Terraform Public S3 is complete because the final state now addresses the original failure: Review a Terraform change that adds an artifacts bucket with risky public access settings.
+    Review a Terraform change that adds an artifacts bucket with risky public access settings.
     
-    Key takeaway: The correct review should request changes and mention the S3 exposure. In a real platform team, this prevents risky changes being approved because review findings focus on context instead of the actual blast radius.
+    The review decision and selected findings match the risk introduced by the diff. The solved path covers Select the expected review decision, Select only required findings, and Submit review.
+    
+    Operationally, this matters because code review blocks the unsafe change while leaving harmless context out of the review comment.
   outcome: |
-    PR Review Terraform Public S3: The review now blocks the risky change with the right decision and findings while leaving harmless context unflagged.
+    PR Review Terraform Public S3: The review decision and selected findings match the risk introduced by the diff.
   apply: prReview
   commands:
     - Select the expected review decision

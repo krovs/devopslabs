@@ -16,6 +16,8 @@ export type CommandHandlers = {
   githubRunRerun: () => string[];
   githubSecretList: () => string[];
   githubSecretSet: (name?: string) => string[];
+  jenkinsBuildLog: () => string[];
+  jenkinsRebuild: () => string[];
   argocdAppGet: () => string[];
   fluxReconcileKustomization: () => string[];
   terragruntInit: () => string[];
@@ -40,6 +42,24 @@ export type CommandHandlers = {
   ec2DescribeVolumes: () => string[];
   kyvernoTest: () => string[];
   kubectlDryRun: () => string[];
+  linuxLs: () => string[];
+  linuxCatLog: () => string[];
+  linuxGrepError: () => string[];
+  linuxDf: () => string[];
+  linuxFree: () => string[];
+  linuxPs: () => string[];
+  linuxTop: () => string[];
+  linuxJournalctl: () => string[];
+  linuxSs: () => string[];
+  linuxSystemctlStatus: () => string[];
+  linuxSystemctlRestart: () => string[];
+  kubectlGetPods: () => string[];
+  kubectlDescribePod: () => string[];
+  kubectlGetEvents: () => string[];
+  kubectlLogs: () => string[];
+  kubectlRolloutRestart: () => string[];
+  kubectlRolloutStatus: () => string[];
+  kubectlScaleDeployment: () => string[];
   checkScenario: () => string[];
 };
 
@@ -85,6 +105,36 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "gh run rerun") return handlers.githubRunRerun();
     if (input === "gh secret list") return handlers.githubSecretList();
     if (args[0] === "gh" && args[1] === "secret" && args[2] === "set") return handlers.githubSecretSet(args[3]);
+    if (input === "jenkins build log") return handlers.jenkinsBuildLog();
+    if (input === "jenkins rebuild") return handlers.jenkinsRebuild();
+  }
+
+  if (runtime.kind === "linux") {
+    if (input === "ls -la") return handlers.linuxLs();
+    if (input === "cat app.log") return handlers.linuxCatLog();
+    if (input === "grep ERROR app.log") return handlers.linuxGrepError();
+    if (input === "df -h") return handlers.linuxDf();
+    if (input === "free -m") return handlers.linuxFree();
+    if (input === "ps aux") return handlers.linuxPs();
+    if (input === "top -b -n1") return handlers.linuxTop();
+    if (input === "journalctl -u web -n 20") return handlers.linuxJournalctl();
+    if (input === "ss -tulpn") return handlers.linuxSs();
+    if (input === "systemctl status web") return handlers.linuxSystemctlStatus();
+    if (input === "sudo systemctl restart web") return handlers.linuxSystemctlRestart();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "kubernetes") {
+    if (input === "kubectl get pods") return handlers.kubectlGetPods();
+    if (input === "kubectl describe pod checkout-api") return handlers.kubectlDescribePod();
+    if (input === "kubectl get events") return handlers.kubectlGetEvents();
+    if (input === "kubectl logs checkout-api") return handlers.kubectlLogs();
+    if (input === "kubectl rollout restart deployment checkout-api") return handlers.kubectlRolloutRestart();
+    if (input === "kubectl rollout status deployment checkout-api") return handlers.kubectlRolloutStatus();
+    if (input === "kubectl scale deployment checkout-api --replicas=2") return handlers.kubectlScaleDeployment();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
   }
 
   if (runtime.kind === "gitops") {
@@ -163,7 +213,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "cicd") {
-    return ["Available commands:", "  gh run view", "  gh run rerun", "  gh secret list", "  gh secret set <name>", "  check", "  help"];
+    return ["Available commands:", "  gh run view", "  gh run rerun", "  gh secret list", "  gh secret set <name>", "  jenkins build log", "  jenkins rebuild", "  check", "  help"];
   }
 
   if (runtime.kind === "gitops") {
@@ -184,6 +234,14 @@ function commandHelp(runtime: Scenario): string[] {
 
   if (runtime.kind === "policy") {
     return ["Available commands:", "  kyverno test .", "  kubectl apply --dry-run=server -f policy.yaml", "  check", "  help"];
+  }
+
+  if (runtime.kind === "linux") {
+    return ["Available commands:", "  ls -la", "  cat app.log", "  grep ERROR app.log", "  journalctl -u web -n 20", "  systemctl status web", "  df -h", "  free -m", "  ps aux", "  top -b -n1", "  ss -tulpn", "  sudo systemctl restart web", "  check", "  help"];
+  }
+
+  if (runtime.kind === "kubernetes") {
+    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  check", "  help"];
   }
 
   return [

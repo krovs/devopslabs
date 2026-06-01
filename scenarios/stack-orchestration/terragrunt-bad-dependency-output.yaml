@@ -73,11 +73,13 @@ solution:
     - Open the network stack tab and check mock_outputs.
     - Rename vpcID to vpc_id, then run terragrunt validate and run-all plan.
   explanation: |
-    Terragrunt Bad Dependency Output is complete because the final state now addresses the original failure: An app stack depends on network.outputs.vpc_id, but the dependency mock exposes the wrong output name.
+    An app stack depends on network.outputs.vpc_id, but the dependency mock exposes the wrong output name.
     
-    Key takeaway: Rename vpcID to vpc_id, then run terragrunt validate and run-all plan. In a real platform team, this prevents multi-stack drift from broken includes, source paths, dependency outputs, or formatting gates.
+    The Terragrunt stack can initialize, validate, and plan with the intended source, include, dependency, or formatting state. The solved path covers terragrunt init, terragrunt validate, and terragrunt run-all plan.
+    
+    Operationally, this matters because stack composition problems are fixed in the live configuration rather than hidden by one-off local changes.
   outcome: |
-    Terragrunt Bad Dependency Output: The Terragrunt stack now resolves its source, inherited settings, dependency values, and validation path correctly.
+    Terragrunt Bad Dependency Output: The Terragrunt stack can initialize, validate, and plan with the intended source, include, dependency, or formatting state.
   focusFileName: live/dev/network/terragrunt.hcl
   replacements:
     - fileName: live/dev/network/terragrunt.hcl

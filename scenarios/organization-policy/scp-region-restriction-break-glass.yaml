@@ -47,11 +47,13 @@ solution:
     - Deny unsupported regions while allowing approved regions.
     - Exempt the break-glass role by principal ARN.
   explanation: |
-    SCP Region Restriction Break Glass is complete because the final state now addresses the original failure: A region restriction SCP blocks operations inconsistently and lacks a break-glass role exception.
+    A region restriction SCP blocks operations inconsistently and lacks a break-glass role exception.
     
-    Key takeaway: Exempt the break-glass role by principal ARN. In a real platform team, this prevents organization guardrails that either over-block valid operations or leave risky exceptions unmanaged.
+    The organization policy now enforces the guardrail while preserving the intended exception or allowed path. The solved path covers aws iam simulate-principal-policy.
+    
+    Operationally, this matters because account-level behavior is controlled centrally without blocking the wrong principals or regions.
   outcome: |
-    SCP Region Restriction Break Glass: The organization guardrail now enforces the intended deny behavior without breaking the documented exception path.
+    SCP Region Restriction Break Glass: The organization policy now enforces the guardrail while preserving the intended exception or allowed path.
   focusFileName: scp.json
   files:
     "scp.json": |

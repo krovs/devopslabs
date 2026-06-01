@@ -32,11 +32,19 @@ solution:
     - Use the smallest built-in role that can read blob data.
     - Scope the assignment to the reports container, not the subscription.
   explanation: |
-    Azure Blob Reader Scope is complete because the final state now addresses the original failure: An Azure managed identity has subscription Owner access but only needs read access to one storage container.
+    An Azure managed identity has subscription Owner access but only needs read access to one storage container.
+    
+    The policy or trust document now grants the requested access path without broadening unrelated actions, resources, or conditions. The solved path covers inspect the role assignment before editing, use the smallest built-in role that can read blob data, and scope the assignment to the reports container, not the subscription.
+    
+    Operationally, this matters because least privilege is preserved while the legitimate workload still works.
+    
+    The policy or trust document now grants the requested access path without broadening unrelated actions, resources, or conditions. The solved path covers az role assignment list.
+    
+    Operationally, this matters because least privilege is preserved while the legitimate workload still works.
     
     Key takeaway: Scope the assignment to the reports container, not the subscription. In a real platform team, this prevents access that works only because the policy is broader than the request actually needs.
   outcome: |
-    Azure Blob Reader Scope: The access path now grants only the requested capability with the required principal, resource, and condition boundaries.
+    Azure Blob Reader Scope: The policy or trust document now grants the requested access path without broadening unrelated actions, resources, or conditions.
   focusFileName: role-assignment.json
   files:
     "role-assignment.json": |

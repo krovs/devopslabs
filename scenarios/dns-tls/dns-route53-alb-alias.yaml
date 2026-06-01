@@ -27,11 +27,13 @@ solution:
     - The target must be the current ALB DNS name and hosted zone ID.
     - Enable evaluateTargetHealth for the alias.
   explanation: |
-    DNS Route 53 ALB Alias is complete because the final state now addresses the original failure: The application hostname resolves to an old load balancer instead of the current ALB alias target.
+    The application hostname resolves to an old load balancer instead of the current ALB alias target.
     
-    Key takeaway: Enable evaluateTargetHealth for the alias. In a real platform team, this prevents routing and certificate failures where one wrong region, record, or alias breaks the whole request path.
+    The DNS record, alias target, certificate region, or validation record now matches the serving path. The solved path covers dig app.example.com.
+    
+    Operationally, this matters because traffic and certificate validation resolve through the intended edge or load balancer configuration.
   outcome: |
-    DNS Route 53 ALB Alias: The request path now resolves through the intended DNS or certificate configuration instead of failing on record, alias, or region mismatch.
+    DNS Route 53 ALB Alias: The DNS record, alias target, certificate region, or validation record now matches the serving path.
   focusFileName: route53-record.json
   files:
     "route53-record.json": |

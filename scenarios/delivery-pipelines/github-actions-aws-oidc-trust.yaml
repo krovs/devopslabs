@@ -60,11 +60,13 @@ solution:
     - The subject currently allows refs/heads/master, but the workflow runs from main.
     - Change the sub condition to refs/heads/main and rerun.
   explanation: |
-    GitHub Actions AWS OIDC Trust Policy is complete because the final state now addresses the original failure: A deploy workflow has id-token permission, but AWS rejects AssumeRoleWithWebIdentity because the role trust policy allows the wrong branch.
+    A deploy workflow has id-token permission, but AWS rejects AssumeRoleWithWebIdentity because the role trust policy allows the wrong branch.
     
-    Key takeaway: Change the sub condition to refs/heads/main and rerun. In a real platform team, this prevents pipeline reruns that hide the actual workflow, secret, path, or permission problem.
+    The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason. The solved path covers workflow rerun.
+    
+    Operationally, this matters because pipeline failures point to real delivery problems instead of missing secrets, wrong paths, weak permissions, or incomplete auth setup.
   outcome: |
-    GitHub Actions AWS OIDC Trust Policy: The workflow now fails or passes for the right reason, with the underlying path, secret, permission, or gate fixed instead of bypassed.
+    GitHub Actions AWS OIDC Trust Policy: The workflow or pipeline now contains the required configuration and the rerun succeeds for the intended reason.
   focusFileName: trust-policy.json
   replacements:
     - fileName: trust-policy.json

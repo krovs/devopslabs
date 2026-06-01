@@ -37,11 +37,13 @@ solution:
     - AWS OIDC does not require write-all.
     - The correct review should request changes and call out the overbroad token scope.
   explanation: |
-    PR Review GitHub Actions Write-All is complete because the final state now addresses the original failure: Review a workflow change that broadens repository token permissions for an AWS deployment.
+    Review a workflow change that broadens repository token permissions for an AWS deployment.
     
-    Key takeaway: The correct review should request changes and call out the overbroad token scope. In a real platform team, this prevents risky changes being approved because review findings focus on context instead of the actual blast radius.
+    The review decision and selected findings match the risk introduced by the diff. The solved path covers Select the expected review decision, Select only required findings, and Submit review.
+    
+    Operationally, this matters because code review blocks the unsafe change while leaving harmless context out of the review comment.
   outcome: |
-    PR Review GitHub Actions Write-All: The review now blocks the risky change with the right decision and findings while leaving harmless context unflagged.
+    PR Review GitHub Actions Write-All: The review decision and selected findings match the risk introduced by the diff.
   apply: prReview
   commands:
     - Select the expected review decision

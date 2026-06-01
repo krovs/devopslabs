@@ -24,11 +24,13 @@ solution:
     - The bucket needs server-side encryption.
     - Public access block and versioning are required guardrails.
   explanation: |
-    IaC Security Baselines S3 Baseline is complete because the final state now addresses the original failure: Spot missing S3 guardrails before deploying a production document bucket.
+    Spot missing S3 guardrails before deploying a production document bucket.
     
-    Key takeaway: Public access block and versioning are required guardrails. In a real platform team, this prevents unsafe cloud defaults reaching production because guardrails were not checked before deployment.
+    The Terraform configuration now includes the missing security baseline and the simulated Checkov gate can pass. The solved path covers initialization, security scanning, and planning.
+    
+    Operationally, this matters because cloud guardrails are reviewed before deployment instead of being discovered after resources are already live.
   outcome: |
-    IaC Security Baselines S3 Baseline: The reviewed AWS configuration now includes the expected guardrail and can proceed with a clean validation path.
+    IaC Security Baselines S3 Baseline: The Terraform configuration now includes the missing security baseline and the simulated Checkov gate can pass.
   focusFileName: main.tf
   files:
     "main.tf": |

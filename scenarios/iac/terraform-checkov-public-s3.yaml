@@ -36,11 +36,13 @@ solution:
     - Change the ACL to private and add a public access block.
     - Run checkov and terraform plan again.
   explanation: |
-    Terraform Checkov Public S3 Finding is complete because the final state now addresses the original failure: A security scan blocks the plan because an S3 bucket allows public ACLs.
+    A security scan blocks the plan because an S3 bucket allows public ACLs.
     
-    Key takeaway: Run checkov and terraform plan again. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+    Terraform state, configuration, and the simulated remote resource model now agree. The solved path covers initialization, security scanning, and planning.
+    
+    Operationally, this matters because future plans are easier to trust because the drift, import, module, or state issue has been handled at the right layer.
   outcome: |
-    Terraform Checkov Public S3 Finding: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+    Terraform Checkov Public S3 Finding: Terraform state, configuration, and the simulated remote resource model now agree.
   focusFileName: main.tf
   files:
     "main.tf": |

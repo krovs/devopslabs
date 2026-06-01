@@ -30,11 +30,15 @@ solution:
     - Wildcard certificates validate with the exact CNAME ACM provides.
     - Put the validation CNAME in the public example.com hosted zone.
   explanation: |
-    DNS ACM Wildcard Validation is complete because the final state now addresses the original failure: A CloudFront wildcard certificate is stuck pending because the DNS validation record is in the wrong hosted zone.
+    A CloudFront wildcard certificate is stuck pending because the DNS validation record is in the wrong hosted zone.
+    
+    The DNS record, alias target, certificate region, or validation record now matches the serving path. The solved path covers aws acm describe-certificate.
+    
+    Operationally, this matters because traffic and certificate validation resolve through the intended edge or load balancer configuration.
     
     Key takeaway: Put the validation CNAME in the public example.com hosted zone. In a real platform team, this prevents routing and certificate failures where one wrong region, record, or alias breaks the whole request path.
   outcome: |
-    DNS ACM Wildcard Validation: The request path now resolves through the intended DNS or certificate configuration instead of failing on record, alias, or region mismatch.
+    DNS ACM Wildcard Validation: The DNS record, alias target, certificate region, or validation record now matches the serving path.
   focusFileName: certificate.json
   files:
     "certificate.json": |

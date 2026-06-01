@@ -40,11 +40,13 @@ solution:
     - The module source should stay ../../../modules/app.
     - Run terragrunt hclfmt and terragrunt plan after fixing the file.
   explanation: |
-    Terragrunt HCL Formatting Gate is complete because the final state now addresses the original failure: A pull request gate fails because terragrunt hclfmt detects unformatted Terragrunt configuration.
+    A pull request gate fails because terragrunt hclfmt detects unformatted Terragrunt configuration.
     
-    Key takeaway: Run terragrunt hclfmt and terragrunt plan after fixing the file. In a real platform team, this prevents multi-stack drift from broken includes, source paths, dependency outputs, or formatting gates.
+    The Terragrunt stack can initialize, validate, and plan with the intended source, include, dependency, or formatting state. The solved path covers terragrunt init, terragrunt hclfmt, terragrunt validate, and terragrunt plan.
+    
+    Operationally, this matters because stack composition problems are fixed in the live configuration rather than hidden by one-off local changes.
   outcome: |
-    Terragrunt HCL Formatting Gate: The Terragrunt stack now resolves its source, inherited settings, dependency values, and validation path correctly.
+    Terragrunt HCL Formatting Gate: The Terragrunt stack can initialize, validate, and plan with the intended source, include, dependency, or formatting state.
   focusFileName: live/dev/app/terragrunt.hcl
   files:
     "live/dev/app/terragrunt.hcl": |

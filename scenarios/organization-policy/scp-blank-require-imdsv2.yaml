@@ -24,11 +24,13 @@ solution:
     - Deny RunInstances when metadata tokens are optional.
     - Keep the policy scoped to EC2 launch behavior.
   explanation: |
-    SCP Blank Require IMDSv2 is complete because the final state now addresses the original failure: Build an SCP from scratch that prevents launching EC2 instances without IMDSv2 required.
+    Build an SCP from scratch that prevents launching EC2 instances without IMDSv2 required.
     
-    Key takeaway: Keep the policy scoped to EC2 launch behavior. In a real platform team, this prevents organization guardrails that either over-block valid operations or leave risky exceptions unmanaged.
+    The organization policy now enforces the guardrail while preserving the intended exception or allowed path. The solved path covers scenario validation.
+    
+    Operationally, this matters because account-level behavior is controlled centrally without blocking the wrong principals or regions.
   outcome: |
-    SCP Blank Require IMDSv2: The organization guardrail now enforces the intended deny behavior without breaking the documented exception path.
+    SCP Blank Require IMDSv2: The organization policy now enforces the guardrail while preserving the intended exception or allowed path.
   focusFileName: scp.json
   files:
     "scp.json": |

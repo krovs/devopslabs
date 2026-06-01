@@ -49,11 +49,13 @@ solution:
     - Run terraform init again after correcting source.
     - A clean plan completes the lab.
   explanation: |
-    Terraform Module Wrong Source Path is complete because the final state now addresses the original failure: Terraform init fails because the root module points at a module directory that does not exist.
+    Terraform init fails because the root module points at a module directory that does not exist.
     
-    Key takeaway: A clean plan completes the lab. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+    Terraform state, configuration, and the simulated remote resource model now agree. The solved path covers initialization and planning.
+    
+    Operationally, this matters because future plans are easier to trust because the drift, import, module, or state issue has been handled at the right layer.
   outcome: |
-    Terraform Module Wrong Source Path: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+    Terraform Module Wrong Source Path: Terraform state, configuration, and the simulated remote resource model now agree.
   focusFileName: main.tf
   replacements:
     - fileName: main.tf

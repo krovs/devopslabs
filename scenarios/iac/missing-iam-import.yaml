@@ -46,11 +46,13 @@ solution:
     - Import aws_iam_role.app using the existing role name training-app-role.
     - Run terraform plan again and look for no changes.
   explanation: |
-    Existing IAM Role Missing From State is complete because the final state now addresses the original failure: Terraform wants to create an IAM role that already exists in AWS, but the state file does not know about it.
+    Terraform wants to create an IAM role that already exists in AWS, but the state file does not know about it.
     
-    Key takeaway: Run terraform plan again and look for no changes. In a real platform team, this prevents plans that appear clean while code, state, and cloud resources still disagree.
+    Terraform state, configuration, and the simulated remote resource model now agree. The solved path covers initialization, terraform import aws_iam_role.app training-app-role, and planning.
+    
+    Operationally, this matters because future plans are easier to trust because the drift, import, module, or state issue has been handled at the right layer.
   outcome: |
-    Existing IAM Role Missing From State: Terraform can now initialize, validate, and plan from a state/code view that matches the intended infrastructure change.
+    Existing IAM Role Missing From State: Terraform state, configuration, and the simulated remote resource model now agree.
   commands:
     - terraform init
     - terraform import aws_iam_role.app training-app-role
