@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { tick } from "svelte";
   import AppMenu from "./AppMenu.svelte";
   import AppTopbar from "./AppTopbar.svelte";
-  import ConfettiOverlay, { type ConfettiPiece } from "./ConfettiOverlay.svelte";
+  import ConfettiOverlay from "./ConfettiOverlay.svelte";
   import Documentation from "./Documentation.svelte";
   import LabModal from "./LabModal.svelte";
   import LabIndex from "./LabIndex.svelte";
@@ -14,620 +13,301 @@
   import ScenarioResources from "./ScenarioResources.svelte";
   import TerminalPanel from "./TerminalPanel.svelte";
   import {
-    clampTerminalHeight,
-    getIncidentDisplayTitle,
-    getInitialIncidentMode,
-    getInitialOpenMenuGroups,
-    getInitialTerminalHeight,
-    getInitialTheme,
-    getPageDescription as getAppPageDescription,
     getResourcePanelTitles,
-    scenarioMenuGroupForScenario,
-    type AppPage,
-    type LabModalKind,
-    type ThemeName,
   } from "./appUi";
-  import { createCommandHandlers } from "./commandHandlers";
-  import { dispatchCommand as dispatchSimulatorCommand } from "./commands";
-  import { isScenarioSolved, prReviewIsCorrect as runtimePrReviewIsCorrect } from "./completion";
-  import {
-    workflowEvent as getWorkflowEvent,
-    workflowFailedStep as getWorkflowFailedStep,
-    workflowJob as getWorkflowJob,
-    workflowLogLines as getWorkflowLogLines,
-  } from "./simulators/cicd";
+  import { createAppShellSession } from "./appShellSession.svelte";
+  import { createCommandSession } from "./commandSession.svelte";
+  import { isScenarioSolved } from "./completion";
   import {
     buildLabGroups,
-    labGroupDetails,
     labHealthClass,
     labHealthLabel,
-    scenarioKindLabel,
-    terminalCommandOptions as getTerminalCommandOptions,
     type MenuGroupId,
-    type ScenarioCatalogItem,
   } from "./labCatalog";
-  import {
-    defaultNetworkSymptoms,
-    getSelectedNetworkControls,
-    getSelectedTrace,
-    parseRequirementSections,
-  } from "./networkWorkspace";
+  import { createEditorSession } from "./editorSession.svelte";
+  import { createLabMenuFilters } from "./labMenuFilters";
+  import { createLabMenuSession } from "./labMenuSession.svelte";
+  import { createNetworkSession } from "./networkSession.svelte";
+  import { pageHeading as getPageHeading, pageSubheading as getPageSubheading } from "./pageChrome";
+  import { createPersistenceSession } from "./persistenceSession.svelte";
   import { loadScenario as loadScenarioDefinition, scenarios } from "./scenarios";
-  import { cloneScenario, getPrimaryFile, getSavedSession, persistCurrentSession, restoreRuntime } from "./runtimeSession";
-  import { completeTerminalInput as getTerminalInputCompletion, initialTerminalLines } from "./terminalUtils";
+  import { createLabProgress, getSolutionDetails } from "./labProgress.svelte";
+  import { createPrReviewSession } from "./prReviewSession.svelte";
+  import { getSavedSession } from "./runtimeSession";
+  import { createScenarioSession } from "./scenarioSession.svelte";
+  import { applyLessonSolution } from "./solutionApplier";
+  import { createTerminalSession } from "./terminalSession.svelte";
+  import { initialTerminalLines } from "./terminalUtils";
+  import { createTipsSession } from "./tipsSession.svelte";
   import type { Scenario } from "./types";
 
   const scenarioIds = Object.keys(scenarios);
   const labGroups = buildLabGroups(scenarios);
+  const labMenuFilters = createLabMenuFilters({ scenarios, labGroups });
   const confettiColors = ["#a6e3a1", "#89b4fa", "#f9e2af", "#f38ba8", "#cba6f7", "#94e2d5"];
   const savedSession = getSavedSession(scenarioIds);
   const initialScenarioId = savedSession?.scenarioId ?? scenarioIds[0];
-  const initialIncidentMode = getInitialIncidentMode();
-  let currentScenarioId = $state(initialScenarioId);
-  let baseScenario = $state<Scenario | null>(null);
-  let runtime = $state<Scenario | null>(null);
-  let activeFileName = $state(savedSession?.activeFileName ?? "");
-  let incidentMode = $state(initialIncidentMode);
-  let terminalLines = $state(savedSession?.terminalLines ?? initialTerminalLines(initialIncidentMode, initialIncidentMode ? incidentDisplayTitle(initialScenarioId) : scenarios[initialScenarioId].title));
-  let terminalInput = $state("");
-  let terminalOutput = $state<HTMLPreElement | undefined>();
-  let terminalInputElement = $state<HTMLInputElement | undefined>();
-  let commandHistory = $state<string[]>(savedSession?.commandHistory ?? []);
-  let revealedTipCount = $state(savedSession?.revealedTipCount ?? 0);
-  let completedScenarioIds = $state<string[]>(savedSession?.completedScenarioIds ?? []);
-  let manuallyUncheckedScenarioIds = $state<string[]>(savedSession?.manuallyUncheckedScenarioIds ?? []);
-  let historyIndex = $state(-1);
-  let theme = $state<ThemeName>(getInitialTheme());
-  let terminalHeight = $state(getInitialTerminalHeight(clampTerminalHeight));
-  let isResizingTerminal = $state(false);
-  let isMenuOpen = $state(false);
-  let menuSearchQuery = $state("");
-  let openMenuGroups = $state<MenuGroupId[]>(getInitialOpenMenuGroups(initialScenarioId, scenarioMenuGroup));
-  let currentPage = $state<AppPage>("index");
-  let selectedNetworkNodeId = $state<string | null>(null);
-  let selectedTraceId = $state<string | null>(null);
-  let traceResult = $state<string[]>([]);
-  let networkCheckAttempted = $state(false);
-  let scenarioLoading = $state(true);
-  let scenarioLoadError = $state<string | null>(null);
-  let scenarioLoadToken = 0;
-  let networkPanX = $state(0);
-  let networkPanY = $state(0);
-  let isPanningNetwork = $state(false);
-  let networkPanStartX = $state(0);
-  let networkPanStartY = $state(0);
-  let networkPanOriginX = $state(0);
-  let networkPanOriginY = $state(0);
-  let networkDragDistance = $state(0);
-  let networkPointerNodeId = $state<string | null>(null);
-  let wasSolved = $state(false);
-  let activeLabModal = $state<LabModalKind | null>(null);
-  let completionModalScenarioId = $state<string | null>(null);
-  let confettiPieces = $state<ConfettiPiece[]>([]);
-  let confettiTimeout = $state<number | undefined>();
-  let saveSessionTimeout = $state<number | undefined>();
-  const terminalCommandHandlers = createCommandHandlers({
-    runtime: requireRuntime,
-    scenarioId: () => currentScenarioId,
-    activeFileName: () => activeFileName,
-    refreshRuntime: () => (runtime = runtime),
+  const appShell = createAppShellSession({ initialScenarioId, scenarioMenuGroup: labMenuFilters.scenarioMenuGroup });
+  const initialIncidentMode = appShell.incidentMode;
+  const scenario = createScenarioSession({
+    initialScenarioId,
+    savedSession,
+    loadScenario: loadScenarioDefinition,
+  });
+  const labProgress = createLabProgress({ confettiColors });
+  const networkSession = createNetworkSession({
+    runtime: () => scenario.runtime,
+    activeFileContent: () => scenario.activeFileContent,
+    solved: () => isSolved(),
+    refreshRuntime: scenario.refresh,
+    addTerminalLines,
+    onCompleted: celebrateIfScenarioCompleted,
+    onSave: saveSession,
+  });
+  const prReviewSession = createPrReviewSession({
+    runtime: () => scenario.runtime,
+    refreshRuntime: scenario.refresh,
+    addTerminalLines,
+    onCompleted: celebrateIfScenarioCompleted,
+    onSave: saveSession,
+  });
+  const labMenu = createLabMenuSession({
+    completedScenarioIds: savedSession?.completedScenarioIds,
+    manuallyUncheckedScenarioIds: savedSession?.manuallyUncheckedScenarioIds,
+    onChange: saveSession,
+  });
+  const tipsSession = createTipsSession({
+    revealedTipCount: savedSession?.revealedTipCount,
+    onChange: saveSession,
+  });
+  const persistenceSession = createPersistenceSession({
+    getSnapshot: () => {
+      if (!scenario.runtime || !scenario.base) return null;
+      return {
+        scenarioId: scenario.currentId,
+        runtime: scenario.runtime,
+        baseScenario: scenario.base,
+        activeFileName: scenario.activeFileName,
+        terminalLines: terminal.lines,
+        commandHistory: terminal.commandHistory,
+        revealedTipCount: tipsSession.revealedTipCount,
+        completedScenarioIds: labMenu.completedScenarioIds,
+        manuallyUncheckedScenarioIds: labMenu.manuallyUncheckedScenarioIds,
+      };
+    },
+  });
+  const commandSessionRef: { current?: ReturnType<typeof createCommandSession> } = {};
+  const terminal = createTerminalSession({
+    lines: savedSession?.terminalLines ?? initialTerminalLines(initialIncidentMode, initialIncidentMode ? incidentDisplayTitle(initialScenarioId) : scenarios[initialScenarioId].title),
+    commandHistory: savedSession?.commandHistory ?? [],
+    commandOptions: () => commandSessionRef.current?.commandOptions() ?? [],
+    onChange: scheduleSaveSession,
+  });
+  const commandSession = createCommandSession({
+    runtime: () => scenario.runtime,
+    requireRuntime: scenario.requireRuntime,
+    scenarioId: () => scenario.currentId,
+    activeFileName: () => scenario.activeFileName,
+    refreshRuntime: scenario.refresh,
+    terminal,
+    onEvaluate: evaluateWinCondition,
+    onCompleted: celebrateIfScenarioCompleted,
+    onSave: saveSession,
+  });
+  commandSessionRef.current = commandSession;
+  const editorSession = createEditorSession({
+    activeFileName: () => scenario.activeFileName,
+    selectFile: scenario.selectFile,
+    updateActiveFile: scenario.updateActiveFile,
+    updateFiles: scenario.updateFiles,
+    addTerminalLines,
+    onEvaluate: evaluateWinCondition,
+    onCompleted: celebrateIfScenarioCompleted,
+    onSave: saveSession,
+    onScheduleSave: scheduleSaveSession,
   });
 
-  let solved = $derived(Boolean(runtime && currentScenarioId && activeFileName) && isSolved());
-  let pageHeading = $derived(currentPage === "docs" ? "Documentation" : currentPage === "index" ? "DevOpsLabs" : incidentMode && !solved ? incidentDisplayTitle(currentScenarioId) : runtime?.title ?? scenarios[currentScenarioId].title);
-  let pageSubheading = $derived(runtime ? getPageDescription(solved) : "Loading scenario content.");
-  let scenarioTips = $derived(runtime?.tips ?? []);
-  let visibleTips = $derived(scenarioTips.slice(0, revealedTipCount));
-  let scenarioFileNames = $derived(runtime ? Object.keys(runtime.files) : []);
-  let activeFileContent = $derived(runtime?.files[activeFileName] ?? "");
-  let resourcePanelTitles = $derived(getResourcePanelTitles(runtime?.kind));
+  let currentScenarioId = $derived(scenario.currentId);
+  let runtime = $derived(scenario.runtime);
+  let activeFileName = $derived(scenario.activeFileName);
+  let scenarioLoading = $derived(scenario.loading);
+  let scenarioLoadError = $derived(scenario.error);
+  let scenarioFileNames = $derived(scenario.fileNames);
+  let activeFileContent = $derived(scenario.activeFileContent);
+  let incidentMode = $derived(appShell.incidentMode);
+  let currentPage = $derived(appShell.currentPage);
+  let completedScenarioIds = $derived(labMenu.completedScenarioIds);
+  let manuallyUncheckedScenarioIds = $derived(labMenu.manuallyUncheckedScenarioIds);
+  let solved = $derived(Boolean(scenario.runtime && scenario.currentId && scenario.activeFileName) && isSolved());
+  let pageHeading = $derived(getPageHeading({
+    page: currentPage,
+    incidentMode,
+    solved,
+    runtime,
+    scenarioTitle: scenarios[currentScenarioId].title,
+    incidentTitle: incidentDisplayTitle(currentScenarioId),
+  }));
+  let pageSubheading = $derived(getPageSubheading({
+    page: currentPage,
+    incidentMode,
+    solved,
+    runtime,
+    scenarioTitle: scenarios[currentScenarioId].title,
+    incidentTitle: incidentDisplayTitle(currentScenarioId),
+  }));
+  let scenarioTips = $derived(scenario.runtime?.tips ?? []);
+  let revealedTipCount = $derived(tipsSession.revealedTipCount);
+  let visibleTips = $derived(tipsSession.visibleTips(scenarioTips));
+  let resourcePanelTitles = $derived(getResourcePanelTitles(scenario.runtime?.kind));
   let leftResourceTitle = $derived(resourcePanelTitles.left);
   let rightResourceTitle = $derived(resourcePanelTitles.right);
-  let selectedNetworkNode = $derived(runtime?.networking?.nodes.find((node) => node.id === selectedNetworkNodeId) ?? null);
-  let networkingRequirementSections = $derived(parseRequirementSections(runtime?.files[activeFileName] ?? ""));
-  let selectedNetworkControls = $derived(runtime ? getSelectedNetworkControls(runtime, selectedNetworkNode) : []);
-  let networkTraces = $derived(runtime?.networking?.traces ?? []);
-  let selectedTrace = $derived(getSelectedTrace(networkTraces, selectedTraceId));
+  let solutionDetails = $derived(getSolutionDetails(runtime, currentScenarioId));
 
   $effect(() => {
-    if (solved && !completedScenarioIds.includes(currentScenarioId) && !manuallyUncheckedScenarioIds.includes(currentScenarioId)) {
-      completedScenarioIds = [...completedScenarioIds, currentScenarioId];
-      saveSession();
-    }
-  });
-
-  $effect(() => {
-    document.body.classList.toggle("dark-mode", theme === "mocha");
-    document.body.classList.toggle("dracula-mode", theme === "dracula");
-    document.body.classList.toggle("cyberpunk-mode", theme === "cyberpunk");
-    localStorage.setItem("terraform-sim-theme", theme);
-    localStorage.setItem("terraform-sim-incident-mode", String(incidentMode));
-    localStorage.setItem("terraform-sim-open-menu-groups", JSON.stringify(openMenuGroups));
+    if (solved) labMenu.markSolved(currentScenarioId);
   });
 
   void loadScenarioRuntime(initialScenarioId, { restoreSavedSession: Boolean(savedSession), persist: false });
 
-  function requireRuntime(): Scenario {
-    if (!runtime) throw new Error("Scenario runtime is not loaded.");
-    return runtime;
-  }
-
   function saveSession(): void {
-    if (!runtime || !baseScenario) return;
-    if (saveSessionTimeout) {
-      window.clearTimeout(saveSessionTimeout);
-      saveSessionTimeout = undefined;
-    }
-
-    persistCurrentSession({
-      scenarioId: currentScenarioId,
-      runtime,
-      baseScenario,
-      activeFileName,
-      terminalLines,
-      commandHistory,
-      revealedTipCount,
-      completedScenarioIds,
-      manuallyUncheckedScenarioIds,
-    });
+    persistenceSession.save();
   }
 
   function scheduleSaveSession(): void {
-    if (saveSessionTimeout) window.clearTimeout(saveSessionTimeout);
-    saveSessionTimeout = window.setTimeout(saveSession, 300);
+    persistenceSession.schedule();
   }
 
   function scenarioMenuGroup(id: string): MenuGroupId {
-    return scenarioMenuGroupForScenario(scenarios[id]);
+    return labMenuFilters.scenarioMenuGroup(id);
   }
 
   function toggleMenuGroup(group: MenuGroupId): void {
-    openMenuGroups = openMenuGroups.includes(group)
-      ? openMenuGroups.filter((item) => item !== group)
-      : [...openMenuGroups, group];
+    appShell.toggleMenuGroup(group);
   }
 
   function filteredScenarioIds(ids: string[], query: string): string[] {
-    const queryTokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (!queryTokens.length) return ids;
-    return ids.filter((id) => {
-      const scenario = scenarios[id];
-      const providers = labGroupDetails[scenarioMenuGroup(id)].providers.join(" ");
-      const searchable = `${scenario.title} ${id} ${scenarioKindLabel(scenario)} ${providers}`.toLowerCase();
-      return queryTokens.every((token) => searchable.includes(token));
-    });
+    return labMenuFilters.filteredScenarioIds(ids, query);
   }
 
   function menuGroupVisible(ids: string[], query: string): boolean {
-    return filteredScenarioIds(ids, query).length > 0;
+    return labMenuFilters.menuGroupVisible(ids, query);
   }
 
   function groupCompletionLabel(ids: string[]): string {
-    const completed = ids.filter((id) => completedScenarioIds.includes(id)).length;
-    return `${completed}/${ids.length}`;
+    return labMenu.groupCompletionLabel(ids);
   }
 
   function toggleScenarioCompletion(id: string, event: Event): void {
-    event.stopPropagation();
-    if (completedScenarioIds.includes(id)) {
-      completedScenarioIds = completedScenarioIds.filter((scenarioId) => scenarioId !== id);
-      if (!manuallyUncheckedScenarioIds.includes(id)) manuallyUncheckedScenarioIds = [...manuallyUncheckedScenarioIds, id];
-    } else {
-      completedScenarioIds = [...completedScenarioIds, id];
-      manuallyUncheckedScenarioIds = manuallyUncheckedScenarioIds.filter((scenarioId) => scenarioId !== id);
-    }
-    saveSession();
-  }
-
-  function scenarioKindIds(scenario: ScenarioCatalogItem): string[] {
-    return labGroups.find((group) => group.id === scenarioMenuGroupForScenario(scenario))?.ids ?? [];
+    labMenu.toggleCompletion(id, event);
   }
 
   function incidentDisplayTitle(id: string): string {
-    const scenario = scenarios[id];
-    const ids = scenarioKindIds(scenario);
-    return getIncidentDisplayTitle(scenario, ids);
+    return labMenuFilters.incidentDisplayTitle(id);
   }
 
   function labMenuTitle(id: string): string {
-    if (incidentMode && !completedScenarioIds.includes(id)) return incidentDisplayTitle(id);
-    return scenarios[id].title;
-  }
-
-  function getPageDescription(solvedState: boolean): string {
-    return runtime ? getAppPageDescription(currentPage, incidentMode, solvedState, runtime) : "Loading scenario content.";
-  }
-
-  function networkingIncidentSummary(): string[] {
-    return runtime?.networking?.symptoms ?? defaultNetworkSymptoms;
+    return labMenuFilters.labMenuTitle(id, incidentMode, completedScenarioIds);
   }
 
   function handleGlobalKeydown(event: KeyboardEvent): void {
-    if (event.key === "Escape") isMenuOpen = false;
+    appShell.handleGlobalKeydown(event);
   }
 
   function handleGlobalPointerDown(event: PointerEvent): void {
     if (!(event.target as HTMLElement | null)?.closest(".terminal-panel")) return;
-    window.setTimeout(() => focusTerminalInput(), 0);
+    window.setTimeout(() => terminal.focusInput(), 0);
   }
 
   function startTerminalResize(event: PointerEvent): void {
-    isResizingTerminal = true;
-    resizeTerminal(event);
+    appShell.startTerminalResize(event);
   }
 
   function resizeTerminal(event: PointerEvent): void {
-    if (!isResizingTerminal) return;
-    terminalHeight = clampTerminalHeight(window.innerHeight - event.clientY - 12);
-    localStorage.setItem("terraform-sim-terminal-height", String(terminalHeight));
+    appShell.resizeTerminal(event);
   }
 
   function stopTerminalResize(): void {
-    isResizingTerminal = false;
+    appShell.stopTerminalResize();
   }
 
   function resizeTerminalWithKeyboard(event: KeyboardEvent): void {
-    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-
-    event.preventDefault();
-    const delta = event.key === "ArrowUp" ? 20 : -20;
-    terminalHeight = clampTerminalHeight(terminalHeight + delta);
-    localStorage.setItem("terraform-sim-terminal-height", String(terminalHeight));
+    appShell.resizeTerminalWithKeyboard(event);
   }
 
   async function loadScenarioRuntime(id: string, options: { restoreSavedSession?: boolean; persist?: boolean } = {}): Promise<void> {
-    if (saveSessionTimeout) saveSession();
+    persistenceSession.flushPending();
 
-    const loadToken = ++scenarioLoadToken;
-    currentScenarioId = id;
     const group = scenarioMenuGroup(id);
-    if (!openMenuGroups.includes(group)) openMenuGroups = [...openMenuGroups, group];
-    scenarioLoading = true;
-    scenarioLoadError = null;
-    runtime = null;
+    appShell.ensureMenuGroupOpen(group);
 
-    try {
-      const scenario = await loadScenarioDefinition(id);
-      if (loadToken !== scenarioLoadToken) return;
+    const result = await scenario.load(id, { restoreSavedSession: options.restoreSavedSession });
 
-      baseScenario = scenario;
-      runtime = options.restoreSavedSession && savedSession?.scenarioId === id
-        ? restoreRuntime(scenario, savedSession.runtimePatch)
-        : cloneScenario(scenario);
-      activeFileName = options.restoreSavedSession && savedSession?.activeFileName && runtime.files[savedSession.activeFileName]
-        ? savedSession.activeFileName
-        : getPrimaryFile(runtime);
-      terminalLines = options.restoreSavedSession
-        ? savedSession?.terminalLines ?? initialTerminalLines(incidentMode, incidentMode ? incidentDisplayTitle(id) : runtime.title)
-        : initialTerminalLines(incidentMode, incidentMode ? incidentDisplayTitle(id) : runtime.title);
-      commandHistory = options.restoreSavedSession ? savedSession?.commandHistory ?? [] : [];
-      revealedTipCount = options.restoreSavedSession ? savedSession?.revealedTipCount ?? 0 : 0;
-      selectedTraceId = runtime.networking?.traces?.[0]?.id ?? null;
-      wasSolved = isSolved();
-      if (options.persist ?? true) saveSession();
-      scrollTerminal();
-    } catch (error) {
-      if (loadToken !== scenarioLoadToken) return;
-      scenarioLoadError = error instanceof Error ? error.message : String(error);
-    } finally {
-      if (loadToken === scenarioLoadToken) scenarioLoading = false;
+    if (!result) {
+      networkSession.resetForScenario();
+      labProgress.resetForScenario(false);
+      return;
     }
 
-    historyIndex = -1;
-    selectedNetworkNodeId = null;
-    traceResult = [];
-    networkCheckAttempted = false;
-    activeLabModal = null;
-    completionModalScenarioId = null;
-    confettiPieces = [];
-    if (confettiTimeout) window.clearTimeout(confettiTimeout);
-    resetNetworkPan();
-  }
-
-  function startNetworkPan(event: PointerEvent): void {
-    if (event.button !== 0) return;
-    isPanningNetwork = true;
-    networkDragDistance = 0;
-    networkPointerNodeId = (event.target as HTMLElement).closest<HTMLElement>(".network-node")?.dataset.nodeId ?? null;
-    networkPanStartX = event.clientX;
-    networkPanStartY = event.clientY;
-    networkPanOriginX = networkPanX;
-    networkPanOriginY = networkPanY;
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-  }
-
-  function moveNetworkPan(event: PointerEvent): void {
-    if (!isPanningNetwork) return;
-    const deltaX = event.clientX - networkPanStartX;
-    const deltaY = event.clientY - networkPanStartY;
-    networkDragDistance = Math.max(networkDragDistance, Math.hypot(deltaX, deltaY));
-    networkPanX = clampNetworkPan(networkPanOriginX + deltaX);
-    networkPanY = clampNetworkPan(networkPanOriginY + deltaY);
-  }
-
-  function stopNetworkPan(event: PointerEvent): void {
-    if (!isPanningNetwork) return;
-    isPanningNetwork = false;
-    if (networkDragDistance <= 5 && networkPointerNodeId) selectedNetworkNodeId = networkPointerNodeId;
-    networkPointerNodeId = null;
-    (event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
-  }
-
-  function handleNetworkCanvasKeydown(event: KeyboardEvent): void {
-    if (event.key !== "Home" && event.key !== "Escape") return;
-    event.preventDefault();
-    resetNetworkPan();
-  }
-
-  function resetNetworkPan(): void {
-    networkPanX = 0;
-    networkPanY = 0;
-    isPanningNetwork = false;
-  }
-
-  function clampNetworkPan(value: number): number {
-    return Math.max(-260, Math.min(260, value));
+    terminal.reset(
+      result.restored
+        ? savedSession?.terminalLines ?? initialTerminalLines(incidentMode, incidentMode ? incidentDisplayTitle(id) : result.runtime.title)
+        : initialTerminalLines(incidentMode, incidentMode ? incidentDisplayTitle(id) : result.runtime.title),
+      result.restored ? savedSession?.commandHistory ?? [] : [],
+    );
+    tipsSession.reset(result.restored ? savedSession?.revealedTipCount ?? 0 : 0);
+    networkSession.resetForScenario(result.runtime.networking?.traces?.[0]?.id ?? null);
+    labProgress.resetForScenario(isSolved());
+    if (options.persist ?? true) saveSession();
+    void terminal.scroll();
   }
 
   function selectScenario(id: string): void {
     void loadScenarioRuntime(id);
-    currentPage = "labs";
-    isMenuOpen = false;
+    appShell.openScenario();
   }
 
   function openDocs(): void {
-    currentPage = "docs";
-    isMenuOpen = false;
+    appShell.openDocs();
   }
 
   function openLabs(): void {
-    currentPage = "index";
-    isMenuOpen = false;
+    appShell.openLabs();
   }
 
   function openLabGroup(group: MenuGroupId): void {
-    openMenuGroups = [group];
-    currentPage = "index";
-    isMenuOpen = true;
-  }
-
-  function saveCurrentFile(): void {
-    addTerminalLines([`Saved ${activeFileName}`]);
-    evaluateWinCondition();
-    celebrateIfScenarioCompleted();
-    saveSession();
+    appShell.openLabGroup(group);
   }
 
   function revealTip(): void {
-    if (revealedTipCount >= scenarioTips.length) return;
-    revealedTipCount += 1;
-    saveSession();
-  }
-
-  function updateMainTf(value: string): void {
-    if (!runtime) return;
-    runtime.files[activeFileName] = value;
-    runtime = runtime;
-    scheduleSaveSession();
-  }
-
-  function handleEditorKeydown(event: KeyboardEvent): void {
-    if (event.key !== "Tab") return;
-    event.preventDefault();
-
-    const textarea = event.currentTarget as HTMLTextAreaElement;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const indentation = "  ";
-    const nextValue = `${textarea.value.slice(0, start)}${indentation}${textarea.value.slice(end)}`;
-
-    updateMainTf(nextValue);
-    tick().then(() => {
-      textarea.selectionStart = start + indentation.length;
-      textarea.selectionEnd = start + indentation.length;
-    });
-  }
-
-  function handleTerminalKeydown(event: KeyboardEvent): void {
-    if (event.key === "Tab") {
-      event.preventDefault();
-      completeTerminalInput();
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      moveHistory(-1);
-    }
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      moveHistory(1);
-    }
-  }
-
-  function updateNetworkControl(controlId: string, value: string): void {
-    if (!runtime?.networking) return;
-    runtime.networking.controls = runtime.networking.controls.map((control) =>
-      control.id === controlId ? { ...control, value } : control,
-    );
-    runtime.flags.networkConfigured = false;
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Network design has pending validation.";
-    runtime = runtime;
-    networkCheckAttempted = false;
-    traceResult = [];
-    saveSession();
-  }
-
-  function checkNetworkingScenario(): void {
-    if (!runtime?.networking) return;
-    const solved = runtime.networking.controls.every((control) => control.value === control.answer);
-    runtime.flags.networkConfigured = solved;
-    runtime.awsResources[0].status = solved ? "exists" : "failed";
-    runtime.awsResources[0].note = solved
-      ? "Network design matches the scenario requirements."
-      : "Some route or attachment settings still do not match the requirements.";
-    runtime = runtime;
-    networkCheckAttempted = true;
-    addTerminalLines([solved ? "Networking scenario complete." : "Networking check failed. Review the symptom log."]);
-    celebrateIfScenarioCompleted();
-    saveSession();
-  }
-
-  function selectNetworkTrace(traceId: string): void {
-    selectedTraceId = traceId;
-    traceResult = [];
-  }
-
-  function setPrDecision(decision: "approve" | "request_changes"): void {
-    if (!runtime?.prReview) return;
-    runtime.prReview.decision = decision;
-    runtime.flags.reviewPassed = false;
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Review decision has not passed validation.";
-    runtime = runtime;
-    saveSession();
-  }
-
-  function togglePrFinding(findingId: string): void {
-    if (!runtime?.prReview) return;
-    runtime.prReview.findings = runtime.prReview.findings.map((finding) =>
-      finding.id === findingId ? { ...finding, selected: !finding.selected } : finding,
-    );
-    runtime.flags.reviewPassed = false;
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Review findings changed. Submit the review again.";
-    runtime = runtime;
-    saveSession();
-  }
-
-  function submitPrReview(): void {
-    if (!runtime?.prReview) return;
-    const passed = prReviewIsCorrect();
-    runtime.flags.reviewPassed = passed;
-    runtime.awsResources[0].status = passed ? "success" : "failed";
-    runtime.awsResources[0].note = passed
-      ? "Review decision and required findings match the pull request risk."
-      : "Review does not match the pull request risk. Check the decision and selected findings.";
-    runtime = runtime;
-    addTerminalLines([passed ? "PR review accepted." : "PR review rejected by training checks."]);
-    celebrateIfScenarioCompleted();
-    saveSession();
-  }
-
-  function prReviewIsCorrect(): boolean {
-    if (!runtime) return false;
-    return runtimePrReviewIsCorrect(runtime);
-  }
-
-  function runNetworkTrace(): void {
-    if (!selectedTrace) return;
-
-    const steps = selectedTrace.path.split("|").map((step) => step.trim()).filter(Boolean);
-    const result = isSolved()
-      ? `PASS: ${selectedTrace.success ?? "Packet path completed without policy or routing drops."}`
-      : `FAIL: ${selectedTrace.failure}`;
-
-    traceResult = [
-      `Probe: ${selectedTrace.source} -> ${selectedTrace.destination} tcp/${selectedTrace.port}`,
-      ...steps.map((step) => `- ${step}`),
-      result,
-    ];
-  }
-
-  function selectFile(fileName: string): void {
-    activeFileName = fileName;
-    saveSession();
-  }
-
-  function runCommand(): void {
-    if (!runtime) return;
-    const input = terminalInput.trim();
-    if (!input) return;
-
-    commandHistory = [...commandHistory, input];
-    historyIndex = commandHistory.length;
-    terminalLines = [...terminalLines, `$ ${input}`, ...dispatchSimulatorCommand(input, runtime, terminalCommandHandlers)];
-    terminalInput = "";
-    evaluateWinCondition();
-    celebrateIfScenarioCompleted();
-    saveSession();
-    scrollTerminal();
+    tipsSession.reveal(scenarioTips);
   }
 
   function openSolutionModal(): void {
-    activeLabModal = "solution";
+    labProgress.openSolutionModal();
   }
 
   function closeLabModal(): void {
-    activeLabModal = null;
-  }
-
-  function updateScenarioFiles(patches: Record<string, string>, focusFileName?: string): void {
-    if (!runtime) return;
-    runtime.files = { ...runtime.files, ...patches };
-    if (focusFileName && runtime.files[focusFileName] !== undefined) {
-      activeFileName = focusFileName;
-    }
-    runtime = runtime;
+    labProgress.closeModal();
   }
 
   function applySolution(): void {
     if (!runtime) return;
-    const lessonSolution = runtime.solution;
-    if (!lessonSolution) {
-      addTerminalLines(["No auto-apply solution is configured for this lab."]);
-      saveSession();
-      return;
-    }
-
-    if (lessonSolution.apply === "networkingControls" && runtime.networking) {
-      runtime.networking.controls = runtime.networking.controls.map((control) => ({
-        ...control,
-        value: control.answer,
-      }));
-      runtime = runtime;
-      checkNetworkingScenario();
-      saveSession();
-      return;
-    }
-
-    if (lessonSolution.apply === "prReview" && runtime.prReview) {
-      runtime.prReview.decision = runtime.prReview.expectedDecision;
-      runtime.prReview.findings = runtime.prReview.findings.map((finding) => ({
-        ...finding,
-        selected: finding.required,
-      }));
-      runtime = runtime;
-      submitPrReview();
-      saveSession();
-      return;
-    }
-
-    const filePatches = { ...(lessonSolution.files ?? {}) };
-    for (const replacement of lessonSolution.replacements ?? []) {
-      const currentContent = filePatches[replacement.fileName] ?? runtime.files[replacement.fileName] ?? "";
-      if (!currentContent.includes(replacement.search)) {
-        if (currentContent.includes(replacement.replace)) continue;
-
-        addTerminalLines([`Solution patch could not be applied to ${replacement.fileName}.`]);
-        saveSession();
-        return;
-      }
-      filePatches[replacement.fileName] = currentContent.replace(replacement.search, replacement.replace);
-    }
-
-    if (Object.keys(filePatches).length) {
-      updateScenarioFiles(filePatches, lessonSolution.focusFileName);
-    }
-
-    const currentRuntime = runtime;
-    const commandOutput = (lessonSolution.commands ?? []).flatMap((command) => [
-      `$ ${command}`,
-      ...dispatchSimulatorCommand(command, currentRuntime, terminalCommandHandlers),
-    ]);
-    if (commandOutput.length) addTerminalLines(commandOutput);
-
-    celebrateIfScenarioCompleted();
-    saveSession();
+    applyLessonSolution({
+      runtime,
+      addTerminalLines,
+      updateFiles: editorSession.updateFiles,
+      dispatchCommand: commandSession.dispatchCommand,
+      applyNetworkingSolution: () => {
+        networkSession.applyControlAnswers();
+        networkSession.checkScenario();
+      },
+      applyPrReviewSolution: () => {
+        prReviewSession.applyExpectedReview();
+        prReviewSession.submit();
+      },
+      onCompleted: celebrateIfScenarioCompleted,
+      onSave: saveSession,
+    });
   }
 
   function evaluateWinCondition(): void {
@@ -642,34 +322,15 @@
 
   function celebrateIfScenarioCompleted(): void {
     const solved = isSolved();
-    if (solved && !completedScenarioIds.includes(currentScenarioId) && !manuallyUncheckedScenarioIds.includes(currentScenarioId)) {
-      completedScenarioIds = [...completedScenarioIds, currentScenarioId];
+    const transition = labProgress.recordSolvedTransition({
+      scenarioId: currentScenarioId,
+      solved,
+      isCompleted: completedScenarioIds.includes(currentScenarioId),
+      isManuallyUnchecked: manuallyUncheckedScenarioIds.includes(currentScenarioId),
+    });
+    if (transition.shouldMarkCompleted) {
+      labMenu.markCompleted(currentScenarioId);
     }
-    if (solved && !wasSolved) {
-      completionModalScenarioId = currentScenarioId;
-      activeLabModal = "completion";
-      launchConfetti();
-    }
-    wasSolved = solved;
-  }
-
-  function launchConfetti(): void {
-    if (confettiTimeout) window.clearTimeout(confettiTimeout);
-
-    confettiPieces = Array.from({ length: 90 }, (_, index) => ({
-      id: Date.now() + index,
-      left: Math.random() * 100,
-      delay: Math.random() * 0.45,
-      duration: 4.6 + Math.random() * 2.1,
-      size: 6 + Math.random() * 7,
-      color: confettiColors[index % confettiColors.length],
-      rotation: Math.random() * 360,
-      drift: -90 + Math.random() * 180,
-    }));
-
-    confettiTimeout = window.setTimeout(() => {
-      confettiPieces = [];
-    }, 7200);
   }
 
   function isSolved(): boolean {
@@ -677,130 +338,46 @@
     return isScenarioSolved(runtime, currentScenarioId, activeFileName);
   }
 
-  function solutionSummary(): string {
-    return currentSolution().summary ?? "";
-  }
-
-  function solutionSteps(): string[] {
-    return currentSolution().steps ?? [];
-  }
-
-  function solutionCommands(): string[] {
-    return currentSolution().commands ?? [];
-  }
-
-  function completionExplanation(): string {
-    return currentSolution().explanation ?? "";
-  }
-
-  function completionExplanationParagraphs(): string[] {
-    return completionExplanation()
-      .split(/\n{2,}/)
-      .map((paragraph) => paragraph.trim())
-      .filter(Boolean);
-  }
-
-  function completionOutcome(): string {
-    return currentSolution().outcome ?? "";
-  }
-
-  function currentSolution(): NonNullable<Scenario["solution"]> {
-    const solution = runtime?.solution;
-    if (!solution) throw new Error(`Scenario ${currentScenarioId} is missing solution metadata.`);
-    return solution;
-  }
-
-  function moveHistory(direction: number): void {
-    if (!commandHistory.length) return;
-    historyIndex = Math.min(commandHistory.length, Math.max(0, historyIndex + direction));
-    terminalInput = commandHistory[historyIndex] || "";
-  }
-
-  function focusTerminalInput(): void {
-    terminalInputElement?.focus();
-  }
-
-  function terminalCommandOptions(): string[] {
-    if (!runtime) return [];
-    return getTerminalCommandOptions(runtime);
-  }
-
-  function completeTerminalInput(): void {
-    const completion = getTerminalInputCompletion(terminalInput, terminalCommandOptions());
-    terminalInput = completion.value;
-    if (completion.completions.length) {
-      addTerminalLines(["Completions:", ...completion.completions.map((match) => `  ${match}`)]);
-      focusTerminalInput();
-    }
-  }
-
   function addTerminalLines(lines: string[]): void {
-    terminalLines = [...terminalLines, ...lines];
+    terminal.append(lines);
     saveSession();
-    scrollTerminal();
-  }
-
-  async function scrollTerminal(): Promise<void> {
-    await tick();
-    if (terminalOutput) terminalOutput.scrollTop = terminalOutput.scrollHeight;
-  }
-
-  function workflowEvent(): string {
-    return getWorkflowEvent(currentScenarioId);
-  }
-
-  function workflowJob(): string {
-    return getWorkflowJob(currentScenarioId);
-  }
-
-  function workflowFailedStep(): string {
-    if (!runtime) return "";
-    return getWorkflowFailedStep(runtime, currentScenarioId);
-  }
-
-  function workflowLogLines(): string[] {
-    if (!runtime) return [];
-    return getWorkflowLogLines(runtime, currentScenarioId);
   }
 </script>
 
 <svelte:window onpointerdown={handleGlobalPointerDown} onpointermove={resizeTerminal} onpointerup={stopTerminalResize} onkeydown={handleGlobalKeydown} />
 
-<ConfettiOverlay pieces={confettiPieces} />
+<ConfettiOverlay pieces={labProgress.confettiPieces} />
 
-{#if activeLabModal && runtime}
+{#if labProgress.activeModal && runtime}
   <LabModal
-    kind={activeLabModal}
-    title={activeLabModal === "solution" ? runtime.title : scenarios[completionModalScenarioId ?? currentScenarioId]?.title ?? runtime.title}
-    summary={solutionSummary()}
-    steps={solutionSteps()}
-    commands={solutionCommands()}
-    explanationParagraphs={completionExplanationParagraphs()}
-    outcome={completionOutcome()}
+    kind={labProgress.activeModal}
+    title={labProgress.activeModal === "solution" ? runtime.title : scenarios[labProgress.completionScenarioId ?? currentScenarioId]?.title ?? runtime.title}
+    summary={solutionDetails.summary}
+    steps={solutionDetails.steps}
+    commands={solutionDetails.commands}
+    explanationParagraphs={solutionDetails.explanationParagraphs}
+    outcome={solutionDetails.outcome}
     onclose={closeLabModal}
     onapplysolution={applySolution}
   />
 {/if}
 
 <AppMenu
-  open={isMenuOpen}
-  {theme}
+  open={appShell.isMenuOpen}
+  theme={appShell.theme}
   {currentPage}
   {incidentMode}
-  {menuSearchQuery}
+  menuSearchQuery={appShell.menuSearchQuery}
   {labGroups}
-  {openMenuGroups}
+  openMenuGroups={appShell.openMenuGroups}
   {currentScenarioId}
   {completedScenarioIds}
-  onclose={() => (isMenuOpen = false)}
-  onthemechange={(nextTheme) => (theme = nextTheme)}
+  onclose={appShell.closeMenu}
+  onthemechange={appShell.setTheme}
   onopenlabs={openLabs}
   onopendocs={openDocs}
-  onincidentmodechange={(enabled) => {
-    incidentMode = enabled;
-    openMenuGroups = [...openMenuGroups];
-  }}
-  onsearchchange={(query) => (menuSearchQuery = query)}
+  onincidentmodechange={appShell.setIncidentMode}
+  onsearchchange={appShell.setMenuSearchQuery}
   ontogglegroup={toggleMenuGroup}
   onselectscenario={selectScenario}
   ontogglecompletion={toggleScenarioCompletion}
@@ -810,16 +387,16 @@
   labmenutitle={labMenuTitle}
 />
 
-<main class:is-resizing-terminal={isResizingTerminal} class:docs-page={currentPage === "docs"} class:index-page={currentPage === "index"} class:network-page={currentPage === "labs" && runtime?.kind === "networking"} class="app-shell" style={`--terminal-height: ${terminalHeight}px`}>
+<main class:is-resizing-terminal={appShell.isResizingTerminal} class:docs-page={currentPage === "docs"} class:index-page={currentPage === "index"} class:network-page={currentPage === "labs" && runtime?.kind === "networking"} class="app-shell" style={`--terminal-height: ${appShell.terminalHeight}px`}>
   <AppTopbar
     currentPage={currentPage}
     heading={pageHeading}
-    menuOpen={isMenuOpen}
+    menuOpen={appShell.isMenuOpen}
     {solved}
     healthClass={runtime ? labHealthClass(solved, runtime) : "badge badge-warn"}
     healthLabel={runtime ? labHealthLabel(solved, runtime) : "Loading"}
     {incidentMode}
-    onopenmenu={() => (isMenuOpen = true)}
+    onopenmenu={appShell.openMenu}
     onopensolution={openSolutionModal}
     onreset={() => void loadScenarioRuntime(currentScenarioId)}
   />
@@ -847,16 +424,16 @@
       <div class="network-main-row">
         <NetworkDiagramPanel
           networking={runtime.networking}
-          selectedNodeId={selectedNetworkNodeId}
+          selectedNodeId={networkSession.selectedNodeId}
           {solved}
-          panning={isPanningNetwork}
-          panX={networkPanX}
-          panY={networkPanY}
-          onreset={resetNetworkPan}
-          onpointerdown={startNetworkPan}
-          onpointermove={moveNetworkPan}
-          onpointerup={stopNetworkPan}
-          onkeydown={handleNetworkCanvasKeydown}
+          panning={networkSession.isPanning}
+          panX={networkSession.panX}
+          panY={networkSession.panY}
+          onreset={networkSession.resetPan}
+          onpointerdown={(event) => networkSession.startPan(event)}
+          onpointermove={(event) => networkSession.movePan(event)}
+          onpointerup={(event) => networkSession.stopPan(event)}
+          onkeydown={(event) => networkSession.handleCanvasKeydown(event)}
         />
 
         <NetworkControlsPanel
@@ -865,21 +442,21 @@
           {scenarioTips}
           {revealedTipCount}
           {visibleTips}
-          requirementSections={networkingRequirementSections}
-          incidentSummary={networkingIncidentSummary()}
-          traces={networkTraces}
-          {selectedTrace}
-          {traceResult}
-          selectedNode={selectedNetworkNode}
-          selectedControls={selectedNetworkControls}
-          {networkCheckAttempted}
+          requirementSections={networkSession.requirementSections}
+          incidentSummary={networkSession.incidentSummary}
+          traces={networkSession.traces}
+          selectedTrace={networkSession.selectedTrace}
+          traceResult={networkSession.traceResult}
+          selectedNode={networkSession.selectedNode}
+          selectedControls={networkSession.selectedControls}
+          networkCheckAttempted={networkSession.checkAttempted}
           networkConfigured={runtime.flags.networkConfigured}
-          symptoms={runtime.networking.symptoms ?? defaultNetworkSymptoms}
+          symptoms={networkSession.symptoms}
           onrevealtip={revealTip}
-          oncheckdesign={checkNetworkingScenario}
-          onruntrace={runNetworkTrace}
-          onselecttrace={selectNetworkTrace}
-          onupdatecontrol={updateNetworkControl}
+          oncheckdesign={networkSession.checkScenario}
+          onruntrace={networkSession.runTrace}
+          onselecttrace={networkSession.selectTrace}
+          onupdatecontrol={networkSession.updateControl}
         />
       </div>
     </section>
@@ -891,7 +468,7 @@
         content={activeFileContent}
         prNumber={runtime.prReview.number}
         {solved}
-        onselectfile={selectFile}
+        onselectfile={editorSession.selectFile}
       />
 
       <PrReviewPanel
@@ -899,9 +476,9 @@
         {solved}
         tips={visibleTips}
         {incidentMode}
-        onsubmit={submitPrReview}
-        ondecision={setPrDecision}
-        ontogglefinding={togglePrFinding}
+        onsubmit={prReviewSession.submit}
+        ondecision={prReviewSession.setDecision}
+        ontogglefinding={prReviewSession.toggleFinding}
       />
     </section>
   {:else}
@@ -910,10 +487,10 @@
       {activeFileName}
       fileNames={scenarioFileNames}
       content={activeFileContent}
-      onsave={saveCurrentFile}
-      onselectfile={selectFile}
-      oncontentchange={updateMainTf}
-      oneditorkeydown={handleEditorKeydown}
+      onsave={editorSession.saveCurrentFile}
+      onselectfile={editorSession.selectFile}
+      oncontentchange={editorSession.updateContent}
+      oneditorkeydown={editorSession.handleKeydown}
     />
 
     <ScenarioResources
@@ -924,28 +501,28 @@
       {incidentMode}
       {leftResourceTitle}
       {rightResourceTitle}
-      workflowEvent={workflowEvent()}
-      workflowJob={workflowJob()}
-      workflowFailedStep={workflowFailedStep()}
-      workflowLogLines={workflowLogLines()}
+      workflowEvent={commandSession.workflowEvent()}
+      workflowJob={commandSession.workflowJob()}
+      workflowFailedStep={commandSession.workflowFailedStep()}
+      workflowLogLines={commandSession.workflowLogLines()}
       onrevealtip={revealTip}
     />
   </section>
 
   <TerminalPanel
-    lines={terminalLines}
-    input={terminalInput}
-    oninputchange={(value) => (terminalInput = value)}
-    onrun={runCommand}
+    lines={terminal.lines}
+    input={terminal.input}
+    oninputchange={(value) => (terminal.input = value)}
+    onrun={commandSession.runCommand}
     onclear={() => {
-      terminalLines = [];
+      terminal.clear();
       saveSession();
     }}
-    oncommandkeydown={handleTerminalKeydown}
+    oncommandkeydown={(event) => terminal.handleKeydown(event)}
     onresizepointerdown={startTerminalResize}
     onresizekeydown={resizeTerminalWithKeyboard}
-    outputref={(element) => (terminalOutput = element)}
-    inputref={(element) => (terminalInputElement = element)}
+    outputref={(element) => terminal.setOutputElement(element)}
+    inputref={(element) => terminal.setInputElement(element)}
   />
   {/if}
   {/if}
