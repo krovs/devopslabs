@@ -1,23 +1,61 @@
 <script lang="ts">
   import { tick } from "svelte";
-  import CertificateCheck from "carbon-icons-svelte/lib/CertificateCheck.svelte";
-  import ChartLineData from "carbon-icons-svelte/lib/ChartLineData.svelte";
   import Chemistry from "carbon-icons-svelte/lib/Chemistry.svelte";
-  import CloudAuditing from "carbon-icons-svelte/lib/CloudAuditing.svelte";
-  import Code from "carbon-icons-svelte/lib/Code.svelte";
-  import ContinuousDeployment from "carbon-icons-svelte/lib/ContinuousDeployment.svelte";
-  import Cost from "carbon-icons-svelte/lib/Cost.svelte";
   import Document from "carbon-icons-svelte/lib/Document.svelte";
-  import DocumentTasks from "carbon-icons-svelte/lib/DocumentTasks.svelte";
-  import Firewall from "carbon-icons-svelte/lib/Firewall.svelte";
-  import FlowLogsVpc from "carbon-icons-svelte/lib/FlowLogsVpc.svelte";
-  import FolderTree from "carbon-icons-svelte/lib/FolderTree.svelte";
-  import GitRepo from "carbon-icons-svelte/lib/GitRepo.svelte";
-  import GroupSecurity from "carbon-icons-svelte/lib/GroupSecurity.svelte";
-  import IbmSecurity from "carbon-icons-svelte/lib/IbmSecurity.svelte";
   import Launch from "carbon-icons-svelte/lib/Launch.svelte";
+  import Documentation from "./Documentation.svelte";
+  import LabGroupIcon from "./LabGroupIcon.svelte";
   import { dispatchCommand as dispatchSimulatorCommand, type CommandHandlers } from "./commands";
+  import {
+    buildLabGroups,
+    incidentDescription,
+    labGroupDetails,
+    labHealthClass,
+    labHealthLabel,
+    menuGroupIds,
+    scenarioDifficultyClass,
+    scenarioKindLabel,
+    scenarioMenuGroupId,
+    terminalCommandOptions as getTerminalCommandOptions,
+    type MenuGroupId,
+  } from "./labCatalog";
   import { scenarios } from "./scenarios";
+  import { argocdAppGet as runArgocdAppGet, fluxReconcileKustomization as runFluxReconcileKustomization, gitopsFixApplied as isGitopsFixApplied } from "./simulators/gitops";
+  import {
+    azureRoleAssignmentList as runAzureRoleAssignmentList,
+    iamAssumeRoleWithWebIdentity as runIamAssumeRoleWithWebIdentity,
+    iamFixApplied as isIamFixApplied,
+    iamKmsDecrypt as runIamKmsDecrypt,
+    iamS3Cp as runIamS3Cp,
+    iamSimulatePrincipalPolicy as runIamSimulatePrincipalPolicy,
+    markIamScenarioSolved as markIamScenarioSolvedInRuntime,
+    organizationsDescribePolicy as runOrganizationsDescribePolicy,
+    scpFixApplied as isScpFixApplied,
+    scpSimulatePrincipalPolicy as runScpSimulatePrincipalPolicy,
+    scpSuccessNote,
+  } from "./simulators/identity";
+  import {
+    cloudWatchDescribeAlarms as runCloudWatchDescribeAlarms,
+    costAndUsage as runCostAndUsage,
+    dnsAcmDescribeCertificate as runDnsAcmDescribeCertificate,
+    dnsDigApp as runDnsDigApp,
+    dnsFixApplied as isDnsFixApplied,
+    ec2DescribeVolumes as runEc2DescribeVolumes,
+    finopsFixApplied as isFinopsFixApplied,
+    logsDescribeLogGroups as runLogsDescribeLogGroups,
+    observabilityFixApplied as isObservabilityFixApplied,
+    secretsFixApplied as isSecretsFixApplied,
+    secretsManagerDescribeSecret as runSecretsManagerDescribeSecret,
+    secretsSsmGetParameter as runSecretsSsmGetParameter,
+  } from "./simulators/ops";
+  import { kubectlDryRun as runKubectlDryRun, kyvernoTest as runKyvernoTest, policyFixApplied as isPolicyFixApplied } from "./simulators/policy";
+  import {
+    terragruntHclfmt as runTerragruntHclfmt,
+    terragruntInit as runTerragruntInit,
+    terragruntPlan as runTerragruntPlan,
+    terragruntRunAllPlan as runTerragruntRunAllPlan,
+    terragruntValidate as runTerragruntValidate,
+  } from "./simulators/terragrunt";
   import type { NetworkNode, NetworkTrace, PrFinding, Scenario } from "./types";
 
   type ConfettiPiece = {
@@ -70,133 +108,12 @@
   };
 
   type ThemeName = "latte" | "mocha" | "dracula" | "cyberpunk";
-  type MenuGroupId = "terraform" | "awsconfig" | "cicd" | "gitops" | "terragrunt" | "iam" | "scp" | "policy" | "secrets" | "dns" | "observability" | "finops" | "pr" | "networking";
-  type DifficultyTier = "easy" | "normal" | "hard" | "legendary";
 
   const scenarioIds = Object.keys(scenarios);
-  const terraformScenarioIds = scenarioIds.filter((id) => (scenarios[id].kind ?? "terraform") === "terraform");
-  const awsConfigScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "awsconfig");
-  const terragruntScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "terragrunt");
-  const cicdScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "cicd");
-  const gitopsScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "gitops");
-  const iamScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "iam");
-  const scpScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "scp");
-  const policyScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "policy");
-  const secretsScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "secrets");
-  const dnsScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "dns");
-  const observabilityScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "observability");
-  const finopsScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "finops");
-  const prScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "pr");
-  const networkingScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "networking");
-  const labGroups: { id: MenuGroupId; title: string; ids: string[] }[] = [
-    { id: "terraform", title: "IaC", ids: terraformScenarioIds },
-    { id: "awsconfig", title: "IaC Security Baselines", ids: awsConfigScenarioIds },
-    { id: "cicd", title: "Delivery Pipelines", ids: cicdScenarioIds },
-    { id: "gitops", title: "GitOps", ids: gitopsScenarioIds },
-    { id: "terragrunt", title: "Stack Orchestration", ids: terragruntScenarioIds },
-    { id: "iam", title: "Identity & Access", ids: iamScenarioIds },
-    { id: "scp", title: "Organization Policy", ids: scpScenarioIds },
-    { id: "policy", title: "Policy as Code", ids: policyScenarioIds },
-    { id: "secrets", title: "Secrets Management", ids: secretsScenarioIds },
-    { id: "dns", title: "DNS & TLS", ids: dnsScenarioIds },
-    { id: "observability", title: "Observability", ids: observabilityScenarioIds },
-    { id: "finops", title: "FinOps", ids: finopsScenarioIds },
-    { id: "pr", title: "Change Review", ids: prScenarioIds },
-    { id: "networking", title: "Network Design", ids: networkingScenarioIds },
-  ];
-  const labGroupDetails: Record<MenuGroupId, { providers: string[]; description: string }> = {
-    terraform: { providers: ["Generic", "AWS"], description: "State, modules, drift, imports, and plans." },
-    awsconfig: { providers: ["AWS"], description: "Cloud guardrails, encryption, backup, and audit baselines." },
-    cicd: { providers: ["GitHub", "AWS"], description: "Pipeline failures, gates, secrets, and deploy flow." },
-    gitops: { providers: ["K8S"], description: "Reconciliation drift, sync policy, and source paths." },
-    terragrunt: { providers: ["Generic"], description: "Stack wiring, source paths, dependencies, and formatting." },
-    iam: { providers: ["AWS", "Azure"], description: "Least privilege policies, role assignments, trust, and KMS access." },
-    scp: { providers: ["AWS"], description: "Organization guardrails, explicit denies, and exceptions." },
-    policy: { providers: ["K8S"], description: "Admission, workload, and network policies tested as code." },
-    secrets: { providers: ["AWS"], description: "Secret paths, rotation, KMS keys, and resource policies." },
-    dns: { providers: ["AWS"], description: "Aliases, certificate validation, and edge regions." },
-    observability: { providers: ["AWS"], description: "Alarms, logs, dimensions, and retention." },
-    finops: { providers: ["AWS"], description: "Cost signals, waste reduction, lifecycle, and NAT spend." },
-    pr: { providers: ["Generic", "AWS"], description: "Review risky diffs and identify blocking findings." },
-    networking: { providers: ["AWS"], description: "Routes, subnet design, security controls, and packet paths." },
-  };
+  const labGroups = buildLabGroups(scenarios);
   const sessionStorageKey = "terraform-sim-session";
   const sessionVersion = 10;
   const confettiColors = ["#a6e3a1", "#89b4fa", "#f9e2af", "#f38ba8", "#cba6f7", "#94e2d5"];
-  const scenarioDifficultyTiers: Partial<Record<string, DifficultyTier>> = {
-    terraformValidateBadReference: "easy",
-    terraformModuleMissingVariable: "easy",
-    terraformModuleWrongSource: "normal",
-    terraformModuleMissingOutput: "normal",
-    terraformCheckovPublicS3: "normal",
-    terraformModuleSecurityGroup: "hard",
-    manualSecurityGroupDrift: "hard",
-    missingIamImport: "hard",
-    interruptedApplyLock: "hard",
-    terraformStateFolderMigration: "legendary",
-    awsConfigCloudWatchRetention: "easy",
-    awsConfigS3Baseline: "normal",
-    awsConfigBlankS3SecureBucket: "normal",
-    awsConfigRdsPublicBackup: "hard",
-    awsConfigCloudTrailBaseline: "hard",
-    terragruntHclfmt: "easy",
-    terragruntMissingInclude: "normal",
-    terragruntWrongSourceRef: "hard",
-    terragruntBadDependencyOutput: "hard",
-    githubActionsMissingSecret: "easy",
-    githubActionsWrongWorkingDirectory: "easy",
-    githubActionsNodeCachePath: "normal",
-    githubActionsDockerRegistryAuth: "normal",
-    githubActionsEnvironmentApproval: "normal",
-    githubActionsMatrixNodeVersion: "hard",
-    githubActionsCheckovGate: "hard",
-    githubActionsOverbroadPermissions: "hard",
-    githubActionsAwsOidcTrust: "legendary",
-    gitopsArgoCdTargetRevisionDrift: "easy",
-    gitopsArgoCdPruneSelfHeal: "normal",
-    gitopsFluxWrongKustomizationPath: "easy",
-    gitopsFluxSuspendedKustomization: "normal",
-    iamBlankSecretsReadonly: "easy",
-    iamBlankCloudWatchLogsWrite: "normal",
-    iamS3PrefixLeastPrivilege: "normal",
-    iamDynamoDbLeadingKeys: "hard",
-    iamGithubOidcEnvironmentTrust: "hard",
-    iamKmsEncryptionContext: "legendary",
-    iamAzureBlobReaderScope: "normal",
-    scpDenyLeavingOrg: "easy",
-    scpBlankDenyRootUser: "normal",
-    scpBlankRequireImdsv2: "hard",
-    scpRegionRestrictionBreakGlass: "legendary",
-    policyKyvernoRequireAppLabel: "easy",
-    policyKubernetesDefaultDenyIngress: "easy",
-    policyIstioDenyUnauthenticated: "normal",
-    policyCiliumAllowDnsEgress: "hard",
-    secretsSsmEnvironmentPath: "easy",
-    secretsManagerRotationKms: "normal",
-    secretsManagerResourcePolicy: "hard",
-    dnsRoute53AlbAlias: "easy",
-    dnsAcmCloudFrontCertificate: "normal",
-    dnsAcmWildcardValidation: "hard",
-    observabilityLogRetention: "easy",
-    observabilityAlb5xxAlarmDimension: "normal",
-    observabilityAlarmAction: "hard",
-    finopsS3Lifecycle: "easy",
-    finopsNatGatewayCostSpike: "normal",
-    finopsUnattachedEbsCleanup: "hard",
-    prSecurityGroupAdminCidrReview: "easy",
-    prGithubActionsWriteAllReview: "normal",
-    prTerraformPublicS3Review: "hard",
-    prIamWildcardPolicyReview: "hard",
-    networkingSshCidrHardening: "easy",
-    networkingSecurityGroupAlbApp: "normal",
-    networkingVpcPublicPrivateSubnets: "normal",
-    networkingVpcNatEgress: "hard",
-    networkingVpcDbIsolation: "hard",
-    networkingNaclEphemeralReturn: "hard",
-    networkingSiteToSiteVpn: "hard",
-    networkingWafAlbProtection: "hard",
-    networkingDirectConnectMultiVpc: "legendary",
-  };
   const savedSession = getSavedSession();
   let currentScenarioId = savedSession?.scenarioId ?? scenarioIds[0];
   let runtime = savedSession ? restoreRuntime(scenarios[currentScenarioId], savedSession.runtimePatch) : cloneScenario(scenarios[currentScenarioId]);
@@ -405,8 +322,8 @@
     if (!raw) return fallback;
 
     try {
-      const parsed = JSON.parse(raw) as MenuGroupId[];
-      const valid = parsed.filter((group) => ["terraform", "awsconfig", "cicd", "gitops", "terragrunt", "iam", "scp", "policy", "secrets", "dns", "observability", "finops", "pr", "networking"].includes(group));
+      const parsed = JSON.parse(raw) as string[];
+      const valid = parsed.filter((group): group is MenuGroupId => menuGroupIds.includes(group as MenuGroupId));
       return valid.length ? valid : fallback;
     } catch {
       return fallback;
@@ -414,9 +331,7 @@
   }
 
   function scenarioMenuGroup(id: string): MenuGroupId {
-    const kind = scenarios[id].kind ?? "terraform";
-    if (kind === "awsconfig" || kind === "cicd" || kind === "gitops" || kind === "terragrunt" || kind === "iam" || kind === "scp" || kind === "policy" || kind === "secrets" || kind === "dns" || kind === "observability" || kind === "finops" || kind === "pr" || kind === "networking") return kind;
-    return "terraform";
+    return scenarioMenuGroupId(scenarios[id].kind);
   }
 
   function toggleMenuGroup(group: MenuGroupId): void {
@@ -466,42 +381,8 @@
     saveSession();
   }
 
-  function scenarioDifficultyClass(id: string): string {
-    return `difficulty-${scenarioDifficultyTiers[id] ?? "easy"}`;
-  }
-
-  function scenarioKindLabel(scenario: Scenario): string {
-    if (scenario.kind === "cicd") return "Delivery Pipeline";
-    if (scenario.kind === "gitops") return "GitOps";
-    if (scenario.kind === "awsconfig") return "IaC Security Baselines";
-    if (scenario.kind === "terragrunt") return "Stack Orchestration";
-    if (scenario.kind === "networking") return "Network Design";
-    if (scenario.kind === "iam") return "Identity & Access";
-    if (scenario.kind === "scp") return "Organization Policy";
-    if (scenario.kind === "policy") return "Policy as Code";
-    if (scenario.kind === "secrets") return "Secrets Management";
-    if (scenario.kind === "dns") return "DNS & TLS";
-    if (scenario.kind === "observability") return "Observability";
-    if (scenario.kind === "finops") return "FinOps";
-    if (scenario.kind === "pr") return "Change Review";
-    return "IaC";
-  }
-
   function scenarioKindIds(scenario: Scenario): string[] {
-    if (scenario.kind === "cicd") return cicdScenarioIds;
-    if (scenario.kind === "gitops") return gitopsScenarioIds;
-    if (scenario.kind === "awsconfig") return awsConfigScenarioIds;
-    if (scenario.kind === "terragrunt") return terragruntScenarioIds;
-    if (scenario.kind === "networking") return networkingScenarioIds;
-    if (scenario.kind === "iam") return iamScenarioIds;
-    if (scenario.kind === "scp") return scpScenarioIds;
-    if (scenario.kind === "policy") return policyScenarioIds;
-    if (scenario.kind === "secrets") return secretsScenarioIds;
-    if (scenario.kind === "dns") return dnsScenarioIds;
-    if (scenario.kind === "observability") return observabilityScenarioIds;
-    if (scenario.kind === "finops") return finopsScenarioIds;
-    if (scenario.kind === "pr") return prScenarioIds;
-    return terraformScenarioIds;
+    return labGroups.find((group) => group.id === scenarioMenuGroupId(scenario.kind))?.ids ?? [];
   }
 
   function incidentDisplayTitle(id: string): string {
@@ -520,19 +401,7 @@
     if (currentPage === "docs") return "Commands, best practices, and troubleshooting notes for the labs.";
     if (currentPage === "index") return "Choose a lab. Completed scenarios are marked in the list.";
     if (!incidentMode || solvedState) return runtime.description;
-    if (runtime.kind === "cicd") return "A delivery pipeline is failing. Inspect the run output, repository settings, and workflow files to identify the smallest safe fix.";
-    if (runtime.kind === "awsconfig") return "A Terraform change contains AWS service misconfigurations. Scan the code, add the missing guardrails, and verify with Checkov.";
-    if (runtime.kind === "terragrunt") return "A stack operation is blocked. Reproduce the failure and inspect stack wiring, formatting, source paths, and dependency outputs.";
-    if (runtime.kind === "networking") return "A network path does not meet the operational requirement. Use the diagram, symptoms, and packet traces to isolate the broken component.";
-    if (runtime.kind === "iam") return "An access path is either failing or too broad. Simulate the principal, inspect policy conditions, and constrain the permission boundary.";
-    if (runtime.kind === "scp") return "An organization guardrail is blocking or allowing the wrong action. Inspect the SCP, Deny precedence, conditions, and exceptions.";
-    if (runtime.kind === "secrets") return "A service is using secret material unsafely or from the wrong environment. Inspect secret configuration, paths, KMS, and rotation.";
-    if (runtime.kind === "dns") return "A hostname or certificate is unhealthy. Inspect DNS records, alias targets, validation records, and certificate region.";
-    if (runtime.kind === "observability") return "Monitoring is missing or misleading. Inspect alarms, logs, dimensions, retention, and the smallest telemetry fix.";
-    if (runtime.kind === "finops") return "Cloud spend has drifted. Inspect the cost signal, identify the waste source, and apply the smallest cost control.";
-    if (runtime.kind === "policy") return "A platform policy is not enforcing the intended workload guardrail. Inspect the policy, run the policy test, and apply the smallest rule fix.";
-    if (runtime.kind === "pr") return "A pull request needs review. Inspect the diff, identify the risky lines, and submit the correct review decision.";
-    return "An infrastructure deployment is unhealthy. Reproduce the failure, inspect state and configuration, then apply the smallest safe repair.";
+    return incidentDescription(runtime);
   }
 
   function networkingIncidentSummary(): string[] {
@@ -808,199 +677,6 @@
     runtime = runtime;
   }
 
-  function secretsFixApplied(): boolean {
-    if (currentScenarioId === "secretsManagerRotationKms") {
-      const config = runtime.files["secret-config.json"] ?? "";
-      return (
-        config.includes('"kmsKeyId": "alias/prod-secrets-kms"') &&
-        config.includes('"rotationEnabled": true') &&
-        config.includes('"rotationDays": 30')
-      );
-    }
-
-    if (currentScenarioId === "secretsSsmEnvironmentPath") {
-      const config = runtime.files["app-config.yaml"] ?? "";
-      return (
-        config.includes("environment: staging") &&
-        config.includes("databasePasswordParameter: /staging/checkout/db/password") &&
-        config.includes("withDecryption: true") &&
-        !config.includes("databasePasswordParameter: /prod/checkout/db/password")
-      );
-    }
-
-    if (currentScenarioId === "secretsManagerResourcePolicy") {
-      const policy = runtime.files["resource-policy.json"] ?? "";
-      return (
-        policy.includes('"blockPublicPolicy": true') &&
-        policy.includes('"Principal": "arn:aws:iam::210987654321:role/security-audit"') &&
-        policy.includes('"Action": "secretsmanager:GetSecretValue"') &&
-        !policy.includes('"Principal": "*"') &&
-        !policy.includes('"Resource": "*"')
-      );
-    }
-
-    return false;
-  }
-
-  function dnsFixApplied(): boolean {
-    if (currentScenarioId === "dnsAcmCloudFrontCertificate") {
-      const config = runtime.files["certificate.json"] ?? "";
-      return (
-        config.includes('"region": "us-east-1"') &&
-        config.includes('"validationRecordName": "_9f3b.app.example.com"') &&
-        config.includes('"validationRecordValue": "_7a1d.acm-validations.aws"')
-      );
-    }
-
-    if (currentScenarioId === "dnsRoute53AlbAlias") {
-      const config = runtime.files["route53-record.json"] ?? "";
-      return (
-        config.includes('"type": "A"') &&
-        config.includes('"value": "app-prod-456.eu-west-1.elb.amazonaws.com"') &&
-        config.includes('"aliasHostedZoneId": "Z32O12XQLNTSW2"') &&
-        config.includes('"evaluateTargetHealth": true')
-      );
-    }
-
-    if (currentScenarioId === "dnsAcmWildcardValidation") {
-      const config = runtime.files["certificate.json"] ?? "";
-      return (
-        config.includes('"region": "us-east-1"') &&
-        config.includes('"validationRecordName": "_a1b2.example.com"') &&
-        config.includes('"validationRecordValue": "_c3d4.acm-validations.aws"') &&
-        config.includes('"hostedZone": "example.com"')
-      );
-    }
-
-    return false;
-  }
-
-  function observabilityFixApplied(): boolean {
-    if (currentScenarioId === "observabilityAlb5xxAlarmDimension") {
-      const config = runtime.files["alarm.json"] ?? "";
-      return (
-        config.includes('"namespace": "AWS/ApplicationELB"') &&
-        config.includes('"metricName": "HTTPCode_ELB_5XX_Count"') &&
-        config.includes('"name": "LoadBalancer"') &&
-        config.includes('"value": "app/prod-web/50dc6c495c0c9188"') &&
-        !config.includes('"namespace": "AWS/ELB"') &&
-        !config.includes('"name": "LoadBalancerName"')
-      );
-    }
-
-    if (currentScenarioId === "observabilityLogRetention") {
-      const config = runtime.files["log-group.json"] ?? "";
-      return (
-        config.includes('"logGroupName": "/aws/ecs/payments-api"') &&
-        config.includes('"retentionInDays": 30') &&
-        !config.includes('"retentionInDays": null')
-      );
-    }
-
-    if (currentScenarioId === "observabilityAlarmAction") {
-      const config = runtime.files["alarm.json"] ?? "";
-      return (
-        config.includes('"alarmActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"]') &&
-        config.includes('"okActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"]') &&
-        !config.includes('"alarmActions": []')
-      );
-    }
-
-    return false;
-  }
-
-  function finopsFixApplied(): boolean {
-    if (currentScenarioId === "finopsNatGatewayCostSpike") {
-      const config = runtime.files["nat-gateways.json"] ?? "";
-      return (
-        config.includes('"natGatewayCount": 2') &&
-        config.includes('"privateWorkloadAzs": ["eu-west-1a", "eu-west-1b"]') &&
-        config.includes('"removeIdleGateways": true')
-      );
-    }
-
-    if (currentScenarioId === "finopsS3Lifecycle") {
-      const config = runtime.files["lifecycle.json"] ?? "";
-      return (
-        config.includes('"transitionAfterDays": 30') &&
-        config.includes('"storageClass": "STANDARD_IA"') &&
-        config.includes('"expireTempExportsAfterDays": 14')
-      );
-    }
-
-    if (currentScenarioId === "finopsUnattachedEbsCleanup") {
-      const config = runtime.files["volume-cleanup.json"] ?? "";
-      return (
-        config.includes('"deleteUnattached": true') &&
-        config.includes('"snapshotBeforeDelete": true') &&
-        config.includes('"minimumUnattachedDays": 14')
-      );
-    }
-
-    return false;
-  }
-
-  function policyFixApplied(): boolean {
-    if (currentScenarioId === "policyKyvernoRequireAppLabel") {
-      const policy = runtime.files["policy.yaml"] ?? "";
-      return (
-        policy.includes("kind: ClusterPolicy") &&
-        policy.includes("validationFailureAction: Enforce") &&
-        policy.includes("message: Pods must define the app label.") &&
-        policy.includes("pattern:") &&
-        policy.includes("metadata:") &&
-        policy.includes("labels:") &&
-        policy.includes("app: \"?*\"")
-      );
-    }
-
-    if (currentScenarioId === "policyKubernetesDefaultDenyIngress") {
-      const policy = runtime.files["policy.yaml"] ?? "";
-      return (
-        policy.includes("kind: NetworkPolicy") &&
-        policy.includes("name: default-deny-ingress") &&
-        policy.includes("namespace: payments") &&
-        policy.includes("podSelector: {}") &&
-        policy.includes("policyTypes:") &&
-        policy.includes("- Ingress") &&
-        policy.includes("ingress: []")
-      );
-    }
-
-    if (currentScenarioId === "policyIstioDenyUnauthenticated") {
-      const policy = runtime.files["policy.yaml"] ?? "";
-      return (
-        policy.includes("kind: AuthorizationPolicy") &&
-        policy.includes("name: require-jwt-checkout") &&
-        policy.includes("namespace: checkout") &&
-        policy.includes("selector:") &&
-        policy.includes("matchLabels:") &&
-        policy.includes("app: checkout-api") &&
-        policy.includes("action: ALLOW") &&
-        policy.includes("requestPrincipals:") &&
-        policy.includes("- \"*\"")
-      );
-    }
-
-    if (currentScenarioId === "policyCiliumAllowDnsEgress") {
-      const policy = runtime.files["policy.yaml"] ?? "";
-      return (
-        policy.includes("kind: CiliumNetworkPolicy") &&
-        policy.includes("name: allow-dns-egress") &&
-        policy.includes("namespace: platform") &&
-        policy.includes("matchLabels:") &&
-        policy.includes("app: worker") &&
-        policy.includes("toEndpoints:") &&
-        policy.includes("k8s-app: kube-dns") &&
-        policy.includes("toPorts:") &&
-        policy.includes("port: \"53\"") &&
-        policy.includes("protocol: UDP")
-      );
-    }
-
-    return false;
-  }
-
   function runNetworkTrace(): void {
     if (!selectedTrace) return;
 
@@ -1264,206 +940,39 @@
   }
 
   function cloudWatchDescribeAlarms(): string[] {
-    if (currentScenarioId === "observabilityAlb5xxAlarmDimension") {
-      if (observabilityFixApplied()) {
-        markOperationalScenarioSolved("observabilityValidated", "ALB 5xx alarm uses the ApplicationELB namespace and LoadBalancer dimension.");
-        return [
-          "AlarmName: alb-5xx-prod",
-          "Namespace: AWS/ApplicationELB",
-          "MetricName: HTTPCode_ELB_5XX_Count",
-          "Dimensions: LoadBalancer=app/prod-web/50dc6c495c0c9188",
-          "StateValue: OK",
-        ];
-      }
-
-      runtime.awsResources[0].status = "failed";
-      runtime.awsResources[0].note = "Alarm still uses the wrong namespace or missing LoadBalancer dimension.";
-      runtime = runtime;
-      return [
-        "AlarmName: alb-5xx-prod",
-        "Namespace: AWS/ELB",
-        "MetricName: HTTPCode_ELB_5XX_Count",
-        "Dimensions: LoadBalancerName=prod-web",
-        "StateValue: INSUFFICIENT_DATA",
-      ];
-    }
-
-    if (currentScenarioId === "observabilityAlarmAction") {
-      if (observabilityFixApplied()) {
-        markOperationalScenarioSolved("observabilityValidated", "Critical alarm notifies the on-call SNS topic for alarm and recovery states.");
-        return [
-          "AlarmName: api-latency-critical",
-          "MetricName: TargetResponseTime",
-          "AlarmActions: arn:aws:sns:eu-west-1:123456789012:oncall-critical",
-          "OKActions: arn:aws:sns:eu-west-1:123456789012:oncall-critical",
-          "StateValue: OK",
-        ];
-      }
-
-      runtime.awsResources[0].status = "failed";
-      runtime.awsResources[0].note = "Critical alarm still has no notification actions.";
-      runtime = runtime;
-      return [
-        "AlarmName: api-latency-critical",
-        "MetricName: TargetResponseTime",
-        "AlarmActions: []",
-        "OKActions: []",
-        "StateValue: ALARM",
-        "Finding: no on-call topic is notified.",
-      ];
-    }
-
-    return ["No CloudWatch alarm data for this scenario."];
+    const output = runCloudWatchDescribeAlarms(runtime, currentScenarioId);
+    runtime = runtime;
+    return output;
   }
 
   function logsDescribeLogGroups(): string[] {
-    if (currentScenarioId === "observabilityLogRetention") {
-      if (observabilityFixApplied()) {
-        markOperationalScenarioSolved("observabilityValidated", "Application log group retention is set to 30 days.");
-        return [
-          "logGroupName: /aws/ecs/payments-api",
-          "retentionInDays: 30",
-          "storedBytes: 1829342",
-        ];
-      }
-
-      runtime.awsResources[0].status = "failed";
-      runtime.awsResources[0].note = "Application log group still has no retention policy.";
-      runtime = runtime;
-      return [
-        "logGroupName: /aws/ecs/payments-api",
-        "retentionInDays: Never expire",
-        "storedBytes: 9182736455",
-      ];
-    }
-
-    return ["No CloudWatch Logs data for this scenario."];
+    const output = runLogsDescribeLogGroups(runtime, currentScenarioId);
+    runtime = runtime;
+    return output;
   }
 
   function costAndUsage(): string[] {
-    if (currentScenarioId === "finopsNatGatewayCostSpike") {
-      if (finopsFixApplied()) {
-        markOperationalScenarioSolved("finopsValidated", "NAT gateway topology keeps high-availability egress while removing duplicate idle gateways.");
-        return [
-          "Service: Amazon Virtual Private Cloud",
-          "UsageType: NatGateway-Hours",
-          "MonthlyCost: 96.00 USD",
-          "Finding: expected two production NAT gateways remain.",
-        ];
-      }
-
-      runtime.awsResources[0].status = "failed";
-      runtime.awsResources[0].note = "Cost Explorer still shows extra idle NAT gateways.";
-      runtime = runtime;
-      return [
-        "Service: Amazon Virtual Private Cloud",
-        "UsageType: NatGateway-Hours",
-        "MonthlyCost: 384.00 USD",
-        "Finding: four NAT gateways are running, but only two AZs serve private workloads.",
-      ];
-    }
-
-    if (currentScenarioId === "finopsS3Lifecycle") {
-      if (finopsFixApplied()) {
-        markOperationalScenarioSolved("finopsValidated", "S3 lifecycle transitions old logs and expires temporary exports.");
-        return [
-          "Service: Amazon Simple Storage Service",
-          "UsageType: TimedStorage-ByteHrs",
-          "Trend: decreasing",
-          "Finding: lifecycle policy is active.",
-        ];
-      }
-
-      runtime.awsResources[0].status = "failed";
-      runtime.awsResources[0].note = "S3 storage cost is still growing without lifecycle controls.";
-      runtime = runtime;
-      return [
-        "Service: Amazon Simple Storage Service",
-        "UsageType: TimedStorage-ByteHrs",
-        "Trend: increasing 38% month over month",
-        "Finding: access logs and exports never transition or expire.",
-      ];
-    }
-
-    return ["No Cost Explorer data for this scenario."];
+    const output = runCostAndUsage(runtime, currentScenarioId);
+    runtime = runtime;
+    return output;
   }
 
   function kyvernoTest(): string[] {
-    if (currentScenarioId !== "policyKyvernoRequireAppLabel") {
-      return ["No Kyverno test suite is configured for this scenario."];
-    }
-
-    if (policyFixApplied()) {
-      markOperationalScenarioSolved("policyValidated", "Kyverno policy enforces the required app label on Pods.");
-      return [
-        "Executing kyverno test .",
-        "app-label-policy",
-        "  pass: pod-with-app-label accepted",
-        "  pass: pod-missing-app-label rejected",
-        "Test Summary: 2 passed, 0 failed",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Kyverno test still allows a Pod without the required app label.";
+    const output = runKyvernoTest(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "Executing kyverno test .",
-      "app-label-policy",
-      "  pass: pod-with-app-label accepted",
-      "  fail: pod-missing-app-label was accepted",
-      "Test Summary: 1 passed, 1 failed",
-    ];
+    return output;
   }
 
   function kubectlDryRun(): string[] {
-    if (!["policyKubernetesDefaultDenyIngress", "policyIstioDenyUnauthenticated", "policyCiliumAllowDnsEgress"].includes(currentScenarioId)) {
-      return ["No Kubernetes server dry-run is configured for this scenario."];
-    }
-
-    if (policyFixApplied()) {
-      markOperationalScenarioSolved("policyValidated", policySuccessNote());
-      return [
-        `${runtime.awsResources[0].id} configured (server dry run)`,
-        policySuccessNote(),
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = policyFailureNote();
+    const output = runKubectlDryRun(runtime, currentScenarioId);
     runtime = runtime;
-    return [`${runtime.awsResources[0].id} configured (server dry run)`, `warning: ${policyFailureNote()}`];
-  }
-
-  function policySuccessNote(): string {
-    if (currentScenarioId === "policyKubernetesDefaultDenyIngress") return "Namespace default deny ingress policy is valid and ready to apply.";
-    if (currentScenarioId === "policyIstioDenyUnauthenticated") return "Istio authorization policy allows only authenticated JWT callers to checkout-api.";
-    if (currentScenarioId === "policyCiliumAllowDnsEgress") return "Cilium policy allows worker egress to kube-dns on UDP/53 only.";
-    return "Policy-as-code validation passed.";
-  }
-
-  function policyFailureNote(): string {
-    if (currentScenarioId === "policyKubernetesDefaultDenyIngress") return "NetworkPolicy still selects only labeled pods or keeps an ingress allow rule.";
-    if (currentScenarioId === "policyIstioDenyUnauthenticated") return "Istio policy still allows unauthenticated callers or targets the wrong workload.";
-    if (currentScenarioId === "policyCiliumAllowDnsEgress") return "Cilium policy still misses kube-dns endpoint selection or UDP/53 port scoping.";
-    return "Policy-as-code guardrail is still misconfigured.";
+    return output;
   }
 
   function ec2DescribeVolumes(): string[] {
-    if (currentScenarioId === "finopsUnattachedEbsCleanup" && finopsFixApplied()) {
-      markOperationalScenarioSolved("finopsValidated", "Unattached EBS volume is snapshotted and removed after the retention window.");
-      return ["Volumes: []", "No unattached candidate volumes remain in this lab."];
-    }
-
-    if (currentScenarioId !== "finopsUnattachedEbsCleanup") return ["No EC2 volume inventory for this scenario."];
-
-    return [
-      "VolumeId: vol-0abc123",
-      "State: available",
-      "Size: 500",
-      "CreateTime: 2025-10-18T11:20:00Z",
-      "Finding: unattached EBS volume is still accruing storage cost.",
-    ];
+    const output = runEc2DescribeVolumes(runtime, currentScenarioId);
+    runtime = runtime;
+    return output;
   }
 
   function terraformPlan(): string[] {
@@ -1911,479 +1420,95 @@
   }
 
   function secretsManagerDescribeSecret(): string[] {
-    if (currentScenarioId !== "secretsManagerRotationKms" && currentScenarioId !== "secretsManagerResourcePolicy") {
-      return ["DescribeSecret is not the validation command for this lab."];
-    }
-
-    if (currentScenarioId === "secretsManagerResourcePolicy") {
-      if (secretsFixApplied()) {
-        markOperationalScenarioSolved("secretsValidated", "Secret resource policy blocks public access and trusts only the security audit role.");
-        return [
-          "Name: prod/payments/api-key",
-          "BlockPublicPolicy: true",
-          "Principal: arn:aws:iam::210987654321:role/security-audit",
-          "Action: secretsmanager:GetSecretValue",
-        ];
-      }
-
-      runtime.awsResources[0].status = "failed";
-      runtime.awsResources[0].note = "Secret resource policy still allows wildcard principal access or public policies.";
-      runtime = runtime;
-      return [
-        "Name: prod/payments/api-key",
-        "BlockPublicPolicy: false",
-        "Finding: resource policy allows public or cross-account wildcard access.",
-      ];
-    }
-
-    if (secretsFixApplied()) {
-      markOperationalScenarioSolved("secretsValidated", "Secret uses customer managed KMS and 30 day rotation.");
-      return [
-        "Name: prod/db/password",
-        "KmsKeyId: alias/prod-secrets-kms",
-        "RotationEnabled: true",
-        "RotationRules.AutomaticallyAfterDays: 30",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Secret rotation or KMS key is still outside policy.";
+    const output = runSecretsManagerDescribeSecret(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "Name: prod/db/password",
-      "KmsKeyId: alias/aws/secretsmanager",
-      "RotationEnabled: false",
-      "Finding: production database secret does not meet rotation and KMS requirements.",
-    ];
+    return output;
   }
 
   function secretsSsmGetParameter(): string[] {
-    if (currentScenarioId !== "secretsSsmEnvironmentPath") return ["GetParameter is not the validation command for this lab."];
-
-    if (secretsFixApplied()) {
-      markOperationalScenarioSolved("secretsValidated", "Staging service reads the staging SSM parameter with decryption.");
-      return [
-        "Name: /staging/checkout/db/password",
-        "Type: SecureString",
-        "WithDecryption: true",
-        "Access path matches environment staging.",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Service still points at the wrong environment parameter.";
+    const output = runSecretsSsmGetParameter(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "Name: /prod/checkout/db/password",
-      "Type: SecureString",
-      "Warning: staging workload is reading a production parameter path.",
-    ];
+    return output;
   }
 
   function dnsAcmDescribeCertificate(): string[] {
-    if (currentScenarioId !== "dnsAcmCloudFrontCertificate" && currentScenarioId !== "dnsAcmWildcardValidation") {
-      return ["DescribeCertificate is not the validation command for this lab."];
-    }
-
-    if (currentScenarioId === "dnsAcmWildcardValidation") {
-      if (dnsFixApplied()) {
-        markOperationalScenarioSolved("dnsValidated", "Wildcard certificate is in us-east-1 with the public hosted-zone validation CNAME.");
-        return [
-          "DomainName: *.example.com",
-          "Region: us-east-1",
-          "Status: ISSUED",
-          "Validation CNAME: _a1b2.example.com -> _c3d4.acm-validations.aws",
-        ];
-      }
-
-      runtime.awsResources[0].status = "failed";
-      runtime.awsResources[0].note = "Wildcard certificate region or validation CNAME is still wrong.";
-      runtime = runtime;
-      return [
-        "DomainName: *.example.com",
-        "Region: eu-west-1",
-        "Status: PENDING_VALIDATION",
-        "Finding: wildcard certificate must be validated from us-east-1 in the public example.com hosted zone.",
-      ];
-    }
-
-    if (dnsFixApplied()) {
-      markOperationalScenarioSolved("dnsValidated", "CloudFront certificate is in us-east-1 and DNS validation is complete.");
-      return [
-        "DomainName: app.example.com",
-        "Region: us-east-1",
-        "Status: ISSUED",
-        "Validation CNAME: _9f3b.app.example.com -> _7a1d.acm-validations.aws",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Certificate region or validation record is still wrong.";
+    const output = runDnsAcmDescribeCertificate(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "DomainName: app.example.com",
-      "Region: eu-west-1",
-      "Status: PENDING_VALIDATION",
-      "Finding: CloudFront viewer certificate must be issued in us-east-1 with the expected validation CNAME.",
-    ];
+    return output;
   }
 
   function dnsDigApp(): string[] {
-    if (currentScenarioId !== "dnsRoute53AlbAlias") return ["dig app.example.com is not the validation command for this lab."];
-
-    if (dnsFixApplied()) {
-      markOperationalScenarioSolved("dnsValidated", "Route 53 app record aliases to the current ALB target.");
-      return [
-        "app.example.com. 60 IN A ALIAS app-prod-456.eu-west-1.elb.amazonaws.com.",
-        "alias hosted zone: Z32O12XQLNTSW2",
-        "evaluate target health: true",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Record still resolves to the old load balancer or is not an alias A record.";
+    const output = runDnsDigApp(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "app.example.com. 300 IN CNAME old-alb-123.eu-west-1.elb.amazonaws.com.",
-      "Finding: app hostname is still pointed at the old load balancer.",
-    ];
+    return output;
   }
 
   function iamSimulatePrincipalPolicy(): string[] {
-    if (runtime.kind === "scp") return scpSimulatePrincipalPolicy();
-
-    if (currentScenarioId !== "iamS3PrefixLeastPrivilege" && currentScenarioId !== "iamDynamoDbLeadingKeys") {
-      return ["Simulation skipped: this lab does not use this IAM policy simulation."];
-    }
-
-    if (currentScenarioId === "iamDynamoDbLeadingKeys") {
-      if (iamFixApplied()) {
-        markIamScenarioSolved("DynamoDB policy allows tenant-a item access only when dynamodb:LeadingKeys is tenant-a.");
-        return [
-          "EvalActionName: dynamodb:GetItem",
-          "EvalResourceName: arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders",
-          "EvalDecision: allowed",
-          "Condition: dynamodb:LeadingKeys = tenant-a",
-          "",
-          "EvalActionName: dynamodb:GetItem",
-          "ContextKeyName: dynamodb:LeadingKeys",
-          "ContextKeyValue: tenant-b",
-          "EvalDecision: implicitDeny",
-        ];
-      }
-
-      runtime.awsResources[0].status = "failed";
-      runtime.awsResources[0].note = "DynamoDB policy still lacks tenant-a LeadingKeys isolation.";
-      runtime = runtime;
-      return [
-        "EvalActionName: dynamodb:GetItem",
-        "EvalResourceName: arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders",
-        "EvalDecision: allowed",
-        "Finding: tenant-b partition keys are still reachable because dynamodb:LeadingKeys is missing.",
-      ];
-    }
-
-    if (iamFixApplied()) {
-      markIamScenarioSolved("S3 policy allows only the team-a prefix with separate bucket and object permissions.");
-      return [
-        "EvalActionName: s3:ListBucket",
-        "EvalResourceName: arn:aws:s3:::company-artifacts",
-        "EvalDecision: allowed",
-        "Condition: s3:prefix = team-a/*",
-        "",
-        "EvalActionName: s3:GetObject",
-        "EvalResourceName: arn:aws:s3:::company-artifacts/team-a/release.zip",
-        "EvalDecision: allowed",
-        "",
-        "EvalActionName: s3:GetObject",
-        "EvalResourceName: arn:aws:s3:::company-artifacts/team-b/release.zip",
-        "EvalDecision: implicitDeny",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "S3 policy still grants broad access or misses the prefix-scoped ListBucket pattern.";
+    const output = runIamSimulatePrincipalPolicy(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "EvalActionName: s3:DeleteBucket",
-      "EvalResourceName: arn:aws:s3:::company-artifacts",
-      "EvalDecision: allowed",
-      "Finding: policy is broader than the team-a deployment requirement.",
-    ];
+    return output;
   }
 
   function organizationsDescribePolicy(): string[] {
-    if (runtime.kind !== "scp") return ["DescribePolicy is not the inspection command for this lab."];
-    const policyName = runtime.awsResources[0]?.name ?? "organization-scp";
-    const state = scpFixApplied() ? "valid" : "finding";
-    const note = scpFixApplied()
-      ? "SCP guardrail matches the organization requirement."
-      : runtime.awsResources[0]?.note ?? "SCP still does not match the organization requirement.";
-
-    return [
-      `PolicyName: ${policyName}`,
-      "Type: SERVICE_CONTROL_POLICY",
-      `ValidationState: ${state}`,
-      `Finding: ${note}`,
-    ];
+    return runOrganizationsDescribePolicy(runtime, currentScenarioId);
   }
 
   function scpSimulatePrincipalPolicy(): string[] {
-    if (scpFixApplied()) {
-      runtime.flags.scpValidated = true;
-      runtime.awsResources[0].status = "exists";
-      runtime.awsResources[0].note = scpSuccessNote();
-      runtime = runtime;
-      return scpSimulationSuccess();
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = scpFailureNote();
+    const output = runScpSimulatePrincipalPolicy(runtime, currentScenarioId);
     runtime = runtime;
-    return scpSimulationFailure();
+    return output;
   }
 
   function iamAssumeRoleWithWebIdentity(): string[] {
-    if (currentScenarioId !== "iamGithubOidcEnvironmentTrust") {
-      return ["AssumeRoleWithWebIdentity skipped: this lab does not use GitHub OIDC trust simulation."];
-    }
-
-    if (iamFixApplied()) {
-      markIamScenarioSolved("Trust policy only accepts the production GitHub environment subject.");
-      return [
-        "Token issuer: token.actions.githubusercontent.com",
-        "aud: sts.amazonaws.com",
-        "sub: repo:acme/platform:environment:production",
-        "AssumeRoleWithWebIdentity: allowed",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "OIDC trust still accepts a wildcard subject or misses the production environment subject.";
+    const output = runIamAssumeRoleWithWebIdentity(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "Token issuer: token.actions.githubusercontent.com",
-      "aud: sts.amazonaws.com",
-      "sub: repo:acme/platform:environment:production",
-      "AssumeRoleWithWebIdentity: denied by review policy",
-      "Finding: trust condition is not constrained to the production environment.",
-    ];
+    return output;
   }
 
   function iamS3Cp(): string[] {
-    if (currentScenarioId !== "iamS3PrefixLeastPrivilege") {
-      return ["aws s3 cp is not the validation command for this lab."];
-    }
-    return iamFixApplied()
-      ? ["upload: ./release.zip to s3://company-artifacts/team-a/release.zip", "Access to s3://company-artifacts/team-b/release.zip remains denied."]
-      : ["upload: ./release.zip to s3://company-artifacts/team-a/release.zip", "Warning: current policy also allows access outside team-a/."];
+    return runIamS3Cp(runtime, currentScenarioId);
   }
 
   function iamKmsDecrypt(): string[] {
-    if (currentScenarioId !== "iamKmsEncryptionContext") {
-      return ["aws kms decrypt is not the validation command for this lab."];
-    }
-
-    if (iamFixApplied()) {
-      markIamScenarioSolved("KMS decrypt is scoped to the payroll key and payroll encryption context.");
-      return [
-        "Decrypt with EncryptionContext App=payroll: allowed",
-        "Decrypt without EncryptionContext App=payroll: implicitDeny",
-        "kms:ScheduleKeyDeletion: implicitDeny",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "KMS policy still allows broad decrypt or misses the payroll encryption context.";
+    const output = runIamKmsDecrypt(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "Decrypt with EncryptionContext App=payroll: allowed",
-      "Decrypt without EncryptionContext App=payroll: allowed",
-      "Finding: decrypt is not constrained by encryption context.",
-    ];
+    return output;
   }
 
   function azureRoleAssignmentList(): string[] {
-    if (currentScenarioId !== "iamAzureBlobReaderScope") {
-      return ["az role assignment list is not the validation command for this lab."];
-    }
-
-    if (iamFixApplied()) {
-      markIamScenarioSolved("Azure RBAC grants Storage Blob Data Reader only at the reports container scope.");
-      return [
-        "principalName: reporting-api",
-        "roleDefinitionName: Storage Blob Data Reader",
-        "scope: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports",
-        "canRead: reports",
-        "canWrite: denied",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Azure role assignment is still too broad or grants write/admin access.";
+    const output = runAzureRoleAssignmentList(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "principalName: reporting-api",
-      "roleDefinitionName: Owner",
-      "scope: /subscriptions/00000000-0000-0000-0000-000000000000",
-      "Finding: subscription Owner is broader than read-only access to the reports container.",
-    ];
-  }
-
-  function markIamScenarioSolved(note: string): void {
-    runtime.flags.iamValidated = true;
-    runtime.awsResources[0].status = "exists";
-    runtime.awsResources[0].note = note;
-    runtime = runtime;
+    return output;
   }
 
   function terragruntInit(): string[] {
-    if (currentScenarioId === "terragruntWrongSourceRef") {
-      const stackFile = runtime.files["live/dev/app/terragrunt.hcl"] ?? "";
-      const hasCorrectSource = stackFile.includes('source = "../../../modules/app"');
-
-      if (!hasCorrectSource) {
-        runtime.awsResources[0].status = "failed";
-        runtime.awsResources[0].note = "Terragrunt tried to use ../../../module/app, which does not exist.";
-        runtime = runtime;
-        return [
-          "Initializing Terragrunt stack live/dev/app...",
-          "Downloading Terraform configurations from ../../../module/app",
-          "Error: Unreadable module directory",
-          "lstat ../../../module/app: no such file or directory",
-        ];
-      }
-    }
-
-    runtime.flags.initialized = true;
-    if (currentScenarioId === "terragruntWrongSourceRef") runtime.flags.validationPassed = true;
-    runtime.awsResources[0].status = runtime.flags.validationPassed ? "exists" : runtime.awsResources[0].status;
+    const output = runTerragruntInit(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "Initializing Terragrunt stack...",
-      `Remote state: s3://${runtime.backend.bucket}/${runtime.backend.key}`,
-      "Terraform has been successfully initialized by Terragrunt.",
-    ];
+    return output;
   }
 
   function terragruntValidate(): string[] {
-    if (currentScenarioId === "terragruntMissingInclude") {
-      const stackFile = runtime.files["live/dev/app/terragrunt.hcl"] ?? "";
-      const hasInclude = stackFile.includes('include "root"') && stackFile.includes("find_in_parent_folders()");
-
-      if (hasInclude) {
-        runtime.flags.validationPassed = true;
-        runtime.awsResources[0].status = "exists";
-        runtime.awsResources[0].note = "App stack inherits root remote_state and shared inputs.";
-        runtime = runtime;
-        return ["Success! Terragrunt configuration is valid."];
-      }
-
-      return [
-        "Error: Missing required variable",
-        "The root input environment was not inherited by live/dev/app.",
-        "Add include \"root\" { path = find_in_parent_folders() } to the child terragrunt.hcl.",
-      ];
-    }
-
-    if (currentScenarioId === "terragruntBadDependencyOutput") {
-      const networkFile = runtime.files["live/dev/network/terragrunt.hcl"] ?? "";
-      const hasVpcIdOutput = networkFile.includes("vpc_id") && !networkFile.includes("vpcID");
-
-      if (hasVpcIdOutput) {
-        runtime.flags.validationPassed = true;
-        runtime.awsResources[0].status = "exists";
-        runtime.awsResources[0].note = "Dependency mock_outputs now expose vpc_id.";
-        runtime = runtime;
-        return ["Success! Terragrunt dependencies are valid."];
-      }
-
-      return [
-        "Error: Unsupported attribute",
-        "dependency.network.outputs does not have an attribute named vpc_id.",
-        "The network mock_outputs block currently exposes vpcID.",
-      ];
-    }
-
-    if (currentScenarioId === "terragruntHclfmt") {
-      if (!runtime.flags.lintPassed) return ["Error: terragrunt.hcl files are not formatted. Run terragrunt hclfmt first."];
-      runtime.flags.validationPassed = true;
-      runtime.awsResources[0].status = "exists";
-      runtime.awsResources[0].note = "Terragrunt HCL is formatted and validates.";
-      runtime = runtime;
-      return ["Success! Terragrunt configuration is valid."];
-    }
-
-    runtime.flags.validationPassed = true;
+    const output = runTerragruntValidate(runtime, currentScenarioId);
     runtime = runtime;
-    return ["Success! Terragrunt configuration is valid."];
+    return output;
   }
 
   function terragruntPlan(): string[] {
-    if (!runtime.flags.initialized) return ["Error: Terragrunt stack is not initialized. Run terragrunt init first."];
-    if (!runtime.flags.validationPassed) return ["Error: Terragrunt validation failed. Run terragrunt validate and fix the configuration first."];
-    if (currentScenarioId === "terragruntHclfmt" && !runtime.flags.lintPassed) return ["Plan blocked: terragrunt hclfmt is still failing."];
-
-    runtime.flags.cleanPlan = true;
-    runtime.awsResources[0].status = "exists";
-    runtime.awsResources[0].note = terragruntSuccessNote();
+    const output = runTerragruntPlan(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "Terragrunt will run terraform plan in the selected stack.",
-      "",
-      "No changes. Infrastructure matches the configuration.",
-    ];
+    return output;
   }
 
   function terragruntRunAllPlan(): string[] {
-    if (!runtime.flags.initialized) runtime.flags.initialized = true;
-
-    if (currentScenarioId === "terragruntBadDependencyOutput" && !runtime.flags.validationPassed) {
-      return [
-        "Running plan in dependency order:",
-        "- live/dev/network",
-        "- live/dev/app",
-        "",
-        "Error: Unsupported attribute",
-        "dependency.network.outputs.vpc_id is not available.",
-      ];
-    }
-
-    return terragruntPlan();
+    const output = runTerragruntRunAllPlan(runtime, currentScenarioId);
+    runtime = runtime;
+    return output;
   }
 
   function terragruntHclfmt(): string[] {
-    if (currentScenarioId !== "terragruntHclfmt") return ["All Terragrunt files are already formatted."];
-
-    const stackFile = runtime.files["live/dev/app/terragrunt.hcl"] ?? "";
-    const formatted =
-      stackFile.includes('include "root" {\n') &&
-      stackFile.includes('terraform {\n') &&
-      stackFile.includes("inputs = {\n") &&
-      !stackFile.includes("{ path =") &&
-      !stackFile.includes('terraform { source =');
-
-    if (!formatted) {
-      return [
-        "live/dev/app/terragrunt.hcl",
-        "terragrunt hclfmt found formatting changes.",
-        "Rewrite the one-line blocks as normal multi-line HCL blocks.",
-      ];
-    }
-
-    runtime.flags.lintPassed = true;
-    runtime.awsResources[0].status = "exists";
-    runtime.awsResources[0].note = "terragrunt hclfmt passed.";
+    const output = runTerragruntHclfmt(runtime, currentScenarioId);
     runtime = runtime;
-    return ["All Terragrunt files are formatted correctly."];
-  }
-
-  function terragruntSuccessNote(): string {
-    if (currentScenarioId === "terragruntMissingInclude") return "Stack inherits root remote state and shared inputs.";
-    if (currentScenarioId === "terragruntBadDependencyOutput") return "App stack can read dependency.network.outputs.vpc_id.";
-    if (currentScenarioId === "terragruntWrongSourceRef") return "Stack source points at ../../../modules/app.";
-    if (currentScenarioId === "terragruntHclfmt") return "Formatting gate passed before planning.";
-    return "Terragrunt stack is healthy.";
+    return output;
   }
 
   function checkScenario(): string[] {
@@ -2412,52 +1537,53 @@
     }
 
     if (runtime.kind === "gitops") {
-      if (!gitopsFixApplied()) return ["Not complete: GitOps reconciliation still points at the wrong desired state or is not reconciling."];
+      if (!isGitopsFixApplied(runtime, currentScenarioId)) return ["Not complete: GitOps reconciliation still points at the wrong desired state or is not reconciling."];
       markOperationalScenarioSolved("gitopsValidated", "GitOps reconciliation now matches the intended desired state.");
       return ["Scenario complete."];
     }
 
     if (runtime.kind === "iam") {
-      if (!iamFixApplied()) return ["Not complete: IAM policy or trust conditions are still too broad or missing required constraints."];
-      markIamScenarioSolved("IAM validation passed for the requested access path.");
+      if (!isIamFixApplied(runtime, currentScenarioId)) return ["Not complete: IAM policy or trust conditions are still too broad or missing required constraints."];
+      markIamScenarioSolvedInRuntime(runtime, "IAM validation passed for the requested access path.");
+      runtime = runtime;
       return ["Scenario complete."];
     }
 
     if (runtime.kind === "scp") {
-      if (!scpFixApplied()) return ["Not complete: SCP still blocks or permits the wrong organization-level action."];
+      if (!isScpFixApplied(runtime, currentScenarioId)) return ["Not complete: SCP still blocks or permits the wrong organization-level action."];
       runtime.flags.scpValidated = true;
       runtime.awsResources[0].status = "exists";
-      runtime.awsResources[0].note = scpSuccessNote();
+      runtime.awsResources[0].note = scpSuccessNote(currentScenarioId);
       runtime = runtime;
       return ["Scenario complete."];
     }
 
     if (runtime.kind === "secrets") {
-      if (!secretsFixApplied()) return ["Not complete: secret configuration still misses the required path, KMS, rotation, or decryption setting."];
+      if (!isSecretsFixApplied(runtime, currentScenarioId)) return ["Not complete: secret configuration still misses the required path, KMS, rotation, or decryption setting."];
       markOperationalScenarioSolved("secretsValidated", "Secrets management validation passed.");
       return ["Scenario complete."];
     }
 
     if (runtime.kind === "dns") {
-      if (!dnsFixApplied()) return ["Not complete: DNS/TLS configuration still has an invalid record, alias target, certificate region, or validation value."];
+      if (!isDnsFixApplied(runtime, currentScenarioId)) return ["Not complete: DNS/TLS configuration still has an invalid record, alias target, certificate region, or validation value."];
       markOperationalScenarioSolved("dnsValidated", "DNS/TLS validation passed.");
       return ["Scenario complete."];
     }
 
     if (runtime.kind === "observability") {
-      if (!observabilityFixApplied()) return ["Not complete: observability configuration still has a missing retention policy or incorrect alarm signal."];
+      if (!isObservabilityFixApplied(runtime, currentScenarioId)) return ["Not complete: observability configuration still has a missing retention policy or incorrect alarm signal."];
       markOperationalScenarioSolved("observabilityValidated", "Observability validation passed.");
       return ["Scenario complete."];
     }
 
     if (runtime.kind === "finops") {
-      if (!finopsFixApplied()) return ["Not complete: cost optimization configuration still misses the required cost control."];
+      if (!isFinopsFixApplied(runtime, currentScenarioId)) return ["Not complete: cost optimization configuration still misses the required cost control."];
       markOperationalScenarioSolved("finopsValidated", "FinOps validation passed.");
       return ["Scenario complete."];
     }
 
     if (runtime.kind === "policy") {
-      if (!policyFixApplied()) return ["Not complete: policy-as-code guardrail still does not enforce the required workload behavior."];
+      if (!isPolicyFixApplied(runtime, currentScenarioId)) return ["Not complete: policy-as-code guardrail still does not enforce the required workload behavior."];
       markOperationalScenarioSolved("policyValidated", "Policy-as-code validation passed.");
       return ["Scenario complete."];
     }
@@ -2731,78 +1857,16 @@
     return ["Secret AWS_ROLE_ARN saved."];
   }
 
-  function gitopsFixApplied(): boolean {
-    if (currentScenarioId === "gitopsArgoCdTargetRevisionDrift") {
-      const app = runtime.files["application.yaml"] ?? "";
-      return app.includes("targetRevision: main") && !app.includes("targetRevision: develop");
-    }
-
-    if (currentScenarioId === "gitopsArgoCdPruneSelfHeal") {
-      const app = runtime.files["application.yaml"] ?? "";
-      return app.includes("automated:") && app.includes("prune: true") && app.includes("selfHeal: true");
-    }
-
-    if (currentScenarioId === "gitopsFluxWrongKustomizationPath") {
-      const kustomization = runtime.files["kustomization.yaml"] ?? "";
-      return kustomization.includes("path: ./clusters/prod/apps/checkout") && !kustomization.includes("path: ./clusters/staging/apps/checkout");
-    }
-
-    if (currentScenarioId === "gitopsFluxSuspendedKustomization") {
-      const kustomization = runtime.files["kustomization.yaml"] ?? "";
-      return kustomization.includes("suspend: false") && kustomization.includes("prune: true");
-    }
-
-    return false;
-  }
-
   function argocdAppGet(): string[] {
-    if (!["gitopsArgoCdTargetRevisionDrift", "gitopsArgoCdPruneSelfHeal"].includes(currentScenarioId)) {
-      return ["No Argo CD application is configured for this scenario."];
-    }
-
-    if (gitopsFixApplied()) {
-      markOperationalScenarioSolved("gitopsValidated", "Argo CD application reconciles the desired Git state.");
-      return [
-        "Name: checkout",
-        "Health Status: Healthy",
-        "Sync Status: Synced",
-        "Operation: Succeeded",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Argo CD application is still OutOfSync.";
+    const output = runArgocdAppGet(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "Name: checkout",
-      "Health Status: Degraded",
-      "Sync Status: OutOfSync",
-      "Finding: target revision or automated sync policy does not match the desired state.",
-    ];
+    return output;
   }
 
   function fluxReconcileKustomization(): string[] {
-    if (!["gitopsFluxWrongKustomizationPath", "gitopsFluxSuspendedKustomization"].includes(currentScenarioId)) {
-      return ["No Flux Kustomization is configured for this scenario."];
-    }
-
-    if (gitopsFixApplied()) {
-      markOperationalScenarioSolved("gitopsValidated", "Flux Kustomization reconciles the intended source path.");
-      return [
-        "reconciling Kustomization platform/checkout",
-        "applied revision main@sha1:6f3ab42",
-        "Ready=True",
-      ];
-    }
-
-    runtime.awsResources[0].status = "failed";
-    runtime.awsResources[0].note = "Flux Kustomization is still not ready.";
+    const output = runFluxReconcileKustomization(runtime, currentScenarioId);
     runtime = runtime;
-    return [
-      "reconciling Kustomization platform/checkout",
-      "Ready=False",
-      "Finding: source path is wrong or reconciliation is suspended.",
-    ];
+    return output;
   }
 
   function evaluateWinCondition(): void {
@@ -2919,253 +1983,6 @@
     return solution;
   }
 
-  function iamFixApplied(): boolean {
-    if (currentScenarioId === "iamS3PrefixLeastPrivilege") {
-      const policy = runtime.files["policy.json"] ?? "";
-      return (
-        policy.includes("s3:ListBucket") &&
-        policy.includes("s3:GetObject") &&
-        policy.includes("s3:PutObject") &&
-        policy.includes("arn:aws:s3:::company-artifacts") &&
-        policy.includes("arn:aws:s3:::company-artifacts/team-a/*") &&
-        policy.includes("s3:prefix") &&
-        policy.includes("team-a/*") &&
-        !policy.includes('"s3:*"') &&
-        !policy.includes('"Resource": "*"')
-      );
-    }
-
-    if (currentScenarioId === "iamGithubOidcEnvironmentTrust") {
-      const trustPolicy = runtime.files["trust-policy.json"] ?? "";
-      return (
-        trustPolicy.includes("token.actions.githubusercontent.com:aud") &&
-        trustPolicy.includes("sts.amazonaws.com") &&
-        trustPolicy.includes("repo:acme/platform:environment:production") &&
-        !trustPolicy.includes("repo:acme/platform:*") &&
-        !trustPolicy.includes("refs/heads/*")
-      );
-    }
-
-    if (currentScenarioId === "iamKmsEncryptionContext") {
-      const policy = runtime.files["kms-policy.json"] ?? "";
-      return (
-        policy.includes("kms:Decrypt") &&
-        policy.includes("arn:aws:kms:eu-west-1:123456789012:key/payroll-key") &&
-        policy.includes("kms:EncryptionContext:App") &&
-        policy.includes("payroll") &&
-        !policy.includes('"kms:*"') &&
-        !policy.includes('"Resource": "*"')
-      );
-    }
-
-    if (currentScenarioId === "iamDynamoDbLeadingKeys") {
-      const policy = runtime.files["policy.json"] ?? "";
-      return (
-        policy.includes("dynamodb:GetItem") &&
-        policy.includes("dynamodb:PutItem") &&
-        policy.includes("arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders") &&
-        policy.includes("dynamodb:LeadingKeys") &&
-        policy.includes("tenant-a") &&
-        !policy.includes('"dynamodb:*"') &&
-        !policy.includes('"Resource": "*"')
-      );
-    }
-
-    if (currentScenarioId === "iamAzureBlobReaderScope") {
-      const assignment = runtime.files["role-assignment.json"] ?? "";
-      return (
-        assignment.includes('"principalName": "reporting-api"') &&
-        assignment.includes('"roleDefinitionName": "Storage Blob Data Reader"') &&
-        assignment.includes('"scope": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports"') &&
-        !assignment.includes('"roleDefinitionName": "Owner"') &&
-        !assignment.includes('"roleDefinitionName": "Contributor"') &&
-        !assignment.includes('"scope": "/subscriptions/00000000-0000-0000-0000-000000000000"')
-      );
-    }
-
-    if (currentScenarioId === "iamBlankSecretsReadonly") {
-      const policy = runtime.files["policy.json"] ?? "";
-      return (
-        policy.includes("secretsmanager:GetSecretValue") &&
-        policy.includes("arn:aws:secretsmanager:eu-west-1:123456789012:secret:prod/db/password-abc123") &&
-        !policy.includes("secretsmanager:*") &&
-        !policy.includes("secretsmanager:DeleteSecret") &&
-        !policy.includes('"Resource": "*"')
-      );
-    }
-
-    if (currentScenarioId === "iamBlankCloudWatchLogsWrite") {
-      const policy = runtime.files["policy.json"] ?? "";
-      return (
-        policy.includes("logs:CreateLogStream") &&
-        policy.includes("logs:PutLogEvents") &&
-        policy.includes("arn:aws:logs:eu-west-1:123456789012:log-group:/aws/ecs/payments-api:*") &&
-        !policy.includes("logs:*") &&
-        !policy.includes("logs:DeleteLogGroup") &&
-        !policy.includes('"Resource": "*"')
-      );
-    }
-
-    return false;
-  }
-
-  function scpFixApplied(): boolean {
-    const policy = runtime.files["scp.json"] ?? "";
-
-    if (currentScenarioId === "scpDenyLeavingOrg") {
-      return (
-        policy.includes("organizations:LeaveOrganization") &&
-        policy.includes('"Effect": "Deny"') &&
-        policy.includes('"Action": "organizations:LeaveOrganization"') &&
-        !policy.includes('"Action": "*"') &&
-        !policy.includes('"Resource": "*"')
-      );
-    }
-
-    if (currentScenarioId === "scpRegionRestrictionBreakGlass") {
-      return (
-        policy.includes("aws:RequestedRegion") &&
-        policy.includes("eu-west-1") &&
-        policy.includes("eu-central-1") &&
-        policy.includes("ArnNotLike") &&
-        policy.includes("arn:aws:iam::*:role/BreakGlassAdmin") &&
-        !policy.includes("us-east-1")
-      );
-    }
-
-    if (currentScenarioId === "scpBlankDenyRootUser") {
-      return (
-        policy.includes('"Effect": "Deny"') &&
-        policy.includes("aws:PrincipalArn") &&
-        policy.includes("arn:aws:iam::*:root") &&
-        policy.includes("aws-portal:ViewBilling") &&
-        !policy.includes('"Action": "*"')
-      );
-    }
-
-    if (currentScenarioId === "scpBlankRequireImdsv2") {
-      return (
-        policy.includes('"Effect": "Deny"') &&
-        policy.includes("ec2:RunInstances") &&
-        policy.includes("ec2:MetadataHttpTokens") &&
-        policy.includes("optional") &&
-        !policy.includes('"Action": "ec2:*"') &&
-        !policy.includes('"Action": "*"')
-      );
-    }
-
-    return false;
-  }
-
-  function scpSuccessNote(): string {
-    if (currentScenarioId === "scpDenyLeavingOrg") return "SCP denies LeaveOrganization without blocking unrelated Organizations read actions.";
-    if (currentScenarioId === "scpRegionRestrictionBreakGlass") return "SCP denies unsupported regions while exempting the break-glass role.";
-    if (currentScenarioId === "scpBlankDenyRootUser") return "SCP denies root-user actions while preserving the billing view exception.";
-    if (currentScenarioId === "scpBlankRequireImdsv2") return "SCP denies EC2 launches when IMDSv2 is not required.";
-    return "SCP guardrail is valid.";
-  }
-
-  function scpFailureNote(): string {
-    if (currentScenarioId === "scpDenyLeavingOrg") return "SCP still fails to deny LeaveOrganization with a scoped action.";
-    if (currentScenarioId === "scpRegionRestrictionBreakGlass") return "SCP still misses allowed regions or the break-glass exception.";
-    if (currentScenarioId === "scpBlankDenyRootUser") return "SCP still does not deny root-user activity with the required billing exception.";
-    if (currentScenarioId === "scpBlankRequireImdsv2") return "SCP still does not require IMDSv2 for EC2 instance launches.";
-    return "SCP still does not match the requirement.";
-  }
-
-  function scpSimulationSuccess(): string[] {
-    if (currentScenarioId === "scpDenyLeavingOrg") {
-      return [
-        "EvalActionName: organizations:LeaveOrganization",
-        "EvalDecision: explicitDeny",
-        "MatchedStatement: DenyLeaveOrganization",
-        "",
-        "EvalActionName: organizations:DescribeOrganization",
-        "EvalDecision: allowed by account policy, not denied by SCP",
-      ];
-    }
-
-    if (currentScenarioId === "scpRegionRestrictionBreakGlass") {
-      return [
-        "EvalActionName: ec2:RunInstances",
-        "Context: aws:RequestedRegion=eu-west-1",
-        "EvalDecision: allowed by account policy, not denied by SCP",
-        "",
-        "EvalActionName: ec2:RunInstances",
-        "Context: aws:RequestedRegion=us-west-2",
-        "EvalDecision: explicitDeny",
-        "",
-        "PrincipalArn: arn:aws:iam::123456789012:role/BreakGlassAdmin",
-        "EvalDecision: allowed by SCP exception",
-      ];
-    }
-
-    if (currentScenarioId === "scpBlankDenyRootUser") {
-      return [
-        "EvalPrincipalArn: arn:aws:iam::123456789012:root",
-        "EvalActionName: ec2:TerminateInstances",
-        "EvalDecision: explicitDeny",
-        "MatchedStatement: DenyRootUser",
-        "",
-        "EvalActionName: aws-portal:ViewBilling",
-        "EvalDecision: allowed by SCP exception",
-      ];
-    }
-
-    if (currentScenarioId === "scpBlankRequireImdsv2") {
-      return [
-        "EvalActionName: ec2:RunInstances",
-        "Context: ec2:MetadataHttpTokens=optional",
-        "EvalDecision: explicitDeny",
-        "",
-        "EvalActionName: ec2:RunInstances",
-        "Context: ec2:MetadataHttpTokens=required",
-        "EvalDecision: allowed by account policy, not denied by SCP",
-      ];
-    }
-
-    return ["SCP simulation passed."];
-  }
-
-  function scpSimulationFailure(): string[] {
-    if (currentScenarioId === "scpDenyLeavingOrg") {
-      return [
-        "EvalActionName: organizations:LeaveOrganization",
-        "EvalDecision: allowed",
-        "Finding: member accounts can still leave the organization.",
-      ];
-    }
-
-    if (currentScenarioId === "scpRegionRestrictionBreakGlass") {
-      return [
-        "EvalActionName: ec2:RunInstances",
-        "Context: aws:RequestedRegion=us-west-2",
-        "EvalDecision: allowed",
-        "Finding: unsupported regions are not denied or break-glass exception is missing.",
-      ];
-    }
-
-    if (currentScenarioId === "scpBlankDenyRootUser") {
-      return [
-        "EvalPrincipalArn: arn:aws:iam::123456789012:root",
-        "EvalActionName: ec2:TerminateInstances",
-        "EvalDecision: allowed",
-        "Finding: root user actions are not explicitly denied or billing exception is missing.",
-      ];
-    }
-
-    if (currentScenarioId === "scpBlankRequireImdsv2") {
-      return [
-        "EvalActionName: ec2:RunInstances",
-        "Context: ec2:MetadataHttpTokens=optional",
-        "EvalDecision: allowed",
-        "Finding: EC2 launches without IMDSv2 required are still permitted.",
-      ];
-    }
-
-    return ["SCP simulation failed."];
-  }
-
   function lockError(): string[] {
     return [
       "Error: Error acquiring the state lock",
@@ -3196,33 +2013,7 @@
   }
 
   function terminalCommandOptions(): string[] {
-    if (runtime.kind === "awsconfig") return ["terraform init", "checkov -f main.tf", "terraform plan", "check", "help"];
-    if (runtime.kind === "secrets") return ["aws secretsmanager describe-secret", "aws ssm get-parameter", "check", "help"];
-    if (runtime.kind === "dns") return ["aws acm describe-certificate", "dig app.example.com", "check", "help"];
-    if (runtime.kind === "iam") return ["aws iam simulate-principal-policy", "aws sts assume-role-with-web-identity", "aws s3 cp", "aws kms decrypt", "az role assignment list", "check", "help"];
-    if (runtime.kind === "scp") return ["aws organizations describe-policy", "aws iam simulate-principal-policy", "check", "help"];
-    if (runtime.kind === "cicd") return ["gh run view", "gh run rerun", "gh secret list", "gh secret set AWS_ROLE_ARN", "check", "help"];
-    if (runtime.kind === "gitops") return ["argocd app get checkout", "flux reconcile kustomization platform --with-source", "check", "help"];
-    if (runtime.kind === "terragrunt") return ["terragrunt init", "terragrunt validate", "terragrunt plan", "terragrunt run-all plan", "terragrunt hclfmt", "check", "help"];
-    if (runtime.kind === "observability") return ["aws cloudwatch describe-alarms", "aws logs describe-log-groups", "check", "help"];
-    if (runtime.kind === "finops") return ["aws ce get-cost-and-usage", "aws ec2 describe-volumes", "check", "help"];
-    if (runtime.kind === "policy") return ["kyverno test .", "kubectl apply --dry-run=server -f policy.yaml", "check", "help"];
-    return [
-      "terraform init",
-      "terraform plan",
-      "terraform apply",
-      "terraform validate",
-      "terraform state list",
-      "terraform state mv aws_s3_bucket.logs module.logging.aws_s3_bucket.logs",
-      "terraform import aws_s3_bucket.logs prod-logs-training",
-      "terraform import aws_iam_role.app training-app-role",
-      runtime.backend.lockId ? `terraform force-unlock ${runtime.backend.lockId}` : "terraform force-unlock",
-      "checkov -f main.tf",
-      "aws dynamodb scan --table-name tf-locks",
-      "aws s3 ls",
-      "check",
-      "help",
-    ];
+    return getTerminalCommandOptions(runtime);
   }
 
   function completeTerminalInput(): void {
@@ -3273,29 +2064,6 @@
     if (status === "exists" || status === "success") return "badge badge-ok";
     if (status === "drifted") return "badge badge-warn";
     return "badge badge-danger";
-  }
-
-  function labHealthClass(solvedState: boolean, scenario: Scenario): string {
-    if (scenario.kind === "cicd" || scenario.kind === "gitops" || scenario.kind === "awsconfig" || scenario.kind === "iam" || scenario.kind === "scp" || scenario.kind === "policy" || scenario.kind === "secrets" || scenario.kind === "dns" || scenario.kind === "observability" || scenario.kind === "finops" || scenario.kind === "pr") {
-      return solvedState ? "badge badge-ok" : "badge badge-danger";
-    }
-    return scenario.backend.locked ? "badge badge-danger" : "badge badge-ok";
-  }
-
-  function labHealthLabel(solvedState: boolean, scenario: Scenario): string {
-    if (scenario.kind === "cicd") return solvedState ? "Workflow: passing" : "Workflow: failing";
-    if (scenario.kind === "gitops") return solvedState ? "GitOps: synced" : "GitOps: drift";
-    if (scenario.kind === "awsconfig") return solvedState ? "AWS config: passed" : "AWS config: failing";
-    if (scenario.kind === "iam") return solvedState ? "IAM: validated" : "IAM: needs review";
-    if (scenario.kind === "scp") return solvedState ? "SCP: validated" : "SCP: needs review";
-    if (scenario.kind === "policy") return solvedState ? "Policy: passing" : "Policy: failing";
-    if (scenario.kind === "secrets") return solvedState ? "Secrets: healthy" : "Secrets: failing";
-    if (scenario.kind === "dns") return solvedState ? "DNS/TLS: healthy" : "DNS/TLS: failing";
-    if (scenario.kind === "observability") return solvedState ? "Observability: healthy" : "Observability: failing";
-    if (scenario.kind === "finops") return solvedState ? "Cost: optimized" : "Cost: review";
-    if (scenario.kind === "pr") return solvedState ? "Review: accepted" : "Review: pending";
-    if (scenario.kind === "terragrunt") return solvedState ? "Terragrunt: healthy" : `Remote state: ${scenario.backend.key}`;
-    return scenario.backend.locked ? `Backend: locked (${scenario.backend.lockId})` : `Backend: unlocked (${scenario.backend.key})`;
   }
 
   function workflowEvent(): string {
@@ -3707,344 +2475,7 @@
   </header>
 
   {#if currentPage === "docs"}
-    <section class="wiki-layout" aria-label="Documentation">
-      <nav class="wiki-toc" aria-label="Documentation sections">
-        <a href="#wiki-workflow">Workflow</a>
-        <a href="#wiki-terraform">IaC</a>
-        <a href="#wiki-iac-security-baselines">IaC Security</a>
-        <a href="#wiki-terragrunt">Terragrunt</a>
-        <a href="#wiki-github">GitHub Actions</a>
-        <a href="#wiki-gitops">GitOps</a>
-        <a href="#wiki-iam">IAM</a>
-        <a href="#wiki-policy">Policy as Code</a>
-        <a href="#wiki-secrets">Secrets</a>
-        <a href="#wiki-dns">DNS/TLS</a>
-        <a href="#wiki-networking">Networking</a>
-        <a href="#wiki-pr">PR Review</a>
-        <a href="#wiki-security">Security</a>
-        <a href="#wiki-troubleshooting">Troubleshooting</a>
-      </nav>
-
-      <article class="wiki-article">
-        <section id="wiki-workflow">
-          <h2>Lab Workflow</h2>
-          <p>
-            Start every lab by reproducing the failure. The terminal output tells you which system is unhealthy:
-            Terraform state, AWS resources, Terragrunt stack wiring, or a GitHub Actions job.
-          </p>
-          <ol>
-            <li>Run the obvious inspection command, such as <code>terraform plan</code> or <code>gh run view</code>.</li>
-            <li>Open the file tab mentioned by the error.</li>
-            <li>Fix the smallest thing that explains the failure.</li>
-            <li>Run the validation or plan command again.</li>
-            <li>Use <code>check</code> only after the run is clean.</li>
-          </ol>
-          <p>
-            Incident Mode hides unsolved lab names and direct scenario descriptions. Use it when you want symptoms
-            first and clues only when needed.
-          </p>
-        </section>
-
-        <section id="wiki-terraform">
-          <h2>IaC</h2>
-          <p>
-            Terraform labs focus on the relationship between configuration, remote infrastructure, and state.
-            A clean fix usually makes the state address, the code address, and the real AWS object agree.
-          </p>
-          <div class="wiki-diagram" aria-label="Terraform troubleshooting relationship diagram">
-            <div class="diagram-node">Configuration<br><span>main.tf / modules</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">State<br><span>tracked addresses</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">AWS<br><span>real resources</span></div>
-          </div>
-          <pre>terraform init
-terraform validate
-terraform plan
-terraform apply
-terraform state list
-terraform import &lt;address&gt; &lt;id&gt;
-terraform state mv &lt;old-address&gt; &lt;new-address&gt;
-terraform force-unlock &lt;lock-id&gt;</pre>
-          <h3>State And Drift</h3>
-          <p>
-            Import is for a real object that exists but is not tracked in state. State move is for a tracked
-            object whose Terraform address changed after a folder, module, or resource rename migration.
-          </p>
-          <p>
-            Force unlock is a recovery action. Use it only when you know the apply that created the lock is no
-            longer running.
-          </p>
-        </section>
-
-        <section id="wiki-iac-security-baselines">
-          <h2>IaC Security Baselines</h2>
-          <p>
-            IaC Security Baselines labs are Terraform exercises focused on spotting missing cloud guardrails
-            before deployment. The goal is to identify bad or incomplete service configuration, fix the Terraform,
-            then pass the simulated Checkov gate.
-          </p>
-          <div class="wiki-diagram" aria-label="IaC security baseline review flow">
-            <div class="diagram-node">Terraform<br><span>AWS service config</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Policy Scan<br><span>checkov -f main.tf</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Guardrails<br><span>encryption, backup, audit</span></div>
-          </div>
-          <pre>terraform init
-checkov -f main.tf
-terraform plan
-check</pre>
-          <p>
-            Common fixes include S3 public access blocks, bucket encryption and versioning, RDS private access,
-            backup retention, deletion protection, CloudWatch log retention, and multi-region CloudTrail with log
-            file validation.
-          </p>
-        </section>
-
-        <section id="wiki-terragrunt">
-          <h2>Terragrunt</h2>
-          <p>
-            Terragrunt labs add stack composition on top of Terraform. Most failures come from a wrong module
-            source, a missing root include, unformatted HCL, or a dependency output name mismatch.
-          </p>
-          <div class="tree-diagram" aria-label="Terragrunt file structure diagram">
-            <div class="tree-row tree-root"><code>terragrunt.hcl</code><span>root config, remote_state, shared inputs</span></div>
-            <div class="tree-row tree-branch"><code>live/dev/network/terragrunt.hcl</code><span>network stack</span></div>
-            <div class="tree-row tree-branch"><code>live/dev/app/terragrunt.hcl</code><span>app stack, depends on network</span></div>
-            <div class="tree-row tree-leaf"><code>modules/network/main.tf</code><span>Terraform network module</span></div>
-            <div class="tree-row tree-leaf"><code>modules/app/main.tf</code><span>Terraform app module</span></div>
-          </div>
-          <pre>terragrunt init
-terragrunt validate
-terragrunt plan
-terragrunt run-all plan
-terragrunt hclfmt</pre>
-          <p>
-            Check <code>include</code> blocks before debugging Terraform variables. If a child stack does not
-            include the root config, it may miss shared inputs and remote state settings.
-          </p>
-          <p>
-            For dependency labs, compare what the consumer reads, for example
-            <code>dependency.network.outputs.vpc_id</code>, with what the producer exposes.
-          </p>
-        </section>
-
-        <section id="wiki-github">
-          <h2>GitHub Actions</h2>
-          <p>
-            CI/CD labs are solved by reading the failed job, fixing the workflow or repo settings, and rerunning
-            the pipeline. Avoid guessing from the workflow file alone; the failing step usually gives the shortest path.
-          </p>
-          <div class="wiki-diagram" aria-label="GitHub Actions troubleshooting flow">
-            <div class="diagram-node">Run Fails<br><span>gh run view</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Fix Cause<br><span>secret, path, OIDC, permissions</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Rerun<br><span>gh run rerun</span></div>
-          </div>
-          <pre>gh run view
-gh run rerun
-gh secret list
-gh secret set AWS_ROLE_ARN</pre>
-          <p>
-            For AWS deployments, prefer OIDC over long-lived access keys. The workflow needs
-            <code>id-token: write</code>, the role ARN must be available, and the IAM trust policy subject must
-            match the branch or environment that is running.
-          </p>
-        </section>
-
-        <section id="wiki-gitops">
-          <h2>GitOps</h2>
-          <p>
-            GitOps labs focus on reconciliation controllers such as Argo CD and Flux. The failure is usually that
-            the controller is watching the wrong Git target, applying the wrong path, or not reconciling drift.
-          </p>
-          <div class="wiki-diagram" aria-label="GitOps reconciliation flow">
-            <div class="diagram-node">Git<br><span>branch and path</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Controller<br><span>Argo CD or Flux</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Cluster<br><span>live resources</span></div>
-          </div>
-          <pre>argocd app get checkout
-flux reconcile kustomization platform --with-source</pre>
-          <p>
-            Check target revisions, source paths, prune settings, self-heal behavior, and suspended reconciliation
-            before editing workload manifests.
-          </p>
-        </section>
-
-        <section id="wiki-iam">
-          <h2>IAM</h2>
-          <p>
-            IAM labs focus on whether a principal can perform a specific action on a specific resource, and
-            whether the policy also blocks nearby access that should remain denied.
-          </p>
-          <div class="wiki-diagram" aria-label="IAM evaluation flow">
-            <div class="diagram-node">Principal<br><span>role or OIDC subject</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Policy<br><span>action, resource, condition</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Decision<br><span>allow or deny</span></div>
-          </div>
-          <pre>aws iam simulate-principal-policy
-aws sts assume-role-with-web-identity
-aws s3 cp
-aws kms decrypt
-az role assignment list</pre>
-          <p>
-            For least privilege, check all three dimensions: action, resource, and condition or scope. A policy that
-            allows the happy path can still be wrong if it also allows another prefix, another branch, decrypt without
-            the required encryption context, or a subscription-wide Azure role assignment where a container scope is enough.
-          </p>
-        </section>
-
-        <section id="wiki-policy">
-          <h2>Policy as Code</h2>
-          <p>
-            Policy as Code labs model platform and workload guardrails. These are separate from organization policy:
-            they run close to Kubernetes admission, service mesh authorization, or runtime network enforcement.
-          </p>
-          <div class="wiki-diagram" aria-label="Policy as code validation flow">
-            <div class="diagram-node">Policy<br><span>Kyverno, Istio, Cilium</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Validation<br><span>test or dry-run</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Guardrail<br><span>admission or traffic control</span></div>
-          </div>
-          <pre>kyverno test .
-kubectl apply --dry-run=server -f policy.yaml</pre>
-          <p>
-            Use these labs for Kubernetes NetworkPolicy, Kyverno admission policy, Istio AuthorizationPolicy, and
-            CiliumNetworkPolicy patterns. Organization-wide cloud guardrails still belong in Organization Policy.
-          </p>
-        </section>
-
-        <section id="wiki-secrets">
-          <h2>Secrets Management</h2>
-          <p>
-            Secrets labs focus on safe lookup paths, customer managed KMS keys, rotation, and environment separation.
-            The common failure is not only that a secret cannot be read; it may be readable from the wrong environment
-            or protected by a weak default.
-          </p>
-          <div class="wiki-diagram" aria-label="Secrets lookup flow">
-            <div class="diagram-node">Service<br><span>environment</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Secret Path<br><span>SSM or Secrets Manager</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Protection<br><span>KMS and rotation</span></div>
-          </div>
-          <pre>aws secretsmanager describe-secret
-aws ssm get-parameter</pre>
-          <p>
-            Check whether the app is using the correct environment prefix before changing permissions. For Secrets
-            Manager, verify rotation and KMS key choice together; enabling one without the other can still leave the
-            operational control incomplete.
-          </p>
-        </section>
-
-        <section id="wiki-dns">
-          <h2>DNS/TLS</h2>
-          <p>
-            DNS/TLS labs model Route 53, ACM, ALB aliases, and CloudFront certificate problems. The fix is usually a
-            precise record or region change, not a broad infrastructure rewrite.
-          </p>
-          <div class="wiki-diagram" aria-label="DNS TLS resolution and certificate flow">
-            <div class="diagram-node">Hostname<br><span>Route 53 record</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Endpoint<br><span>ALB or CloudFront</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Certificate<br><span>ACM validation</span></div>
-          </div>
-          <pre>aws acm describe-certificate
-dig app.example.com</pre>
-          <p>
-            CloudFront viewer certificates must be issued in <code>us-east-1</code>. ALB aliases need the current
-            load balancer DNS name and hosted zone ID, and should normally use an alias <code>A</code> record rather
-            than a stale CNAME to an old load balancer.
-          </p>
-        </section>
-
-        <section id="wiki-networking">
-          <h2>Networking</h2>
-          <p>
-            Networking labs use a diagram instead of a terminal. Select components to inspect editable settings,
-            run packet traces to see where traffic fails, and use the design check only when the path matches the
-            requirement.
-          </p>
-          <div class="wiki-diagram" aria-label="Networking troubleshooting flow">
-            <div class="diagram-node">Symptoms<br><span>failed path</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Diagram<br><span>routes and controls</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Trace<br><span>component failure</span></div>
-          </div>
-          <p>
-            Treat VPCs and subnets as containment boundaries. Routes decide where packets go, security groups and
-            NACLs decide whether traffic is allowed, and WAF/ALB controls decide how public requests enter the app.
-          </p>
-        </section>
-
-        <section id="wiki-pr">
-          <h2>PR Review</h2>
-          <p>
-            PR review labs are solved by reading the diff, choosing the right review decision, and selecting the
-            findings that should be left on the review. The goal is to catch risky changes before they merge.
-          </p>
-          <div class="wiki-diagram" aria-label="PR review flow">
-            <div class="diagram-node">Diff<br><span>changed lines</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Risk<br><span>required findings</span></div>
-            <div class="diagram-arrow">-></div>
-            <div class="diagram-node">Decision<br><span>approve or changes</span></div>
-          </div>
-          <p>
-            Request changes when the diff introduces public access, broad IAM, overbroad GitHub token permissions,
-            or skips a required guardrail. Do not select harmless context lines as findings.
-          </p>
-        </section>
-
-        <section id="wiki-security">
-          <h2>Security Checks</h2>
-          <p>
-            Security exercises model checks that should fail before deployment. Treat them as release gates, not
-            warnings to ignore.
-          </p>
-          <pre>checkov -f main.tf</pre>
-          <ul>
-            <li>Block public S3 access unless the lab explicitly requires public access.</li>
-            <li>Avoid module defaults that expose <code>0.0.0.0/0</code>.</li>
-            <li>Use scoped GitHub Actions permissions instead of <code>write-all</code>.</li>
-            <li>Keep AWS OIDC trust policies narrow to the intended repository, branch, or environment.</li>
-            <li>Scope secret access to the correct environment path and customer managed KMS key where required.</li>
-            <li>Validate DNS and certificate changes before routing production traffic to a new endpoint.</li>
-            <li>Review AWS managed service defaults; many secure settings are opt-in in Terraform.</li>
-          </ul>
-        </section>
-
-        <section id="wiki-troubleshooting">
-          <h2>Troubleshooting Patterns</h2>
-          <p>
-            When a plan wants to create something that already exists, check whether the object should be imported.
-            When a plan wants to destroy and recreate the same object after a refactor, check whether the state
-            address should be moved.
-          </p>
-          <p>
-            When a GitHub Actions job fails, fix the first failing step. Later failures often disappear after the
-            first broken permission, secret, path, or version is corrected.
-          </p>
-          <p>
-            When DNS or certificate validation fails, compare the exact record name, record value, region, and alias
-            target. Small string mismatches are more common than missing infrastructure.
-          </p>
-          <p>
-            When reviewing a PR, separate required findings from harmless context. A good review blocks the risky
-            change and explains the smallest safer alternative.
-          </p>
-        </section>
-      </article>
-    </section>
+    <Documentation />
   {:else if currentPage === "index"}
     <section class="lab-index" aria-label="Lab index">
       <p class="lab-index-intro">
@@ -4053,35 +2484,7 @@ dig app.example.com</pre>
       {#each labGroups as group}
         <button type="button" class="lab-index-card" on:click={() => openLabGroup(group.id)}>
           <span class="lab-index-icon" aria-hidden="true">
-            {#if group.id === "terraform"}
-              <Code size={32} />
-            {:else if group.id === "awsconfig"}
-              <CloudAuditing size={32} />
-            {:else if group.id === "cicd"}
-              <ContinuousDeployment size={32} />
-            {:else if group.id === "gitops"}
-              <GitRepo size={32} />
-            {:else if group.id === "terragrunt"}
-              <FolderTree size={32} />
-            {:else if group.id === "iam"}
-              <GroupSecurity size={32} />
-            {:else if group.id === "scp"}
-              <IbmSecurity size={32} />
-            {:else if group.id === "policy"}
-              <DocumentTasks size={32} />
-            {:else if group.id === "secrets"}
-              <CertificateCheck size={32} />
-            {:else if group.id === "dns"}
-              <FlowLogsVpc size={32} />
-            {:else if group.id === "observability"}
-              <ChartLineData size={32} />
-            {:else if group.id === "finops"}
-              <Cost size={32} />
-            {:else if group.id === "pr"}
-              <DocumentTasks size={32} />
-            {:else}
-              <Firewall size={32} />
-            {/if}
+            <LabGroupIcon id={group.id} />
           </span>
           <span class="lab-index-content">
             <strong>{group.title}</strong>
