@@ -1,101 +1,37 @@
+import { scenarioManifest, scenarioSummaries, type ScenarioSummary } from "./scenarioManifest";
 import { parseSimpleYaml } from "./simpleYaml";
 import { validateScenario } from "./scenarioValidation";
 import type { Scenario } from "./types";
 
-const scenarioSourceModules = import.meta.glob("../scenarios/*.yaml", {
-  eager: true,
+const scenarioSourceModules = import.meta.glob("../scenarios/**/*.yaml", {
   query: "?raw",
   import: "default",
-}) as Record<string, string>;
+}) as Record<string, () => Promise<string>>;
 
-const scenarioOrder = [
-  "terraformValidateBadReference",
-  "terraformModuleMissingVariable",
-  "terraformModuleWrongSource",
-  "terraformModuleMissingOutput",
-  "terraformCheckovPublicS3",
-  "terraformModuleSecurityGroup",
-  "manualSecurityGroupDrift",
-  "missingIamImport",
-  "interruptedApplyLock",
-  "terraformStateFolderMigration",
-  "awsConfigCloudWatchRetention",
-  "awsConfigS3Baseline",
-  "awsConfigBlankS3SecureBucket",
-  "awsConfigRdsPublicBackup",
-  "awsConfigCloudTrailBaseline",
-  "terragruntHclfmt",
-  "terragruntMissingInclude",
-  "terragruntWrongSourceRef",
-  "terragruntBadDependencyOutput",
-  "githubActionsMissingSecret",
-  "githubActionsWrongWorkingDirectory",
-  "githubActionsNodeCachePath",
-  "githubActionsDockerRegistryAuth",
-  "githubActionsEnvironmentApproval",
-  "githubActionsMatrixNodeVersion",
-  "githubActionsCheckovGate",
-  "githubActionsOverbroadPermissions",
-  "githubActionsAwsOidcTrust",
-  "gitopsArgoCdTargetRevisionDrift",
-  "gitopsArgoCdPruneSelfHeal",
-  "gitopsFluxWrongKustomizationPath",
-  "gitopsFluxSuspendedKustomization",
-  "iamBlankSecretsReadonly",
-  "iamBlankCloudWatchLogsWrite",
-  "iamS3PrefixLeastPrivilege",
-  "iamDynamoDbLeadingKeys",
-  "iamAzureBlobReaderScope",
-  "iamGithubOidcEnvironmentTrust",
-  "iamKmsEncryptionContext",
-  "scpDenyLeavingOrg",
-  "scpBlankDenyRootUser",
-  "scpBlankRequireImdsv2",
-  "scpRegionRestrictionBreakGlass",
-  "policyKyvernoRequireAppLabel",
-  "policyKubernetesDefaultDenyIngress",
-  "policyIstioDenyUnauthenticated",
-  "policyCiliumAllowDnsEgress",
-  "secretsSsmEnvironmentPath",
-  "secretsManagerRotationKms",
-  "secretsManagerResourcePolicy",
-  "dnsRoute53AlbAlias",
-  "dnsAcmCloudFrontCertificate",
-  "dnsAcmWildcardValidation",
-  "observabilityLogRetention",
-  "observabilityAlb5xxAlarmDimension",
-  "observabilityAlarmAction",
-  "finopsS3Lifecycle",
-  "finopsNatGatewayCostSpike",
-  "finopsUnattachedEbsCleanup",
-  "prSecurityGroupAdminCidrReview",
-  "prGithubActionsWriteAllReview",
-  "prTerraformPublicS3Review",
-  "prIamWildcardPolicyReview",
-  "networkingSshCidrHardening",
-  "networkingSecurityGroupAlbApp",
-  "networkingVpcPublicPrivateSubnets",
-  "networkingVpcNatEgress",
-  "networkingVpcDbIsolation",
-  "networkingNaclEphemeralReturn",
-  "networkingSiteToSiteVpn",
-  "networkingWafAlbProtection",
-  "networkingDirectConnectMultiVpc",
-];
+const scenarioCache = new Map<string, Scenario>();
 
-const scenarioEntries = Object.values(scenarioSourceModules)
-  .map((source): [string, Scenario] => {
-    const scenario = parseSimpleYaml(source) as Scenario;
-    validateScenario(scenario);
-    return [scenario.id, scenario];
-  })
-  .sort(([leftId], [rightId]) => scenarioSortIndex(leftId) - scenarioSortIndex(rightId));
+export const scenarios: Record<string, ScenarioSummary> = scenarioSummaries;
 
-export const scenarios: Record<string, Scenario> = Object.fromEntries(scenarioEntries);
+export async function loadScenario(id: string): Promise<Scenario> {
+  const cached = scenarioCache.get(id);
+  if (cached) return cached;
 
-function scenarioSortIndex(id: string): number {
-  const order = scenarioOrder.indexOf(id);
-  return order === -1 ? Number.MAX_SAFE_INTEGER : order;
+  const summary = scenarioSummaries[id];
+  if (!summary) throw new Error(`Unknown scenario: ${id}`);
+
+  const loadSource = scenarioSourceModules[summary.path];
+  if (!loadSource) throw new Error(`Scenario source not found: ${summary.path}`);
+
+  const scenario = parseSimpleYaml(await loadSource()) as Scenario;
+  validateScenario(scenario);
+  if (scenario.id !== id) throw new Error(`Scenario id mismatch: requested ${id}, loaded ${scenario.id}`);
+  scenarioCache.set(id, scenario);
+  return scenario;
+}
+
+export async function loadAllScenarios(): Promise<Record<string, Scenario>> {
+  const entries = await Promise.all(scenarioManifest.map(async ({ id }) => [id, await loadScenario(id)] as const));
+  return Object.fromEntries(entries);
 }
 
 export { validateScenario };

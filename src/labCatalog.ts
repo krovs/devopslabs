@@ -1,6 +1,7 @@
 import type { Scenario } from "./types";
 
 export type MenuGroupId = NonNullable<Scenario["kind"]>;
+export type ScenarioCatalogItem = Pick<Scenario, "id" | "kind" | "title" | "description">;
 export type DifficultyTier = "easy" | "normal" | "hard" | "legendary";
 
 export type LabGroupDefinition = {
@@ -182,7 +183,7 @@ export function scenarioMenuGroupId(kind?: Scenario["kind"]): MenuGroupId {
   return kind && menuGroupIds.includes(kind) ? kind : "terraform";
 }
 
-export function buildLabGroups(scenarios: Record<string, Scenario>): LabGroup[] {
+export function buildLabGroups(scenarios: Record<string, ScenarioCatalogItem>): LabGroup[] {
   const scenarioIds = Object.keys(scenarios);
   return labGroupDefinitions.map((group) => ({
     ...group,
@@ -190,11 +191,11 @@ export function buildLabGroups(scenarios: Record<string, Scenario>): LabGroup[] 
   }));
 }
 
-export function scenarioKindLabel(scenario: Scenario): string {
+export function scenarioKindLabel(scenario: ScenarioCatalogItem): string {
   return scenarioKindLabels[scenarioMenuGroupId(scenario.kind)];
 }
 
-export function incidentDescription(scenario: Scenario): string {
+export function incidentDescription(scenario: ScenarioCatalogItem): string {
   return incidentDescriptions[scenarioMenuGroupId(scenario.kind)];
 }
 

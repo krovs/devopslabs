@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scenarios, validateScenario } from "./scenarios";
+import { loadAllScenarios, scenarios, validateScenario } from "./scenarios";
 import type { Scenario } from "./types";
 
 describe("scenarios", () => {
@@ -12,8 +12,8 @@ describe("scenarios", () => {
     expect(ids).toContain("prTerraformPublicS3Review");
   });
 
-  it("has unique IDs and matching map keys", () => {
-    const entries = Object.entries(scenarios);
+  it("has unique IDs and matching map keys", async () => {
+    const entries = Object.entries(await loadAllScenarios());
     const ids = entries.map(([, scenario]) => scenario.id);
 
     expect(new Set(ids).size).toBe(ids.length);
@@ -22,8 +22,8 @@ describe("scenarios", () => {
     }
   });
 
-  it("validates every bundled scenario", () => {
-    for (const scenario of Object.values(scenarios)) {
+  it("validates every bundled scenario", async () => {
+    for (const scenario of Object.values(await loadAllScenarios())) {
       expect(() => validateScenario(scenario)).not.toThrow();
     }
   });
@@ -74,14 +74,14 @@ describe("scenarios", () => {
     expect(() => validateScenario({ ...baseScenario, id: "invalidPr", kind: "pr" })).toThrow("invalidPr is missing prReview");
   });
 
-  it("has auto-apply solution coverage for every scenario", () => {
-    for (const scenario of Object.values(scenarios)) {
+  it("has auto-apply solution coverage for every scenario", async () => {
+    for (const scenario of Object.values(await loadAllScenarios())) {
       expect(scenario.solution, `${scenario.id} is missing an auto-apply solution`).toBeDefined();
     }
   });
 
-  it("has auto-apply solution replacements that match scenario files", () => {
-    for (const scenario of Object.values(scenarios)) {
+  it("has auto-apply solution replacements that match scenario files", async () => {
+    for (const scenario of Object.values(await loadAllScenarios())) {
       if (!scenario.solution) continue;
 
       for (const replacement of scenario.solution.replacements ?? []) {

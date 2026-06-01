@@ -1,5 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseSimpleYaml } from "../src/simpleYaml.ts";
 import { validateScenario } from "../src/scenarioValidation.ts";
@@ -7,13 +7,13 @@ import { validateScenario } from "../src/scenarioValidation.ts";
 const rootDir = fileURLToPath(new URL("..", import.meta.url));
 const scenariosDir = join(rootDir, "scenarios");
 
-const files = (await readdir(scenariosDir)).filter((file) => file.endsWith(".yaml")).sort();
+const files = (await scenarioFiles(scenariosDir)).sort();
 const ids = new Set();
 const failures = [];
 
 for (const file of files) {
   try {
-    const source = await readFile(join(scenariosDir, file), "utf8");
+    const source = await readFile(file, "utf8");
     const scenario = parseSimpleYaml(source);
     validateScenario(scenario);
 
@@ -23,7 +23,7 @@ for (const file of files) {
     ids.add(scenario.id);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    failures.push(`${file}: ${message}`);
+    failures.push(`${relative(scenariosDir, file)}: ${message}`);
   }
 }
 
@@ -34,3 +34,13 @@ if (failures.length) {
 }
 
 console.log(`Scenario validation passed: ${files.length} scenarios, ${ids.size} unique IDs`);
+
+async function scenarioFiles(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = await Promise.all(entries.map(async (entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) return scenarioFiles(path);
+    return entry.isFile() && entry.name.endsWith(".yaml") ? [path] : [];
+  }));
+  return files.flat();
+}

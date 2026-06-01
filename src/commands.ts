@@ -11,6 +11,7 @@ export type CommandHandlers = {
   iamKmsDecrypt: () => string[];
   azureRoleAssignmentList: () => string[];
   organizationsDescribePolicy: () => string[];
+  scpSimulatePrincipalPolicy: () => string[];
   githubRunView: () => string[];
   githubRunRerun: () => string[];
   githubSecretList: () => string[];
@@ -74,7 +75,7 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
 
   if (runtime.kind === "scp") {
     if (input === "aws organizations describe-policy") return handlers.organizationsDescribePolicy();
-    if (input === "aws iam simulate-principal-policy") return handlers.iamSimulatePrincipalPolicy();
+    if (input === "aws iam simulate-principal-policy") return handlers.scpSimulatePrincipalPolicy();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
