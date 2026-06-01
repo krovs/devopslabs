@@ -1,0 +1,73 @@
+id: gitopsFluxSuspendedKustomization
+kind: gitops
+title: Flux Suspended Kustomization
+description: Flux is not applying a production fix because the Kustomization is suspended and pruning is disabled.
+primaryFile: kustomization.yaml
+tips:
+  - Check whether reconciliation is suspended.
+  - Production fixes should not remain paused after maintenance.
+  - Set suspend to false and keep prune enabled.
+  - Reconcile the Kustomization with its source.
+files:
+  "kustomization.yaml": |
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    metadata:
+      name: checkout
+      namespace: platform
+    spec:
+      interval: 5m
+      sourceRef:
+        kind: GitRepository
+        name: platform-gitops
+      path: ./clusters/prod/apps/checkout
+      suspend: true
+      prune: false
+      wait: true
+      timeout: 2m
+  "maintenance.md": |
+    A maintenance pause was set during an incident.
+    The fix is merged in Git, but Flux has not applied it.
+solution:
+  summary: |
+    Flux is not applying a production fix because the Kustomization is suspended and pruning is disabled.
+  steps:
+    - Check whether reconciliation is suspended.
+    - Production fixes should not remain paused after maintenance.
+    - Set suspend to false and keep prune enabled.
+    - Reconcile the Kustomization with its source.
+  explanation: |
+    Flux Suspended Kustomization is complete because reconciliation is resumed and pruning is enabled.
+    
+    Key takeaway: Paused GitOps reconciliation is useful during maintenance, but leaving it suspended blocks production fixes. In a real platform team, this prevents merged remediations from getting stuck in Git.
+  outcome: |
+    Flux Suspended Kustomization: Flux can resume applying production changes and remove resources that no longer exist in Git.
+  focusFileName: kustomization.yaml
+  replacements:
+    - fileName: kustomization.yaml
+      search: "suspend: true"
+      replace: "suspend: false"
+    - fileName: kustomization.yaml
+      search: "prune: false"
+      replace: "prune: true"
+  commands:
+    - flux reconcile kustomization platform --with-source
+backend:
+  bucket: gitops-training
+  key: flux-suspended-kustomization
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: flux_kustomization
+    name: checkout
+    id: platform/checkout
+    status: failed
+    note: Kustomization is suspended and prune is disabled.
+stateResources:
+  - address: git.revision.main
+    id: fix merged
+  - address: flux.kustomization.checkout
+    id: suspended
+flags:
+  gitopsValidated: false

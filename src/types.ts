@@ -40,6 +40,7 @@ export type ScenarioFlags = {
   observabilityValidated?: boolean;
   finopsValidated?: boolean;
   policyValidated?: boolean;
+  gitopsValidated?: boolean;
 };
 
 export type NetworkNode = {
@@ -122,7 +123,7 @@ export type ScenarioSolutionReplacement = {
 
 export type Scenario = {
   id: string;
-  kind?: "terraform" | "terragrunt" | "cicd" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops" | "policy";
+  kind?: "terraform" | "terragrunt" | "cicd" | "gitops" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops" | "policy";
   title: string;
   description: string;
   primaryFile?: string;

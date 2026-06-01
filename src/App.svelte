@@ -2,14 +2,17 @@
   import { tick } from "svelte";
   import CertificateCheck from "carbon-icons-svelte/lib/CertificateCheck.svelte";
   import ChartLineData from "carbon-icons-svelte/lib/ChartLineData.svelte";
+  import Chemistry from "carbon-icons-svelte/lib/Chemistry.svelte";
   import CloudAuditing from "carbon-icons-svelte/lib/CloudAuditing.svelte";
   import Code from "carbon-icons-svelte/lib/Code.svelte";
   import ContinuousDeployment from "carbon-icons-svelte/lib/ContinuousDeployment.svelte";
   import Cost from "carbon-icons-svelte/lib/Cost.svelte";
+  import Document from "carbon-icons-svelte/lib/Document.svelte";
   import DocumentTasks from "carbon-icons-svelte/lib/DocumentTasks.svelte";
   import Firewall from "carbon-icons-svelte/lib/Firewall.svelte";
   import FlowLogsVpc from "carbon-icons-svelte/lib/FlowLogsVpc.svelte";
   import FolderTree from "carbon-icons-svelte/lib/FolderTree.svelte";
+  import GitRepo from "carbon-icons-svelte/lib/GitRepo.svelte";
   import GroupSecurity from "carbon-icons-svelte/lib/GroupSecurity.svelte";
   import IbmSecurity from "carbon-icons-svelte/lib/IbmSecurity.svelte";
   import Launch from "carbon-icons-svelte/lib/Launch.svelte";
@@ -67,7 +70,7 @@
   };
 
   type ThemeName = "latte" | "mocha" | "dracula" | "cyberpunk";
-  type MenuGroupId = "terraform" | "awsconfig" | "cicd" | "terragrunt" | "iam" | "scp" | "policy" | "secrets" | "dns" | "observability" | "finops" | "pr" | "networking";
+  type MenuGroupId = "terraform" | "awsconfig" | "cicd" | "gitops" | "terragrunt" | "iam" | "scp" | "policy" | "secrets" | "dns" | "observability" | "finops" | "pr" | "networking";
   type DifficultyTier = "easy" | "normal" | "hard" | "legendary";
 
   const scenarioIds = Object.keys(scenarios);
@@ -75,6 +78,7 @@
   const awsConfigScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "awsconfig");
   const terragruntScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "terragrunt");
   const cicdScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "cicd");
+  const gitopsScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "gitops");
   const iamScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "iam");
   const scpScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "scp");
   const policyScenarioIds = scenarioIds.filter((id) => scenarios[id].kind === "policy");
@@ -88,6 +92,7 @@
     { id: "terraform", title: "IaC", ids: terraformScenarioIds },
     { id: "awsconfig", title: "IaC Security Baselines", ids: awsConfigScenarioIds },
     { id: "cicd", title: "Delivery Pipelines", ids: cicdScenarioIds },
+    { id: "gitops", title: "GitOps", ids: gitopsScenarioIds },
     { id: "terragrunt", title: "Stack Orchestration", ids: terragruntScenarioIds },
     { id: "iam", title: "Identity & Access", ids: iamScenarioIds },
     { id: "scp", title: "Organization Policy", ids: scpScenarioIds },
@@ -103,6 +108,7 @@
     terraform: { providers: ["Generic", "AWS"], description: "State, modules, drift, imports, and plans." },
     awsconfig: { providers: ["AWS"], description: "Cloud guardrails, encryption, backup, and audit baselines." },
     cicd: { providers: ["GitHub", "AWS"], description: "Pipeline failures, gates, secrets, and deploy flow." },
+    gitops: { providers: ["K8S"], description: "Reconciliation drift, sync policy, and source paths." },
     terragrunt: { providers: ["Generic"], description: "Stack wiring, source paths, dependencies, and formatting." },
     iam: { providers: ["AWS", "Azure"], description: "Least privilege policies, role assignments, trust, and KMS access." },
     scp: { providers: ["AWS"], description: "Organization guardrails, explicit denies, and exceptions." },
@@ -146,6 +152,10 @@
     githubActionsCheckovGate: "hard",
     githubActionsOverbroadPermissions: "hard",
     githubActionsAwsOidcTrust: "legendary",
+    gitopsArgoCdTargetRevisionDrift: "easy",
+    gitopsArgoCdPruneSelfHeal: "normal",
+    gitopsFluxWrongKustomizationPath: "easy",
+    gitopsFluxSuspendedKustomization: "normal",
     iamBlankSecretsReadonly: "easy",
     iamBlankCloudWatchLogsWrite: "normal",
     iamS3PrefixLeastPrivilege: "normal",
@@ -238,8 +248,8 @@
   $: workflowResource = runtime.awsResources[0];
   $: repositorySecrets = runtime.stateResources.filter((resource) => resource.address.startsWith("secret."));
   $: repositoryPaths = runtime.stateResources.filter((resource) => resource.address.startsWith("path."));
-  $: leftResourceTitle = runtime.kind === "terragrunt" ? "Terragrunt Stack" : runtime.kind === "iam" ? "IAM" : runtime.kind === "scp" ? "SCP" : runtime.kind === "secrets" ? "Secrets" : runtime.kind === "dns" ? "DNS/TLS" : runtime.kind === "observability" ? "Observability" : runtime.kind === "finops" ? "Cost" : runtime.kind === "awsconfig" ? "IaC Security" : "AWS";
-  $: rightResourceTitle = runtime.kind === "terragrunt" ? "Stack State" : runtime.kind === "iam" || runtime.kind === "scp" || runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "awsconfig" ? "Context" : "Terraform State";
+  $: leftResourceTitle = runtime.kind === "terragrunt" ? "Terragrunt Stack" : runtime.kind === "gitops" ? "GitOps" : runtime.kind === "iam" ? "IAM" : runtime.kind === "scp" ? "SCP" : runtime.kind === "secrets" ? "Secrets" : runtime.kind === "dns" ? "DNS/TLS" : runtime.kind === "observability" ? "Observability" : runtime.kind === "finops" ? "Cost" : runtime.kind === "awsconfig" ? "IaC Security" : "AWS";
+  $: rightResourceTitle = runtime.kind === "terragrunt" ? "Stack State" : runtime.kind === "gitops" || runtime.kind === "iam" || runtime.kind === "scp" || runtime.kind === "secrets" || runtime.kind === "dns" || runtime.kind === "observability" || runtime.kind === "finops" || runtime.kind === "awsconfig" ? "Context" : "Terraform State";
   $: selectedNetworkNode = runtime.networking?.nodes.find((node) => node.id === selectedNetworkNodeId) ?? null;
   $: networkingRequirementSections = parseRequirementSections(runtime.files[activeFileName] ?? "");
   $: selectedNetworkControls = getSelectedNetworkControls(runtime, selectedNetworkNode);
@@ -396,7 +406,7 @@
 
     try {
       const parsed = JSON.parse(raw) as MenuGroupId[];
-      const valid = parsed.filter((group) => ["terraform", "awsconfig", "cicd", "terragrunt", "iam", "scp", "policy", "secrets", "dns", "observability", "finops", "pr", "networking"].includes(group));
+      const valid = parsed.filter((group) => ["terraform", "awsconfig", "cicd", "gitops", "terragrunt", "iam", "scp", "policy", "secrets", "dns", "observability", "finops", "pr", "networking"].includes(group));
       return valid.length ? valid : fallback;
     } catch {
       return fallback;
@@ -405,7 +415,7 @@
 
   function scenarioMenuGroup(id: string): MenuGroupId {
     const kind = scenarios[id].kind ?? "terraform";
-    if (kind === "awsconfig" || kind === "cicd" || kind === "terragrunt" || kind === "iam" || kind === "scp" || kind === "policy" || kind === "secrets" || kind === "dns" || kind === "observability" || kind === "finops" || kind === "pr" || kind === "networking") return kind;
+    if (kind === "awsconfig" || kind === "cicd" || kind === "gitops" || kind === "terragrunt" || kind === "iam" || kind === "scp" || kind === "policy" || kind === "secrets" || kind === "dns" || kind === "observability" || kind === "finops" || kind === "pr" || kind === "networking") return kind;
     return "terraform";
   }
 
@@ -462,6 +472,7 @@
 
   function scenarioKindLabel(scenario: Scenario): string {
     if (scenario.kind === "cicd") return "Delivery Pipeline";
+    if (scenario.kind === "gitops") return "GitOps";
     if (scenario.kind === "awsconfig") return "IaC Security Baselines";
     if (scenario.kind === "terragrunt") return "Stack Orchestration";
     if (scenario.kind === "networking") return "Network Design";
@@ -478,6 +489,7 @@
 
   function scenarioKindIds(scenario: Scenario): string[] {
     if (scenario.kind === "cicd") return cicdScenarioIds;
+    if (scenario.kind === "gitops") return gitopsScenarioIds;
     if (scenario.kind === "awsconfig") return awsConfigScenarioIds;
     if (scenario.kind === "terragrunt") return terragruntScenarioIds;
     if (scenario.kind === "networking") return networkingScenarioIds;
@@ -789,7 +801,7 @@
     return runtime.prReview?.findings.filter((finding) => finding.selected) ?? [];
   }
 
-  function markOperationalScenarioSolved(flag: "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated" | "policyValidated", note: string): void {
+  function markOperationalScenarioSolved(flag: "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated" | "policyValidated" | "gitopsValidated", note: string): void {
     runtime.flags[flag] = true;
     runtime.awsResources[0].status = "exists";
     runtime.awsResources[0].note = note;
@@ -1184,6 +1196,8 @@
       githubRunRerun,
       githubSecretList,
       githubSecretSet,
+      argocdAppGet,
+      fluxReconcileKustomization,
       terragruntInit,
       terragruntValidate,
       terragruntPlan,
@@ -2397,6 +2411,12 @@
       return ["Not complete: re-run the workflow and inspect the result."];
     }
 
+    if (runtime.kind === "gitops") {
+      if (!gitopsFixApplied()) return ["Not complete: GitOps reconciliation still points at the wrong desired state or is not reconciling."];
+      markOperationalScenarioSolved("gitopsValidated", "GitOps reconciliation now matches the intended desired state.");
+      return ["Scenario complete."];
+    }
+
     if (runtime.kind === "iam") {
       if (!iamFixApplied()) return ["Not complete: IAM policy or trust conditions are still too broad or missing required constraints."];
       markIamScenarioSolved("IAM validation passed for the requested access path.");
@@ -2711,6 +2731,80 @@
     return ["Secret AWS_ROLE_ARN saved."];
   }
 
+  function gitopsFixApplied(): boolean {
+    if (currentScenarioId === "gitopsArgoCdTargetRevisionDrift") {
+      const app = runtime.files["application.yaml"] ?? "";
+      return app.includes("targetRevision: main") && !app.includes("targetRevision: develop");
+    }
+
+    if (currentScenarioId === "gitopsArgoCdPruneSelfHeal") {
+      const app = runtime.files["application.yaml"] ?? "";
+      return app.includes("automated:") && app.includes("prune: true") && app.includes("selfHeal: true");
+    }
+
+    if (currentScenarioId === "gitopsFluxWrongKustomizationPath") {
+      const kustomization = runtime.files["kustomization.yaml"] ?? "";
+      return kustomization.includes("path: ./clusters/prod/apps/checkout") && !kustomization.includes("path: ./clusters/staging/apps/checkout");
+    }
+
+    if (currentScenarioId === "gitopsFluxSuspendedKustomization") {
+      const kustomization = runtime.files["kustomization.yaml"] ?? "";
+      return kustomization.includes("suspend: false") && kustomization.includes("prune: true");
+    }
+
+    return false;
+  }
+
+  function argocdAppGet(): string[] {
+    if (!["gitopsArgoCdTargetRevisionDrift", "gitopsArgoCdPruneSelfHeal"].includes(currentScenarioId)) {
+      return ["No Argo CD application is configured for this scenario."];
+    }
+
+    if (gitopsFixApplied()) {
+      markOperationalScenarioSolved("gitopsValidated", "Argo CD application reconciles the desired Git state.");
+      return [
+        "Name: checkout",
+        "Health Status: Healthy",
+        "Sync Status: Synced",
+        "Operation: Succeeded",
+      ];
+    }
+
+    runtime.awsResources[0].status = "failed";
+    runtime.awsResources[0].note = "Argo CD application is still OutOfSync.";
+    runtime = runtime;
+    return [
+      "Name: checkout",
+      "Health Status: Degraded",
+      "Sync Status: OutOfSync",
+      "Finding: target revision or automated sync policy does not match the desired state.",
+    ];
+  }
+
+  function fluxReconcileKustomization(): string[] {
+    if (!["gitopsFluxWrongKustomizationPath", "gitopsFluxSuspendedKustomization"].includes(currentScenarioId)) {
+      return ["No Flux Kustomization is configured for this scenario."];
+    }
+
+    if (gitopsFixApplied()) {
+      markOperationalScenarioSolved("gitopsValidated", "Flux Kustomization reconciles the intended source path.");
+      return [
+        "reconciling Kustomization platform/checkout",
+        "applied revision main@sha1:6f3ab42",
+        "Ready=True",
+      ];
+    }
+
+    runtime.awsResources[0].status = "failed";
+    runtime.awsResources[0].note = "Flux Kustomization is still not ready.";
+    runtime = runtime;
+    return [
+      "reconciling Kustomization platform/checkout",
+      "Ready=False",
+      "Finding: source path is wrong or reconciliation is suspended.",
+    ];
+  }
+
   function evaluateWinCondition(): void {
     if (isSolved()) return;
     if (runtime.flags.cleanPlan && !runtime.backend.locked) {
@@ -2761,6 +2855,7 @@
     if (runtime.kind === "observability") return Boolean(runtime.flags.observabilityValidated);
     if (runtime.kind === "finops") return Boolean(runtime.flags.finopsValidated);
     if (runtime.kind === "policy") return Boolean(runtime.flags.policyValidated);
+    if (runtime.kind === "gitops") return Boolean(runtime.flags.gitopsValidated);
     if (runtime.kind === "awsconfig") return Boolean(runtime.flags.configValidated && runtime.flags.cleanPlan);
     if (currentScenarioId === "githubActionsMissingSecret") return Boolean(runtime.flags.secretsConfigured && runtime.flags.runPassing);
     if (currentScenarioId === "githubActionsWrongWorkingDirectory") return Boolean(runtime.flags.workflowFixed && runtime.flags.runPassing);
@@ -3107,6 +3202,7 @@
     if (runtime.kind === "iam") return ["aws iam simulate-principal-policy", "aws sts assume-role-with-web-identity", "aws s3 cp", "aws kms decrypt", "az role assignment list", "check", "help"];
     if (runtime.kind === "scp") return ["aws organizations describe-policy", "aws iam simulate-principal-policy", "check", "help"];
     if (runtime.kind === "cicd") return ["gh run view", "gh run rerun", "gh secret list", "gh secret set AWS_ROLE_ARN", "check", "help"];
+    if (runtime.kind === "gitops") return ["argocd app get checkout", "flux reconcile kustomization platform --with-source", "check", "help"];
     if (runtime.kind === "terragrunt") return ["terragrunt init", "terragrunt validate", "terragrunt plan", "terragrunt run-all plan", "terragrunt hclfmt", "check", "help"];
     if (runtime.kind === "observability") return ["aws cloudwatch describe-alarms", "aws logs describe-log-groups", "check", "help"];
     if (runtime.kind === "finops") return ["aws ce get-cost-and-usage", "aws ec2 describe-volumes", "check", "help"];
@@ -3180,7 +3276,7 @@
   }
 
   function labHealthClass(solvedState: boolean, scenario: Scenario): string {
-    if (scenario.kind === "cicd" || scenario.kind === "awsconfig" || scenario.kind === "iam" || scenario.kind === "scp" || scenario.kind === "policy" || scenario.kind === "secrets" || scenario.kind === "dns" || scenario.kind === "observability" || scenario.kind === "finops" || scenario.kind === "pr") {
+    if (scenario.kind === "cicd" || scenario.kind === "gitops" || scenario.kind === "awsconfig" || scenario.kind === "iam" || scenario.kind === "scp" || scenario.kind === "policy" || scenario.kind === "secrets" || scenario.kind === "dns" || scenario.kind === "observability" || scenario.kind === "finops" || scenario.kind === "pr") {
       return solvedState ? "badge badge-ok" : "badge badge-danger";
     }
     return scenario.backend.locked ? "badge badge-danger" : "badge badge-ok";
@@ -3188,6 +3284,7 @@
 
   function labHealthLabel(solvedState: boolean, scenario: Scenario): string {
     if (scenario.kind === "cicd") return solvedState ? "Workflow: passing" : "Workflow: failing";
+    if (scenario.kind === "gitops") return solvedState ? "GitOps: synced" : "GitOps: drift";
     if (scenario.kind === "awsconfig") return solvedState ? "AWS config: passed" : "AWS config: failing";
     if (scenario.kind === "iam") return solvedState ? "IAM: validated" : "IAM: needs review";
     if (scenario.kind === "scp") return solvedState ? "SCP: validated" : "SCP: needs review";
@@ -3480,8 +3577,14 @@
 
   <section class="menu-section">
     <div class="menu-actions menu-page-actions">
-      <button type="button" class:active={currentPage !== "docs"} on:click={openLabs}>Labs</button>
-      <button type="button" class:active={currentPage === "docs"} on:click={openDocs}>Documentation</button>
+      <button type="button" class:active={currentPage !== "docs"} on:click={openLabs}>
+        <Chemistry size={16} aria-hidden="true" />
+        <span>Labs</span>
+      </button>
+      <button type="button" class:active={currentPage === "docs"} on:click={openDocs}>
+        <Document size={16} aria-hidden="true" />
+        <span>Documentation</span>
+      </button>
     </div>
   </section>
 
@@ -3611,6 +3714,7 @@
         <a href="#wiki-iac-security-baselines">IaC Security</a>
         <a href="#wiki-terragrunt">Terragrunt</a>
         <a href="#wiki-github">GitHub Actions</a>
+        <a href="#wiki-gitops">GitOps</a>
         <a href="#wiki-iam">IAM</a>
         <a href="#wiki-policy">Policy as Code</a>
         <a href="#wiki-secrets">Secrets</a>
@@ -3747,6 +3851,27 @@ gh secret set AWS_ROLE_ARN</pre>
             For AWS deployments, prefer OIDC over long-lived access keys. The workflow needs
             <code>id-token: write</code>, the role ARN must be available, and the IAM trust policy subject must
             match the branch or environment that is running.
+          </p>
+        </section>
+
+        <section id="wiki-gitops">
+          <h2>GitOps</h2>
+          <p>
+            GitOps labs focus on reconciliation controllers such as Argo CD and Flux. The failure is usually that
+            the controller is watching the wrong Git target, applying the wrong path, or not reconciling drift.
+          </p>
+          <div class="wiki-diagram" aria-label="GitOps reconciliation flow">
+            <div class="diagram-node">Git<br><span>branch and path</span></div>
+            <div class="diagram-arrow">-></div>
+            <div class="diagram-node">Controller<br><span>Argo CD or Flux</span></div>
+            <div class="diagram-arrow">-></div>
+            <div class="diagram-node">Cluster<br><span>live resources</span></div>
+          </div>
+          <pre>argocd app get checkout
+flux reconcile kustomization platform --with-source</pre>
+          <p>
+            Check target revisions, source paths, prune settings, self-heal behavior, and suspended reconciliation
+            before editing workload manifests.
           </p>
         </section>
 
@@ -3934,6 +4059,8 @@ dig app.example.com</pre>
               <CloudAuditing size={32} />
             {:else if group.id === "cicd"}
               <ContinuousDeployment size={32} />
+            {:else if group.id === "gitops"}
+              <GitRepo size={32} />
             {:else if group.id === "terragrunt"}
               <FolderTree size={32} />
             {:else if group.id === "iam"}

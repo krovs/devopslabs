@@ -1,0 +1,68 @@
+id: gitopsFluxWrongKustomizationPath
+kind: gitops
+title: Flux Wrong Kustomization Path
+description: Flux reconciles successfully but deploys the staging overlay because the Kustomization path points at the wrong environment.
+primaryFile: kustomization.yaml
+tips:
+  - Inspect the Flux Kustomization source and path.
+  - The production cluster should read the prod checkout overlay.
+  - Change spec.path to ./clusters/prod/apps/checkout.
+  - Reconcile the Kustomization with its source.
+files:
+  "kustomization.yaml": |
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    metadata:
+      name: checkout
+      namespace: platform
+    spec:
+      interval: 5m
+      sourceRef:
+        kind: GitRepository
+        name: platform-gitops
+      path: ./clusters/staging/apps/checkout
+      prune: true
+      wait: true
+      timeout: 2m
+  "incident.md": |
+    Production checkout is running with staging replica counts and non-production host names.
+solution:
+  summary: |
+    Flux reconciles successfully but deploys the staging overlay because the Kustomization path points at the wrong environment.
+  steps:
+    - Inspect the Flux Kustomization source and path.
+    - The production cluster should read the prod checkout overlay.
+    - Change spec.path to ./clusters/prod/apps/checkout.
+    - Reconcile the Kustomization with its source.
+  explanation: |
+    Flux Wrong Kustomization Path is complete because the Kustomization now points at the production overlay.
+    
+    Key takeaway: A GitOps reconciliation can be technically successful while applying the wrong directory. In a real platform team, this prevents environment drift caused by staging manifests reaching production.
+  outcome: |
+    Flux Wrong Kustomization Path: Flux now applies the checkout production overlay from the expected Git source path.
+  focusFileName: kustomization.yaml
+  replacements:
+    - fileName: kustomization.yaml
+      search: "path: ./clusters/staging/apps/checkout"
+      replace: "path: ./clusters/prod/apps/checkout"
+  commands:
+    - flux reconcile kustomization platform --with-source
+backend:
+  bucket: gitops-training
+  key: flux-wrong-path
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: flux_kustomization
+    name: checkout
+    id: platform/checkout
+    status: failed
+    note: Kustomization path points at staging.
+stateResources:
+  - address: git.path.clusters/prod/apps/checkout
+    id: expected
+  - address: git.path.clusters/staging/apps/checkout
+    id: current
+flags:
+  gitopsValidated: false

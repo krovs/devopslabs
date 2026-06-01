@@ -15,6 +15,8 @@ export type CommandHandlers = {
   githubRunRerun: () => string[];
   githubSecretList: () => string[];
   githubSecretSet: (name?: string) => string[];
+  argocdAppGet: () => string[];
+  fluxReconcileKustomization: () => string[];
   terragruntInit: () => string[];
   terragruntValidate: () => string[];
   terragruntPlan: () => string[];
@@ -82,6 +84,13 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "gh run rerun") return handlers.githubRunRerun();
     if (input === "gh secret list") return handlers.githubSecretList();
     if (args[0] === "gh" && args[1] === "secret" && args[2] === "set") return handlers.githubSecretSet(args[3]);
+  }
+
+  if (runtime.kind === "gitops") {
+    if (input === "argocd app get checkout") return handlers.argocdAppGet();
+    if (input === "flux reconcile kustomization platform --with-source") return handlers.fluxReconcileKustomization();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
   }
 
   if (runtime.kind === "terragrunt") {
@@ -154,6 +163,10 @@ function commandHelp(runtime: Scenario): string[] {
 
   if (runtime.kind === "cicd") {
     return ["Available commands:", "  gh run view", "  gh run rerun", "  gh secret list", "  gh secret set <name>", "  check", "  help"];
+  }
+
+  if (runtime.kind === "gitops") {
+    return ["Available commands:", "  argocd app get checkout", "  flux reconcile kustomization platform --with-source", "  check", "  help"];
   }
 
   if (runtime.kind === "terragrunt") {

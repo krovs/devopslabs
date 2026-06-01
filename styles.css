@@ -316,7 +316,7 @@ select {
   min-height: 38px;
   padding-left: 36px;
   border-color: transparent;
-  background: var(--control-bg);
+  background: transparent;
   color: var(--text);
 }
 
@@ -326,6 +326,7 @@ select {
 
 .menu-search input:focus {
   border-color: transparent;
+  background: transparent;
   box-shadow: inset 0 -2px 0 var(--accent);
 }
 
@@ -342,9 +343,10 @@ select {
   width: 100%;
   min-height: 38px;
   padding: 8px 10px;
-  border-color: var(--line);
-  background: var(--table-bg);
+  border-color: transparent;
+  background: transparent;
   text-align: left;
+  box-shadow: none;
 }
 
 .menu-group-button::before {
@@ -373,7 +375,7 @@ select {
   flex: 0 0 auto;
   padding: 2px 7px;
   border-radius: 999px;
-  background: var(--control-bg);
+  background: transparent;
   color: var(--muted);
   font-size: 11px;
   font-weight: 800;
@@ -390,13 +392,29 @@ select {
 }
 
 .menu-page-actions button {
-  justify-content: center;
+  justify-content: flex-start;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.menu-page-actions button svg {
+  flex: 0 0 auto;
+  color: currentColor;
+}
+
+.menu-page-actions button:hover,
+.menu-page-actions button:focus-visible {
+  background: transparent;
+  color: var(--text);
 }
 
 .menu-lab-group .scenario-list {
   gap: 5px;
   padding-left: 10px;
-  border-left: 1px solid var(--line);
+  border-left: 0;
 }
 
 .theme-dots {
@@ -447,9 +465,9 @@ select {
   gap: 12px;
   min-height: 48px;
   padding: 8px 10px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 8px;
-  background: var(--control-bg);
+  background: transparent;
 }
 
 .menu-toggle span {
@@ -488,15 +506,23 @@ select {
   text-align: left;
 }
 
+.menu-page-actions button {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
 .scenario-list button {
   min-height: 34px;
   padding: 7px 9px;
+  border-color: transparent;
+  background: transparent;
   font-size: 12px;
+  box-shadow: none;
 }
 
 .scenario-list button.scenario-difficulty,
 .lab-index-list button.scenario-difficulty {
-  background: color-mix(in srgb, var(--difficulty-color), var(--control-bg) 91%);
+  background: transparent;
 }
 
 .scenario-list button.difficulty-easy,
@@ -548,20 +574,20 @@ select {
 }
 
 .scenario-list button.completed:not(.active) {
-  border-color: var(--ok-bg);
+  border-color: transparent;
 }
 
 .scenario-list button.active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--difficulty-color), var(--ok-bg) 86%);
+  border-color: transparent;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--ok);
   font-weight: 700;
 }
 
 .menu-actions button.active {
-  border-color: var(--accent);
-  background: var(--ok-bg);
-  color: var(--ok);
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -725,26 +751,26 @@ select {
 
 @media (max-height: 820px) and (min-width: 821px) {
   .lab-index {
-    gap: 10px 16px;
-    padding: 6px clamp(12px, 2vw, 20px) 24px;
+    gap: 14px 16px;
+    padding: 10px clamp(12px, 2vw, 20px) 28px;
   }
 
   .lab-index-intro {
-    padding: 0 0 8px;
-    font-size: 26px;
-    line-height: 1.18;
+    padding: 6px 0 14px;
+    font-size: 28px;
+    line-height: 1.2;
   }
 
   .lab-index-card {
     grid-template-columns: 40px minmax(0, 1fr) auto;
-    gap: 12px;
-    min-height: 104px;
-    padding: 14px 18px;
+    gap: 14px;
+    min-height: 128px;
+    padding: 16px 20px;
     overflow: hidden;
   }
 
   .lab-index-content {
-    gap: 5px;
+    gap: 7px;
     padding: 0 0 2px;
   }
 
@@ -759,15 +785,20 @@ select {
   }
 
   .lab-index-content small {
-    display: none;
+    display: -webkit-box;
+    max-height: calc(13px * 1.4 * 2);
+    font-size: 13px;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .lab-index-providers {
-    gap: 4px;
+    gap: 5px;
   }
 
   .lab-index-providers span {
-    padding: 1px 6px;
+    padding: 2px 6px;
     font-size: 9px;
   }
 }

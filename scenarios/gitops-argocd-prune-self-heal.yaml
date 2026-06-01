@@ -1,0 +1,74 @@
+id: gitopsArgoCdPruneSelfHeal
+kind: gitops
+title: Argo CD Prune And Self Heal
+description: A production Application reports drift because automated sync does not prune deleted resources or repair manual changes.
+primaryFile: application.yaml
+tips:
+  - Check the Application sync policy before editing manifests.
+  - Automated sync should prune removed resources.
+  - Automated sync should self-heal manual drift.
+  - Re-check Argo CD after enabling both controls.
+files:
+  "application.yaml": |
+    apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: checkout
+      namespace: argocd
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/acme/platform-gitops
+        targetRevision: main
+        path: apps/checkout/overlays/prod
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: checkout
+      syncPolicy:
+        automated: {}
+  "drift.md": |
+    Live cluster still has a deprecated ConfigMap removed from Git.
+    A manual Service annotation edit remains after the last sync.
+solution:
+  summary: |
+    A production Application reports drift because automated sync does not prune deleted resources or repair manual changes.
+  steps:
+    - Check the Application sync policy before editing manifests.
+    - Automated sync should prune removed resources.
+    - Automated sync should self-heal manual drift.
+    - Re-check Argo CD after enabling both controls.
+  explanation: |
+    Argo CD Prune And Self Heal is complete because automated sync now removes resources deleted from Git and corrects live-cluster drift.
+    
+    Key takeaway: Automated sync without prune and self-heal can leave obsolete or manually edited resources behind. In a real platform team, this keeps the cluster aligned with Git as the source of truth.
+  outcome: |
+    Argo CD Prune And Self Heal: The Application can converge live resources back to Git without retaining deleted objects or manual edits.
+  focusFileName: application.yaml
+  replacements:
+    - fileName: application.yaml
+      search: "automated: {}"
+      replace: |
+        automated:
+          prune: true
+          selfHeal: true
+  commands:
+    - argocd app get checkout
+backend:
+  bucket: gitops-training
+  key: argocd-prune-self-heal
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: argocd_application
+    name: checkout
+    id: argocd/checkout
+    status: failed
+    note: Automated sync does not prune or self-heal drift.
+stateResources:
+  - address: live.configmap.checkout-legacy
+    id: orphaned
+  - address: live.service.checkout
+    id: manually edited
+flags:
+  gitopsValidated: false

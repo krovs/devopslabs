@@ -2,7 +2,7 @@
 
 A small Svelte + TypeScript web app for practicing DevOps and cloud troubleshooting scenarios.
 
-The app simulates IaC, Terragrunt, GitHub Actions, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, DNS, Kubernetes, Kyverno, Istio, Cilium, or certificate services.
+The app simulates IaC, Terragrunt, GitHub Actions, GitOps, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Kyverno, Istio, Cilium, or certificate services.
 
 ## Features
 
@@ -12,6 +12,7 @@ The app simulates IaC, Terragrunt, GitHub Actions, IaC security baselines, IAM, 
   - Resource/state/context view or CI/CD pipeline dashboard
 - Diagram-first networking workspace for VPN, Direct Connect, VPC, subnet, route table, security group, NACL, and WAF labs
 - Diff-first PR review workspace with review decisions and finding selection
+- GitOps scenarios for Argo CD Application and Flux Kustomization reconciliation failures
 - Policy as Code scenarios for Kubernetes, Kyverno, Istio, and Cilium policy patterns
 - Observability and FinOps scenarios for CloudWatch, logs, Cost Explorer, and cost-resource cleanup
 - YAML-backed scenarios bundled at build time
@@ -101,6 +102,8 @@ gh run view
 gh run rerun
 gh secret list
 gh secret set <name>
+argocd app get checkout
+flux reconcile kustomization platform --with-source
 aws iam simulate-principal-policy
 aws sts assume-role-with-web-identity
 aws kms decrypt
@@ -161,6 +164,10 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 - GitHub Actions Docker registry publish failure from missing registry login
 - GitHub Actions environment approval failure from a wrong environment name
 - GitHub Actions matrix failure from an unsupported Node.js version
+- Argo CD Application target revision drift
+- Argo CD automated sync missing prune and self-heal
+- Flux Kustomization pointing at the wrong environment path
+- Flux Kustomization suspended after maintenance
 - IAM S3 prefix least-privilege policy
 - IAM GitHub OIDC environment trust policy
 - IAM KMS encryption context policy
@@ -230,6 +237,7 @@ Scenario kinds:
 - `kind: awsconfig`: uses Terraform files plus `checkov -f main.tf` to spot missing AWS services or unsafe AWS settings.
 - `kind: terragrunt`: uses Terragrunt commands and stack/source/dependency validation.
 - `kind: cicd`: uses GitHub Actions commands and the pipeline dashboard.
+- `kind: gitops`: uses Argo CD and Flux-style reconciliation commands for Kubernetes GitOps workflows.
 - `kind: iam`: uses identity simulation or inspection commands and least-privilege checks across AWS and Azure-style exercises.
 - `kind: scp`: uses AWS Organizations policy inspection and IAM-style simulation to model SCP deny guardrails.
 - `kind: policy`: uses policy-as-code validation commands such as `kyverno test .` and Kubernetes server dry-run.
@@ -245,6 +253,8 @@ Networking scenarios add a `networking` block with `nodes`, `links`, selectable 
 IAM scenarios use `kind: iam` and regular scenario files. They use the terminal for deterministic identity validation commands such as `aws iam simulate-principal-policy`, `aws sts assume-role-with-web-identity`, `aws s3 cp`, `aws kms decrypt`, and `az role assignment list`.
 
 Policy as Code scenarios use `kind: policy` and model platform/workload guardrails rather than cloud organization guardrails. Current labs cover Kubernetes NetworkPolicy, Kyverno admission policy, Istio AuthorizationPolicy, and CiliumNetworkPolicy patterns.
+
+GitOps scenarios use `kind: gitops` and model Kubernetes desired-state reconciliation through Argo CD Applications and Flux Kustomizations. Current labs cover target revision drift, automated prune/self-heal settings, wrong source paths, and suspended reconciliation.
 
 Incident Mode is a menu option that hides unsolved lab names and direct scenario descriptions. It replaces them with generic incident context, changes tips into optional clues, and keeps solved labs visible for review.
 

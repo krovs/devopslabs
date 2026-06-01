@@ -1,0 +1,73 @@
+id: gitopsArgoCdTargetRevisionDrift
+kind: gitops
+title: Argo CD Target Revision Drift
+description: An Argo CD application keeps syncing staging manifests because the Application points at the wrong Git revision.
+primaryFile: application.yaml
+tips:
+  - Inspect the Argo CD application status.
+  - The production app should track the main branch.
+  - Change spec.source.targetRevision from develop to main.
+  - Re-check the application after the desired revision is corrected.
+files:
+  "application.yaml": |
+    apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: checkout
+      namespace: argocd
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/acme/platform-gitops
+        targetRevision: develop
+        path: apps/checkout/overlays/prod
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: checkout
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+  "incident.md": |
+    Production checkout is missing the latest release manifest.
+    Argo CD shows checkout as OutOfSync and the compared revision is not the production branch.
+solution:
+  summary: |
+    An Argo CD application keeps syncing staging manifests because the Application points at the wrong Git revision.
+  steps:
+    - Inspect the Argo CD application status.
+    - The production app should track the main branch.
+    - Change spec.source.targetRevision from develop to main.
+    - Re-check the application after the desired revision is corrected.
+  explanation: |
+    Argo CD Target Revision Drift is complete because the Application now tracks the Git revision that owns the production desired state.
+    
+    Key takeaway: GitOps controllers only converge to the desired state they are told to watch. In a real platform team, this prevents production drift caused by a controller following the wrong branch.
+  outcome: |
+    Argo CD Target Revision Drift: Argo CD can compare and sync checkout against the production branch instead of continuously reconciling stale manifests.
+  focusFileName: application.yaml
+  replacements:
+    - fileName: application.yaml
+      search: targetRevision: develop
+      replace: targetRevision: main
+  commands:
+    - argocd app get checkout
+backend:
+  bucket: gitops-training
+  key: argocd-target-revision
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: argocd_application
+    name: checkout
+    id: argocd/checkout
+    status: failed
+    note: Application watches develop instead of main.
+stateResources:
+  - address: git.branch.main
+    id: production desired state
+  - address: git.branch.develop
+    id: staging desired state
+flags:
+  gitopsValidated: false
