@@ -22,6 +22,7 @@ export function createAppShellSession(options: AppShellSessionOptions) {
   let isMenuOpen = $state(false);
   let menuSearchQuery = $state("");
   let openMenuGroups = $state<MenuGroupId[]>(getInitialOpenMenuGroups(options.initialScenarioId, options.scenarioMenuGroup));
+  let highlightedMenuGroup = $state<MenuGroupId | null>(null);
   let currentPage = $state<AppPage>("index");
 
   $effect(() => {
@@ -65,6 +66,9 @@ export function createAppShellSession(options: AppShellSessionOptions) {
     get openMenuGroups() {
       return openMenuGroups;
     },
+    get highlightedMenuGroup() {
+      return highlightedMenuGroup;
+    },
     get currentPage() {
       return currentPage;
     },
@@ -77,20 +81,40 @@ export function createAppShellSession(options: AppShellSessionOptions) {
     },
     setMenuSearchQuery(query: string): void {
       menuSearchQuery = query;
+      highlightedMenuGroup = null;
     },
     openMenu(): void {
       isMenuOpen = true;
+      openMenuGroups = [];
+      highlightedMenuGroup = null;
+    },
+    openMenuForScenario(scenarioId: string): void {
+      const group = options.scenarioMenuGroup(scenarioId);
+      isMenuOpen = true;
+      openMenuGroups = [group];
+      highlightedMenuGroup = group;
     },
     closeMenu(): void {
       isMenuOpen = false;
+      openMenuGroups = [];
+      highlightedMenuGroup = null;
     },
     handleGlobalKeydown(event: KeyboardEvent): void {
-      if (event.key === "Escape") isMenuOpen = false;
+      if (event.key === "Escape") {
+        isMenuOpen = false;
+        openMenuGroups = [];
+        highlightedMenuGroup = null;
+      }
     },
     toggleMenuGroup(group: MenuGroupId): void {
-      openMenuGroups = openMenuGroups.includes(group)
-        ? openMenuGroups.filter((item) => item !== group)
-        : [...openMenuGroups, group];
+      if (openMenuGroups.includes(group)) {
+        openMenuGroups = [];
+        highlightedMenuGroup = null;
+        return;
+      }
+
+      openMenuGroups = [group];
+      highlightedMenuGroup = group;
     },
     ensureMenuGroupOpen(group: MenuGroupId): void {
       if (!openMenuGroups.includes(group)) openMenuGroups = [...openMenuGroups, group];
@@ -98,19 +122,26 @@ export function createAppShellSession(options: AppShellSessionOptions) {
     openDocs(): void {
       currentPage = "docs";
       isMenuOpen = false;
+      openMenuGroups = [];
+      highlightedMenuGroup = null;
     },
     openLabs(): void {
       currentPage = "index";
       isMenuOpen = false;
+      openMenuGroups = [];
+      highlightedMenuGroup = null;
     },
     openLabGroup(group: MenuGroupId): void {
       openMenuGroups = [group];
+      highlightedMenuGroup = group;
       currentPage = "index";
       isMenuOpen = true;
     },
     openScenario(): void {
       currentPage = "labs";
       isMenuOpen = false;
+      openMenuGroups = [];
+      highlightedMenuGroup = null;
     },
     startTerminalResize(event: PointerEvent): void {
       isResizingTerminal = true;

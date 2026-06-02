@@ -35,6 +35,7 @@
   menuSearchQuery={app.appShell.menuSearchQuery}
   labGroups={app.labGroups}
   openMenuGroups={app.appShell.openMenuGroups}
+  highlightedMenuGroup={app.appShell.highlightedMenuGroup}
   currentScenarioId={app.view.currentScenarioId}
   completedScenarioIds={app.view.completedScenarioIds}
   onclose={app.appShell.closeMenu}

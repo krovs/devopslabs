@@ -15,6 +15,7 @@
     menuSearchQuery: string;
     labGroups: LabGroup[];
     openMenuGroups: MenuGroupId[];
+    highlightedMenuGroup: MenuGroupId | null;
     currentScenarioId: string;
     completedScenarioIds: string[];
     onclose: () => void;
@@ -40,6 +41,7 @@
     menuSearchQuery,
     labGroups,
     openMenuGroups,
+    highlightedMenuGroup,
     currentScenarioId,
     completedScenarioIds,
     onclose,
@@ -65,7 +67,7 @@
   ];
 
   function isSelectedLabGroup(groupId: MenuGroupId): boolean {
-    return currentPage === "index" && openMenuGroups.length === 1 && openMenuGroups[0] === groupId;
+    return highlightedMenuGroup === groupId;
   }
 
   function toggleCompletionWithKeyboard(id: string, event: KeyboardEvent): void {

@@ -29,7 +29,10 @@
     healthClass={app.view.runtime ? labHealthClass(app.view.solved, app.view.runtime) : "badge badge-warn"}
     healthLabel={app.view.runtime ? labHealthLabel(app.view.solved, app.view.runtime) : "Loading"}
     incidentMode={app.view.incidentMode}
-    onopenmenu={app.appShell.openMenu}
+    onopenmenu={() => {
+      if (app.view.currentPage === "labs") app.appShell.openMenuForScenario(app.view.currentScenarioId);
+      else app.appShell.openMenu();
+    }}
     onopensolution={app.labActions.openSolutionModal}
     onreset={() => void app.scenarioNavigation.load(app.view.currentScenarioId)}
   />
