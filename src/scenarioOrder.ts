@@ -48,6 +48,7 @@ export const scenarioOrderByGroup = {
   kubernetesBasics: [
     "kubernetesImagePullBackOffTriage",
     "kubernetesReadinessProbePort",
+    "kubernetesHelmValuesPort",
   ],
   identityAccess: [
     "iamBlankSecretsReadonly",

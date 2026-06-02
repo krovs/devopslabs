@@ -258,6 +258,13 @@ export const scenarioManifest = [
     "path": "../scenarios/kubernetes-basics/kubernetes-readiness-probe-port.yaml"
   },
   {
+    "id": "kubernetesHelmValuesPort",
+    "kind": "kubernetes",
+    "title": "Kubernetes Helm Values Port Triage",
+    "description": "A Helm-managed checkout-api release is unhealthy because chart values render the container on the wrong port; inspect Helm output and Kubernetes state before upgrading the release.",
+    "path": "../scenarios/kubernetes-basics/kubernetes-helm-values-port.yaml"
+  },
+  {
     "id": "iamBlankSecretsReadonly",
     "kind": "iam",
     "title": "IAM Blank Secrets Read Only",

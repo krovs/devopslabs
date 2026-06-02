@@ -47,7 +47,7 @@ const commandsByKind = {
   cicd: ["gh run view", "gh run rerun", "gh secret list", "gh secret set", "jenkins build log", "jenkins rebuild", "check", "help"],
   gitops: ["argocd app get checkout", "flux reconcile kustomization platform --with-source", "check", "help"],
   linux: ["ls -la", "cat app.log", "grep ERROR app.log", "journalctl -u web -n 20", "systemctl status web", "df -h", "free -m", "ps aux", "top -b -n1", "ss -tulpn", "sudo systemctl restart web", "check", "help"],
-  kubernetes: ["kubectl get pods", "kubectl get events", "kubectl describe pod checkout-api", "kubectl logs checkout-api", "kubectl rollout restart deployment checkout-api", "kubectl rollout status deployment checkout-api", "kubectl scale deployment checkout-api --replicas=2", "check", "help"],
+  kubernetes: ["kubectl get pods", "kubectl get events", "kubectl describe pod checkout-api", "kubectl logs checkout-api", "kubectl rollout restart deployment checkout-api", "kubectl rollout status deployment checkout-api", "kubectl scale deployment checkout-api --replicas=2", "helm lint checkout ./chart", "helm template checkout ./chart", "helm upgrade checkout ./chart", "check", "help"],
   terragrunt: ["terragrunt init", "terragrunt validate", "terragrunt plan", "terragrunt run-all plan", "terragrunt hclfmt", "check", "help"],
   iam: ["aws iam simulate-principal-policy", "aws sts assume-role-with-web-identity", "aws s3 cp", "aws kms decrypt", "az role assignment list", "check", "help"],
   scp: ["aws organizations describe-policy", "aws iam simulate-principal-policy", "check", "help"],

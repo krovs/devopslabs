@@ -76,19 +76,39 @@ function isReadinessProbeScenario(scenarioId: string): boolean {
   return scenarioId === "kubernetesReadinessProbePort";
 }
 
+function isHelmValuesScenario(scenarioId: string): boolean {
+  return scenarioId === "kubernetesHelmValuesPort";
+}
+
 function readinessProbeUsesAppPort(deployment: string): boolean {
   return /readinessProbe:[\s\S]*httpGet:[\s\S]*port: 8080/.test(deployment);
+}
+
+function helmValuesUseAppPort(values: string): boolean {
+  return /containerPort:\s*8080/.test(values);
 }
 
 export function runKubectlGetPods(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.initialized = true;
   if (runtime.flags.kubernetesValidated) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   1/1     Running   0"];
+  if (isHelmValuesScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-7f5f6c9f7b-r2lsk   0/1     Running   0"];
   if (isReadinessProbeScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   0/1     Running   0"];
   return ["NAME                            READY   STATUS             RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   0/1     ImagePullBackOff   4"];
 }
 
 export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.validationPassed = true;
+  if (isHelmValuesScenario(scenarioId)) {
+    return [
+      "Name: checkout-api-7f5f6c9f7b-r2lsk",
+      "Image: ghcr.io/acme/checkout-api:1.4.2",
+      "ContainersReady: False",
+      "Container port: 9090",
+      "Readiness probe: http-get http://:9090/healthz",
+      "Warning  Unhealthy  Readiness probe failed: app listens on :8080",
+    ];
+  }
+
   if (isReadinessProbeScenario(scenarioId)) {
     return [
       "Name: checkout-api-6d7c9b7c9b-2q8xp",
@@ -109,6 +129,14 @@ export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): st
 
 export function runKubectlGetEvents(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.kubernetesEventsChecked = true;
+  if (isHelmValuesScenario(scenarioId)) {
+    return [
+      "LAST SEEN   TYPE      REASON      OBJECT                              MESSAGE",
+      "2m          Warning   Unhealthy   pod/checkout-api-7f5f6c9f7b-r2lsk   Helm release rendered readiness probe on port 9090",
+      "1m          Normal    Pulled      pod/checkout-api-7f5f6c9f7b-r2lsk   Container image ghcr.io/acme/checkout-api:1.4.2 already present",
+    ];
+  }
+
   if (isReadinessProbeScenario(scenarioId)) {
     return [
       "LAST SEEN   TYPE      REASON      OBJECT                              MESSAGE",
@@ -126,6 +154,7 @@ export function runKubectlGetEvents(runtime: Scenario, scenarioId: string): stri
 }
 
 export function runKubectlLogs(runtime: Scenario, scenarioId: string): string[] {
+  if (isHelmValuesScenario(scenarioId)) return ["checkout-api listening on :8080", "GET /healthz 200 OK"];
   if (isReadinessProbeScenario(scenarioId)) return ["checkout-api listening on :8080", "GET /healthz 200 OK"];
   return runtime.flags.kubernetesValidated
     ? ["checkout-api listening on :8080"]
@@ -169,6 +198,22 @@ export function runKubectlScale(runtime: Scenario): string[] {
 
 export function runKubectlRolloutStatus(runtime: Scenario, scenarioId: string): string[] {
   const deployment = runtime.files["deployment.yaml"] ?? "";
+  if (isHelmValuesScenario(scenarioId)) {
+    const values = runtime.files["values.yaml"] ?? "";
+    if (runtime.flags.cleanPlan && runtime.flags.validationPassed && helmValuesUseAppPort(values)) {
+      runtime.flags.kubernetesValidated = true;
+      setFirstResource(runtime, "success", "Helm release renders containerPort 8080 and the checkout-api rollout is healthy.");
+      runtime.stateResources = runtime.stateResources.map((resource) => {
+        if (resource.address === "values.checkout-api.containerPort") return { ...resource, id: "8080" };
+        if (resource.address === "deployment.checkout-api.rollout") return { ...resource, id: "Ready" };
+        return resource;
+      });
+      return ["Waiting for deployment checkout-api rollout to finish...", "deployment \"checkout-api\" successfully rolled out"];
+    }
+
+    return ["Waiting for deployment checkout-api rollout to finish...", "rollout status: pending. Render the chart, fix values.yaml, and run helm upgrade."];
+  }
+
   if (isReadinessProbeScenario(scenarioId)) {
     if (runtime.flags.cleanPlan && runtime.flags.lintPassed && readinessProbeUsesAppPort(deployment)) {
       runtime.flags.kubernetesValidated = true;
@@ -194,4 +239,68 @@ export function runKubectlRolloutStatus(runtime: Scenario, scenarioId: string): 
   }
 
   return ["Waiting for deployment checkout-api rollout to finish...", "rollout status: pending. Restart rollout and scale deployment after fixing the image."];
+}
+
+export function runHelmLint(runtime: Scenario, scenarioId: string): string[] {
+  if (!isHelmValuesScenario(scenarioId)) return ["==> Linting checkout", "1 chart(s) linted, 0 chart(s) failed"];
+
+  runtime.flags.kubernetesEventsChecked = true;
+  const values = runtime.files["values.yaml"] ?? "";
+  if (helmValuesUseAppPort(values)) {
+    return ["==> Linting checkout", "[INFO] values.yaml: containerPort matches the application port 8080", "1 chart(s) linted, 0 chart(s) failed"];
+  }
+
+  return [
+    "==> Linting checkout",
+    "[WARNING] values.yaml: containerPort is 9090, but checkout-api appVersion 1.4.2 exposes /healthz on 8080",
+    "1 chart(s) linted, 0 chart(s) failed",
+  ];
+}
+
+export function runHelmTemplate(runtime: Scenario, scenarioId: string): string[] {
+  if (!isHelmValuesScenario(scenarioId)) return ["---", "# Source: checkout/templates/deployment.yaml", "kind: Deployment"];
+
+  runtime.flags.validationPassed = true;
+  const values = runtime.files["values.yaml"] ?? "";
+  const containerPort = helmValuesUseAppPort(values) ? "8080" : "9090";
+  return [
+    "---",
+    "# Source: checkout-api/templates/deployment.yaml",
+    "kind: Deployment",
+    "metadata:",
+    "  name: checkout-api",
+    "spec:",
+    "  template:",
+    "    spec:",
+    "      containers:",
+    "        - name: checkout-api",
+    "          image: ghcr.io/acme/checkout-api:1.4.2",
+    "          ports:",
+    `            - containerPort: ${containerPort}`,
+    "          readinessProbe:",
+    "            httpGet:",
+    "              path: /healthz",
+    `              port: ${containerPort}`,
+    "---",
+    "# Source: checkout-api/templates/service.yaml",
+    "kind: Service",
+    "spec:",
+    "  ports:",
+    "    - port: 80",
+    `      targetPort: ${containerPort}`,
+  ];
+}
+
+export function runHelmUpgrade(runtime: Scenario, scenarioId: string): string[] {
+  if (!isHelmValuesScenario(scenarioId)) return ["Release \"checkout\" has been upgraded."];
+
+  const values = runtime.files["values.yaml"] ?? "";
+  if (runtime.flags.validationPassed && runtime.flags.kubernetesEventsChecked && helmValuesUseAppPort(values)) {
+    runtime.flags.cleanPlan = true;
+    setFirstResource(runtime, "drifted", "Helm release upgraded with containerPort 8080; verify rollout status.");
+    return ["Release \"checkout\" has been upgraded.", "NAMESPACE: default", "STATUS: deployed"];
+  }
+
+  setFirstResource(runtime, "failed", "Helm upgrade still renders the wrong container port or chart output was not inspected first.");
+  return ["Release \"checkout\" has been upgraded.", "STATUS: deployed", "rollout status: waiting for ready replicas"];
 }

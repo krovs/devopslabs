@@ -1,0 +1,126 @@
+id: kubernetesHelmValuesPort
+kind: kubernetes
+title: Kubernetes Helm Values Port Triage
+description: A Helm-managed checkout-api release is unhealthy because chart values render the container on the wrong port; inspect Helm output and Kubernetes state before upgrading the release.
+primaryFile: values.yaml
+tips:
+  - Start with kubectl get pods.
+  - Use helm lint to catch value/schema warnings.
+  - Render the chart with helm template checkout ./chart before changing values.
+  - The application listens on port 8080, but values.yaml sets containerPort to 9090.
+  - Change containerPort to 8080 while keeping servicePort at 80.
+  - Run helm upgrade and verify rollout status.
+files:
+  "values.yaml": |
+    image:
+      repository: ghcr.io/acme/checkout-api
+      tag: "1.4.2"
+
+    servicePort: 80
+    containerPort: 9090
+
+    replicas: 1
+  "chart/Chart.yaml": |
+    apiVersion: v2
+    name: checkout-api
+    version: 0.3.0
+    appVersion: "1.4.2"
+  "chart/templates/deployment.yaml": |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: checkout-api
+    spec:
+      replicas: {{ .Values.replicas }}
+      selector:
+        matchLabels:
+          app: checkout-api
+      template:
+        metadata:
+          labels:
+            app: checkout-api
+        spec:
+          containers:
+            - name: checkout-api
+              image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+              ports:
+                - containerPort: {{ .Values.containerPort }}
+              readinessProbe:
+                httpGet:
+                  path: /healthz
+                  port: {{ .Values.containerPort }}
+                initialDelaySeconds: 5
+                periodSeconds: 10
+  "chart/templates/service.yaml": |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: checkout-api
+    spec:
+      selector:
+        app: checkout-api
+      ports:
+        - port: {{ .Values.servicePort }}
+          targetPort: {{ .Values.containerPort }}
+  "runbook.md": |
+    Goal:
+    - Repair the Helm release for checkout-api.
+
+    Constraints:
+    - Inspect Kubernetes pod state before changing values.
+    - Run helm lint and helm template to inspect the rendered manifests.
+    - Keep the approved image tag.
+    - Keep the Service listening on port 80.
+    - Set the container and readiness probe to the application port.
+    - Upgrade the Helm release and verify rollout status.
+solution:
+  summary: |
+    The Helm chart values set containerPort to 9090, so the rendered Deployment and Service target the wrong container port while the application listens on 8080.
+  steps:
+    - Run kubectl get pods to see the checkout-api workload is not ready.
+    - Run helm lint checkout ./chart to catch the mismatched container port value.
+    - Run helm template checkout ./chart to inspect the rendered Deployment and Service.
+    - Change containerPort from 9090 to 8080 in values.yaml.
+    - Run helm upgrade checkout ./chart.
+    - Run kubectl rollout status deployment checkout-api.
+  explanation: |
+    Helm values are the source of truth for rendered manifests. The chart templates correctly wire the Deployment container port, readiness probe, and Service targetPort to containerPort, but the value is wrong. Rendering the chart before upgrade shows the exact manifest Kubernetes will receive.
+  outcome: |
+    checkout-api is upgraded with containerPort 8080, the readiness probe targets the application port, and the rollout completes successfully.
+  focusFileName: values.yaml
+  replacements:
+    - fileName: values.yaml
+      search: |
+        containerPort: 9090
+      replace: |
+        containerPort: 8080
+  commands:
+    - kubectl get pods
+    - helm lint checkout ./chart
+    - helm template checkout ./chart
+    - helm upgrade checkout ./chart
+    - kubectl rollout status deployment checkout-api
+backend:
+  bucket: kubernetes
+  key: checkout-api-helm
+  table: workloads
+  locked: false
+  lockId: null
+awsResources:
+  - type: helm_release
+    name: checkout-api
+    id: default/checkout-api
+    status: failed
+    note: Helm values render checkout-api on container port 9090, but the app listens on 8080.
+stateResources:
+  - address: helm_release.checkout-api
+    id: deployed
+  - address: values.checkout-api.containerPort
+    id: "9090"
+  - address: deployment.checkout-api.rollout
+    id: NotReady
+flags:
+  initialized: false
+  validationPassed: false
+  kubernetesEventsChecked: false
+  kubernetesValidated: false

@@ -60,6 +60,9 @@ export type CommandHandlers = {
   kubectlRolloutRestart: () => string[];
   kubectlRolloutStatus: () => string[];
   kubectlScaleDeployment: () => string[];
+  helmLint: () => string[];
+  helmTemplate: () => string[];
+  helmUpgrade: () => string[];
   checkScenario: () => string[];
 };
 
@@ -133,6 +136,9 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "kubectl rollout restart deployment checkout-api") return handlers.kubectlRolloutRestart();
     if (input === "kubectl rollout status deployment checkout-api") return handlers.kubectlRolloutStatus();
     if (input === "kubectl scale deployment checkout-api --replicas=2") return handlers.kubectlScaleDeployment();
+    if (input === "helm lint checkout ./chart") return handlers.helmLint();
+    if (input === "helm template checkout ./chart") return handlers.helmTemplate();
+    if (input === "helm upgrade checkout ./chart") return handlers.helmUpgrade();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -241,7 +247,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "kubernetes") {
-    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  check", "  help"];
+    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
   }
 
   return [

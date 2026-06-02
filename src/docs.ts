@@ -216,6 +216,42 @@ export const documentationSections: DocSection[] = [
     ],
   },
   {
+    id: "wiki-kubernetes",
+    navTitle: "Kubernetes",
+    title: "Kubernetes",
+    blocks: [
+      {
+        type: "paragraph",
+        content: [
+          "Kubernetes labs focus on workload health, rendered manifests, and rollout convergence. Start from symptoms in pods and events, then inspect the source that owns the workload: a Deployment manifest or Helm values.",
+        ],
+      },
+      {
+        type: "diagram",
+        ariaLabel: "Kubernetes troubleshooting flow",
+        nodes: [
+          { title: "Cluster", detail: "pods, events, logs" },
+          { title: "Source", detail: "manifest or Helm chart" },
+          { title: "Rollout", detail: "restart, upgrade, status" },
+        ],
+      },
+      {
+        type: "code",
+        text: "kubectl get pods\nkubectl get events\nkubectl describe pod checkout-api\nkubectl logs checkout-api\nkubectl rollout restart deployment checkout-api\nkubectl rollout status deployment checkout-api\nkubectl scale deployment checkout-api --replicas=2\nhelm lint checkout ./chart\nhelm template checkout ./chart\nhelm upgrade checkout ./chart",
+      },
+      {
+        type: "paragraph",
+        content: [
+          "For Helm labs, render before upgrading. ",
+          { code: "helm template checkout ./chart" },
+          " shows the Deployment and Service Kubernetes will receive, while ",
+          { code: "values.yaml" },
+          " is usually the smallest safe place to fix a bad port, image tag, replica count, or probe setting.",
+        ],
+      },
+    ],
+  },
+  {
     id: "wiki-iam",
     navTitle: "IAM",
     title: "IAM",
@@ -435,6 +471,14 @@ export const documentationSections: DocSection[] = [
         type: "paragraph",
         content: [
           "When a GitHub Actions job fails, fix the first failing step. Later failures often disappear after the first broken permission, secret, path, or version is corrected.",
+        ],
+      },
+      {
+        type: "paragraph",
+        content: [
+          "When a Kubernetes rollout is unhealthy, compare pod events, logs, and the rendered manifest. For Helm-managed workloads, fix the value that renders the bad manifest before running ",
+          { code: "helm upgrade" },
+          ".",
         ],
       },
       {

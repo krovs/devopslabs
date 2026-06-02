@@ -2,7 +2,7 @@
 
 A small Svelte + TypeScript web app for practicing DevOps and cloud troubleshooting scenarios.
 
-The app simulates IaC, Terragrunt, GitHub Actions, GitOps, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Kyverno, Istio, Cilium, or certificate services.
+The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Helm, Kyverno, Istio, Cilium, or certificate services.
 
 ## Features
 
@@ -70,7 +70,8 @@ Deployment runs from `.github/workflows/deploy.yml` on pushes to `main`. The cus
 ```text
 index.html                 Vite entry HTML
 styles.css                 Global app styling and themes
-src/App.svelte             Main UI and simulator command logic
+src/App.svelte             Small Svelte entry component
+src/appController.svelte.ts App session composition root
 src/scenarios.ts           Imports and validates YAML scenarios
 src/simpleYaml.ts          Small YAML parser for the supported scenario format
 src/types.ts               Scenario/runtime TypeScript types
@@ -104,6 +105,16 @@ gh secret list
 gh secret set <name>
 argocd app get checkout
 flux reconcile kustomization platform --with-source
+kubectl get pods
+kubectl get events
+kubectl describe pod checkout-api
+kubectl logs checkout-api
+kubectl rollout restart deployment checkout-api
+kubectl rollout status deployment checkout-api
+kubectl scale deployment checkout-api --replicas=2
+helm lint checkout ./chart
+helm template checkout ./chart
+helm upgrade checkout ./chart
 aws iam simulate-principal-policy
 aws sts assume-role-with-web-identity
 aws kms decrypt
@@ -170,6 +181,7 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 - Flux Kustomization suspended after maintenance
 - Kubernetes ImagePullBackOff rollout and events triage
 - Kubernetes readiness probe port triage
+- Kubernetes Helm values port triage
 - IAM S3 prefix least-privilege policy
 - IAM GitHub OIDC environment trust policy
 - IAM KMS encryption context policy
@@ -204,10 +216,12 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 
 ## Add A Scenario
 
-1. Create a new `.yaml` file in `scenarios/`.
-2. Add its `id` to `scenarioOrder` in `src/scenarios.ts`.
-3. Keep the same structure as the existing scenario YAML files.
-4. Add simulator behavior in `src/App.svelte` if the lab needs new command output or completion checks.
+1. Create a new `.yaml` file under the matching `scenarios/<group>/` directory.
+2. Add its `id` to `scenarioOrderByGroup` in `src/scenarioOrder.ts`.
+3. Add its summary entry to `src/scenarioManifest.ts`.
+4. Keep the same structure as the existing scenario YAML files.
+5. Add simulator behavior in `src/simulators/` and command wiring in `src/commands.ts` / `src/commandHandlers.ts` if the lab needs new terminal output or completion checks.
+6. Run `npm run validate:scenarios`, `npm run audit:scenarios`, `npm run check`, and `npm run test`.
 
 Minimal shape:
 
@@ -240,6 +254,7 @@ Scenario kinds:
 - `kind: terragrunt`: uses Terragrunt commands and stack/source/dependency validation.
 - `kind: cicd`: uses GitHub Actions commands and the pipeline dashboard.
 - `kind: gitops`: uses Argo CD and Flux-style reconciliation commands for Kubernetes GitOps workflows.
+- `kind: kubernetes`: uses Kubernetes and Helm-style commands for pod, rollout, and chart troubleshooting.
 - `kind: iam`: uses identity simulation or inspection commands and least-privilege checks across AWS and Azure-style exercises.
 - `kind: scp`: uses AWS Organizations policy inspection and IAM-style simulation to model SCP deny guardrails.
 - `kind: policy`: uses policy-as-code validation commands such as `kyverno test .` and Kubernetes server dry-run.
@@ -257,6 +272,8 @@ IAM scenarios use `kind: iam` and regular scenario files. They use the terminal 
 Policy as Code scenarios use `kind: policy` and model platform/workload guardrails rather than cloud organization guardrails. Current labs cover Kubernetes NetworkPolicy, Kyverno admission policy, Istio AuthorizationPolicy, and CiliumNetworkPolicy patterns.
 
 GitOps scenarios use `kind: gitops` and model Kubernetes desired-state reconciliation through Argo CD Applications and Flux Kustomizations. Current labs cover target revision drift, automated prune/self-heal settings, wrong source paths, and suspended reconciliation.
+
+Kubernetes scenarios use `kind: kubernetes` and model workload triage through `kubectl` plus Helm chart workflows. Current labs cover ImagePullBackOff events, readiness probe port mismatches, and Helm values that render the wrong container port.
 
 Incident Mode is a menu option that hides unsolved lab names and direct scenario descriptions. It replaces them with generic incident context, changes tips into optional clues, and keeps solved labs visible for review.
 

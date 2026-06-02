@@ -17,6 +17,9 @@ import {
   runKubectlRolloutRestart,
   runKubectlRolloutStatus,
   runKubectlScale,
+  runHelmLint,
+  runHelmTemplate,
+  runHelmUpgrade,
   runLinuxCatLog,
   runLinuxDf,
   runLinuxFree,
@@ -157,6 +160,9 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     kubectlRolloutRestart: () => withRuntimeRefresh(() => runKubectlRolloutRestart(runtime(), scenarioId())),
     kubectlRolloutStatus: () => withRuntimeRefresh(() => runKubectlRolloutStatus(runtime(), scenarioId())),
     kubectlScaleDeployment: () => withRuntimeRefresh(() => runKubectlScale(runtime())),
+    helmLint: () => withRuntimeRefresh(() => runHelmLint(runtime(), scenarioId())),
+    helmTemplate: () => withRuntimeRefresh(() => runHelmTemplate(runtime(), scenarioId())),
+    helmUpgrade: () => withRuntimeRefresh(() => runHelmUpgrade(runtime(), scenarioId())),
     checkScenario: () => withRuntimeRefresh(() => checkScenarioCompletion(runtime(), scenarioId(), activeFileName())),
   };
 }

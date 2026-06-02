@@ -68,7 +68,7 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
   }
 
   if (runtime.kind === "kubernetes") {
-    if (!runtime.flags.kubernetesValidated) return ["Not complete: inspect the pod, fix the deployment image tag, and restart the rollout."];
+    if (!runtime.flags.kubernetesValidated) return ["Not complete: inspect the workload, fix the Kubernetes configuration, and verify the rollout."];
     markOperationalScenarioSolved(runtime, "kubernetesValidated", "Kubernetes workload troubleshooting completed.");
     return ["Scenario complete."];
   }
