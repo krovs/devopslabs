@@ -1,0 +1,102 @@
+id: kubernetesReadinessProbePort
+kind: kubernetes
+title: Kubernetes Readiness Probe Port Triage
+description: A Kubernetes deployment is running but never becomes ready; inspect pods, events, logs, rollout state, and scaling before repairing the readiness probe port.
+primaryFile: deployment.yaml
+tips:
+  - Start with kubectl get pods.
+  - Use kubectl get events and describe the pod to inspect readiness failures.
+  - Logs show the application is listening on port 8080.
+  - The readiness probe is checking port 9090.
+  - Change the readiness probe port to 8080.
+  - Restart the rollout, scale to two replicas, and verify rollout status.
+files:
+  "deployment.yaml": |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: checkout-api
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: checkout-api
+      template:
+        metadata:
+          labels:
+            app: checkout-api
+        spec:
+          containers:
+            - name: checkout-api
+              image: ghcr.io/acme/checkout-api:1.4.2
+              ports:
+                - containerPort: 8080
+              readinessProbe:
+                httpGet:
+                  path: /healthz
+                  port: 9090
+                initialDelaySeconds: 5
+                periodSeconds: 10
+  "runbook.md": |
+    Goal:
+    - Get checkout-api ready and rolled out.
+
+    Constraints:
+    - Inspect pod state, events, logs, and rollout status before changing the manifest.
+    - Keep the approved immutable image tag.
+    - Point readiness checks at the port the application actually serves.
+    - Roll out the deployment after the manifest is fixed.
+    - Scale checkout-api to two replicas.
+solution:
+  summary: |
+    The pod starts, but the readiness probe checks port 9090 while the application listens on port 8080.
+  steps:
+    - Run kubectl get pods to find that the pod is running but not ready.
+    - Run kubectl get events and kubectl describe pod checkout-api to inspect readiness probe failures.
+    - Run kubectl logs checkout-api to confirm the application listens on 8080.
+    - Replace the readinessProbe httpGet port 9090 with 8080.
+    - Run kubectl rollout restart deployment checkout-api.
+    - Run kubectl scale deployment checkout-api --replicas=2.
+    - Run kubectl rollout status deployment checkout-api.
+  explanation: |
+    A Running pod can still be unavailable if readiness never succeeds. Events and describe output identify the failed probe target, while logs confirm the application port. After the manifest is fixed, rollout restart, scale, and rollout status verify that the deployment controller converges.
+  outcome: |
+    checkout-api rolls out with the readiness probe checking port 8080, scales to two replicas, and reaches a healthy rollout state.
+  focusFileName: deployment.yaml
+  replacements:
+    - fileName: deployment.yaml
+      search: |
+        port: 9090
+      replace: |
+        port: 8080
+  commands:
+    - kubectl get events
+    - kubectl describe pod checkout-api
+    - kubectl logs checkout-api
+    - kubectl rollout restart deployment checkout-api
+    - kubectl scale deployment checkout-api --replicas=2
+    - kubectl rollout status deployment checkout-api
+backend:
+  bucket: kubernetes
+  key: checkout-api-readiness
+  table: workloads
+  locked: false
+  lockId: null
+awsResources:
+  - type: deployment
+    name: checkout-api
+    id: default/checkout-api
+    status: failed
+    note: Pod is running but not ready because the readiness probe checks port 9090.
+stateResources:
+  - address: pod.checkout-api
+    id: NotReady
+  - address: probe.checkout-api.readiness
+    id: port-9090
+  - address: deployment.checkout-api.replicas
+    id: "1"
+flags:
+  initialized: false
+  validationPassed: false
+  kubernetesEventsChecked: false
+  kubernetesValidated: false

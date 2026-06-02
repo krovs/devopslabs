@@ -8,6 +8,7 @@ export type LabModalKind = "solution" | "completion";
 const resourceTitleByKind: Partial<Record<NonNullable<Scenario["kind"]>, string>> = {
   terragrunt: "Terragrunt Stack",
   gitops: "GitOps",
+  kubernetes: "Kubernetes",
   iam: "IAM",
   scp: "SCP",
   secrets: "Secrets",
@@ -15,11 +16,15 @@ const resourceTitleByKind: Partial<Record<NonNullable<Scenario["kind"]>, string>
   observability: "Observability",
   finops: "Cost",
   awsconfig: "IaC Security",
+  policy: "Policy",
+  linux: "Linux",
+  networking: "Network",
 };
 
 const contextualStateKinds = new Set<Scenario["kind"]>([
   "terragrunt",
   "gitops",
+  "kubernetes",
   "iam",
   "scp",
   "secrets",
@@ -27,6 +32,9 @@ const contextualStateKinds = new Set<Scenario["kind"]>([
   "observability",
   "finops",
   "awsconfig",
+  "policy",
+  "linux",
+  "networking",
 ]);
 
 export function getInitialTheme(): ThemeName {

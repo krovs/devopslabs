@@ -73,6 +73,8 @@ export const scenarioDifficultyTiers: Partial<Record<string, DifficultyTier>> = 
   gitopsArgoCdPruneSelfHeal: "normal",
   gitopsFluxWrongKustomizationPath: "easy",
   gitopsFluxSuspendedKustomization: "normal",
+  kubernetesImagePullBackOffTriage: "easy",
+  kubernetesReadinessProbePort: "normal",
   iamBlankSecretsReadonly: "easy",
   iamBlankCloudWatchLogsWrite: "normal",
   iamS3PrefixLeastPrivilege: "normal",

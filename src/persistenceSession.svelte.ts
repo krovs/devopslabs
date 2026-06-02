@@ -1,6 +1,6 @@
 import { persistCurrentSession } from "./runtimeSession";
 
-type PersistSnapshot = Parameters<typeof persistCurrentSession>[0];
+export type PersistSnapshot = Parameters<typeof persistCurrentSession>[0];
 
 export type PersistenceSessionOptions = {
   getSnapshot: () => PersistSnapshot | null;

@@ -333,6 +333,18 @@ select {
 .menu-lab-group {
   display: grid;
   gap: 6px;
+  padding: 3px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.menu-lab-group.selected-section {
+  border-color: color-mix(in srgb, var(--accent) 72%, var(--line));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent),
+    0 0 22px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .menu-group-button {
@@ -358,6 +370,16 @@ select {
 
 .menu-group-button[aria-expanded="true"]::before {
   transform: rotate(90deg);
+}
+
+.menu-lab-group.selected-section .menu-group-button::before,
+.menu-lab-group.selected-section .menu-group-button strong,
+.menu-lab-group.selected-section .menu-group-button small {
+  color: var(--accent);
+}
+
+.menu-lab-group.selected-section .menu-group-button small {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .menu-group-button > span {
@@ -415,6 +437,10 @@ select {
   gap: 5px;
   padding-left: 10px;
   border-left: 0;
+}
+
+.menu-lab-group.selected-section .scenario-list {
+  padding: 2px 3px 3px 13px;
 }
 
 .theme-dots {
@@ -593,9 +619,9 @@ select {
 
 .lab-index {
   display: grid;
-  width: min(100%, 1180px);
+  width: min(100%, 1440px);
   margin: 0 auto;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-content: start;
   gap: 18px;
   min-height: 0;
@@ -642,11 +668,11 @@ select {
 
 .lab-index-card {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: start;
-  gap: 16px;
+  gap: 14px;
   min-height: 164px;
-  padding: 26px 28px;
+  padding: 24px 22px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--line) 34%, transparent);
   border-radius: 8px;
@@ -745,8 +771,14 @@ select {
 .lab-index-count {
   align-self: start;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
+}
+
+@media (max-width: 1180px) {
+  .lab-index {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-height: 820px) and (min-width: 821px) {
@@ -2177,6 +2209,7 @@ th {
   .topbar,
   .workspace,
   .pr-workspace,
+  .lab-index,
   .resource-grid,
   .pipeline-dashboard,
   .kv-grid,

@@ -251,6 +251,13 @@ export const scenarioManifest = [
     "path": "../scenarios/kubernetes-basics/kubernetes-imagepullbackoff-triage.yaml"
   },
   {
+    "id": "kubernetesReadinessProbePort",
+    "kind": "kubernetes",
+    "title": "Kubernetes Readiness Probe Port Triage",
+    "description": "A Kubernetes deployment is running but never becomes ready; inspect pods, events, logs, rollout state, and scaling before repairing the readiness probe port.",
+    "path": "../scenarios/kubernetes-basics/kubernetes-readiness-probe-port.yaml"
+  },
+  {
     "id": "iamBlankSecretsReadonly",
     "kind": "iam",
     "title": "IAM Blank Secrets Read Only",

@@ -34,6 +34,7 @@
   let workflowResource = $derived(runtime.awsResources[0]);
   let repositorySecrets = $derived(runtime.stateResources.filter((resource) => resource.address.startsWith("secret.")));
   let repositoryPaths = $derived(runtime.stateResources.filter((resource) => resource.address.startsWith("path.")));
+  let stateIdentifierLabel = $derived(rightResourceTitle === "Terraform State" ? "Remote ID" : "Value");
 
   function statusClass(status: string): string {
     if (status === "exists" || status === "success") return "badge badge-ok";
@@ -148,7 +149,7 @@
           <thead>
             <tr>
               <th>Address</th>
-              <th>Remote ID</th>
+              <th>{stateIdentifierLabel}</th>
             </tr>
           </thead>
           <tbody>

@@ -168,6 +168,8 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 - Argo CD automated sync missing prune and self-heal
 - Flux Kustomization pointing at the wrong environment path
 - Flux Kustomization suspended after maintenance
+- Kubernetes ImagePullBackOff rollout and events triage
+- Kubernetes readiness probe port triage
 - IAM S3 prefix least-privilege policy
 - IAM GitHub OIDC environment trust policy
 - IAM KMS encryption context policy

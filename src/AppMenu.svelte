@@ -64,6 +64,10 @@
     { id: "cyberpunk", label: "Cyber theme" },
   ];
 
+  function isSelectedLabGroup(groupId: MenuGroupId): boolean {
+    return currentPage === "index" && openMenuGroups.length === 1 && openMenuGroups[0] === groupId;
+  }
+
   function toggleCompletionWithKeyboard(id: string, event: KeyboardEvent): void {
     if (event.key === "Enter" || event.key === " ") ontogglecompletion(id, event);
   }
@@ -128,7 +132,7 @@
     </label>
     {#each labGroups as group}
       {#if menugroupvisible(group.ids, menuSearchQuery)}
-        <div class="menu-lab-group">
+        <div class="menu-lab-group" class:selected-section={isSelectedLabGroup(group.id)}>
           <button
             type="button"
             class="menu-group-button"
