@@ -16,6 +16,44 @@ function lineIndexContaining(lines: string[], text: string): number {
   return lines.findIndex((line) => line.includes(text));
 }
 
+function lineIndent(line: string): number {
+  return line.match(/^\s*/)?.[0].length ?? 0;
+}
+
+export function hasDefaultsRunWorkingDirectory(file: string, expectedDirectory: string): boolean {
+  const lines = fileLines(file);
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const defaultsMatch = lines[index].match(/^(\s*)defaults:\s*$/);
+    if (!defaultsMatch) continue;
+
+    const defaultsIndent = defaultsMatch[1].length;
+    for (let runIndex = index + 1; runIndex < lines.length; runIndex += 1) {
+      const runLine = lines[runIndex];
+      if (!runLine.trim()) continue;
+      const runIndent = lineIndent(runLine);
+      if (runIndent <= defaultsIndent) break;
+      if (!/^\s*run:\s*$/.test(runLine)) continue;
+
+      for (let workingDirectoryIndex = runIndex + 1; workingDirectoryIndex < lines.length; workingDirectoryIndex += 1) {
+        const workingDirectoryLine = lines[workingDirectoryIndex];
+        if (!workingDirectoryLine.trim()) continue;
+        const workingDirectoryIndent = lineIndent(workingDirectoryLine);
+        if (workingDirectoryIndent <= runIndent) break;
+        if (new RegExp(`^\\s*working-directory:\\s*${escapeRegExp(expectedDirectory)}\\s*$`).test(workingDirectoryLine)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function setFirstResource(runtime: Scenario, status: string, note: string): void {
   if (runtime.awsResources[0]) {
     runtime.awsResources[0].status = status;
@@ -74,7 +112,7 @@ export function genericGithubActionsFixApplied(runtime: Scenario, scenarioId: st
   const file = runtime.files[activeFileName] ?? "";
 
   if (scenarioId === "githubActionsNodeCachePath") {
-    return file.includes("working-directory: app");
+    return hasDefaultsRunWorkingDirectory(file, "app");
   }
 
   if (scenarioId === "githubActionsDockerRegistryAuth") {
@@ -327,7 +365,14 @@ export function githubRunView(runtime: Scenario, scenarioId: string): string[] {
 export function jenkinsBuildLog(runtime: Scenario, scenarioId: string): string[] {
   if (scenarioId !== "jenkinsMissingCredentialsBinding") return ["No Jenkins build is configured for this scenario."];
   if (runtime.flags.runPassing) return ["job: publish-image", "status: success", "docker login completed with credentialsId ghcr-push", "docker push completed"];
-  return ["job: publish-image", "status: failure", "stage: Publish image", "docker login ghcr.io", "Cannot perform an interactive login from a non TTY device"];
+  return [
+    "job: publish-image",
+    "status: failure",
+    "stage: Publish image",
+    "docker login ghcr.io",
+    "Cannot perform an interactive login from a non TTY device",
+    "hint: Jenkins folder platform-delivery has a GHCR username/password credential; see jenkins/credentials.md",
+  ];
 }
 
 export function jenkinsRebuild(runtime: Scenario, scenarioId: string, activeFileName: string): string[] {
@@ -355,7 +400,7 @@ export function githubRunRerun(runtime: Scenario, scenarioId: string, activeFile
   }
 
   if (scenarioId === "githubActionsWrongWorkingDirectory") {
-    if (!runtime.files[activeFileName].includes("working-directory: infra/dev")) {
+    if (!hasDefaultsRunWorkingDirectory(runtime.files[activeFileName] ?? "", "infra/dev")) {
       setFirstResource(runtime, "failed", "Workflow still points at infra/prod.");
       return ["Re-running workflow terraform-check...", "Run failed: infra/prod does not exist."];
     }
