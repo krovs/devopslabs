@@ -2,7 +2,7 @@
 
 A small Svelte + TypeScript web app for practicing DevOps and cloud troubleshooting scenarios.
 
-The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Helm, Kyverno, Istio, Cilium, or certificate services.
+The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, Java application security auditing, AWS cloud security auditing, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Helm, Maven, Semgrep, Gitleaks, Trivy, Kyverno, Istio, Cilium, or certificate services.
 
 ## Features
 
@@ -14,6 +14,8 @@ The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, IaC
 - Diff-first PR review workspace with review decisions and finding selection
 - GitOps scenarios for Argo CD Application and Flux Kustomization reconciliation failures
 - Policy as Code scenarios for Kubernetes, Kyverno, Istio, and Cilium policy patterns
+- Application Security scenarios for Java dependency, secret, container, authorization, and injection audit patterns
+- Cloud Security Audit scenarios for GuardDuty, CloudTrail, CloudWatch Logs, AWS Config, and IAM investigation workflows
 - Observability and FinOps scenarios for CloudWatch, logs, Cost Explorer, and cost-resource cleanup
 - YAML-backed scenarios bundled at build time
 - Collapsible side menu with completion counts
@@ -115,6 +117,11 @@ kubectl scale deployment checkout-api --replicas=2
 helm lint checkout ./chart
 helm template checkout ./chart
 helm upgrade checkout ./chart
+mvn test
+mvn org.owasp:dependency-check-maven:check
+semgrep scan
+gitleaks detect
+trivy config .
 aws iam simulate-principal-policy
 aws sts assume-role-with-web-identity
 aws kms decrypt
@@ -126,6 +133,11 @@ aws acm describe-certificate
 dig app.example.com
 aws cloudwatch describe-alarms
 aws logs describe-log-groups
+aws guardduty list-findings
+aws guardduty get-findings
+aws cloudtrail lookup-events
+aws logs filter-log-events
+aws configservice get-resource-config-history
 aws ce get-cost-and-usage
 aws ec2 describe-volumes
 kyverno test .
@@ -182,6 +194,10 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 - Kubernetes ImagePullBackOff rollout and events triage
 - Kubernetes readiness probe port triage
 - Kubernetes Helm values port triage
+- Kubernetes EKS RBAC and IRSA service account triage
+- Java dependency, secrets, and container audit
+- Java authorization and SQL injection code audit
+- AWS GuardDuty, CloudTrail, Config, and IAM audit
 - IAM S3 prefix least-privilege policy
 - IAM GitHub OIDC environment trust policy
 - IAM KMS encryption context policy
@@ -254,7 +270,9 @@ Scenario kinds:
 - `kind: terragrunt`: uses Terragrunt commands and stack/source/dependency validation.
 - `kind: cicd`: uses GitHub Actions commands and the pipeline dashboard.
 - `kind: gitops`: uses Argo CD and Flux-style reconciliation commands for Kubernetes GitOps workflows.
-- `kind: kubernetes`: uses Kubernetes and Helm-style commands for pod, rollout, and chart troubleshooting.
+- `kind: kubernetes`: uses Kubernetes, EKS IRSA, RBAC, and Helm-style commands for pod, rollout, service account, and chart troubleshooting.
+- `kind: appsec`: uses Java application security commands such as `mvn test`, dependency-check, Semgrep, Gitleaks, and Trivy.
+- `kind: cloudsec`: uses GuardDuty, CloudTrail, CloudWatch Logs, AWS Config, and IAM simulation commands for AWS security investigation.
 - `kind: iam`: uses identity simulation or inspection commands and least-privilege checks across AWS and Azure-style exercises.
 - `kind: scp`: uses AWS Organizations policy inspection and IAM-style simulation to model SCP deny guardrails.
 - `kind: policy`: uses policy-as-code validation commands such as `kyverno test .` and Kubernetes server dry-run.
@@ -273,7 +291,11 @@ Policy as Code scenarios use `kind: policy` and model platform/workload guardrai
 
 GitOps scenarios use `kind: gitops` and model Kubernetes desired-state reconciliation through Argo CD Applications and Flux Kustomizations. Current labs cover target revision drift, automated prune/self-heal settings, wrong source paths, and suspended reconciliation.
 
-Kubernetes scenarios use `kind: kubernetes` and model workload triage through `kubectl` plus Helm chart workflows. Current labs cover ImagePullBackOff events, readiness probe port mismatches, and Helm values that render the wrong container port.
+Kubernetes scenarios use `kind: kubernetes` and model workload triage through `kubectl` plus Helm chart workflows. Current labs cover ImagePullBackOff events, readiness probe port mismatches, Helm values that render the wrong container port, and EKS service account access that combines Kubernetes RBAC with IRSA.
+
+Application Security scenarios use `kind: appsec` and model Java DevSecOps audit workflows. Current labs cover vulnerable dependencies, committed secrets, root containers, client-controlled authorization, and SQL injection.
+
+Cloud Security Audit scenarios use `kind: cloudsec` and model AWS security investigation workflows. Current labs cover GuardDuty findings, CloudTrail activity, CloudWatch Logs event context, AWS Config policy history, and IAM simulation for overbroad permissions.
 
 Incident Mode is a menu option that hides unsolved lab names and direct scenario descriptions. It replaces them with generic incident context, changes tips into optional clues, and keeps solved labs visible for review.
 

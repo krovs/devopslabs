@@ -83,6 +83,15 @@ export function createLabActions(options: LabActionsOptions) {
     addTerminalLines,
     celebrateIfScenarioCompleted,
     openSolutionModal(): void {
+      if (
+        options.scenario.runtime &&
+        !isSolved() &&
+        !options.labMenu.completedScenarioIds.includes(options.scenario.currentId)
+      ) {
+        options.scenario.runtime.flags.solutionViewed = true;
+        options.scenario.refresh();
+        options.onSave();
+      }
       options.labProgress.openSolutionModal();
     },
     closeLabModal(): void {

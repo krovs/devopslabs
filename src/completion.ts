@@ -1,4 +1,6 @@
 import { isGenericGithubActionsScenario, workflowFailedStep } from "./simulators/cicd";
+import { appsecFixApplied, markAppsecScenarioSolved } from "./simulators/appsec";
+import { cloudsecFixApplied, markCloudsecScenarioSolved } from "./simulators/cloudsec";
 import { gitopsFixApplied } from "./simulators/gitops";
 import { iamFixApplied, markIamScenarioSolved, scpFixApplied, scpSuccessNote } from "./simulators/identity";
 import { dnsFixApplied, finopsFixApplied, observabilityFixApplied, secretsFixApplied } from "./simulators/ops";
@@ -9,7 +11,7 @@ import type { Scenario, ScenarioFlags } from "./types";
 type OperationalCompletionFlag = Extract<
   keyof ScenarioFlags,
   "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated" | "policyValidated" | "gitopsValidated"
-  | "linuxValidated" | "kubernetesValidated"
+  | "linuxValidated" | "kubernetesValidated" | "appsecValidated" | "cloudsecValidated"
 >;
 
 function markFirstResource(runtime: Scenario, status: string, note: string): void {
@@ -32,6 +34,7 @@ export function prReviewIsCorrect(runtime: Scenario): boolean {
 
 export function checkScenario(runtime: Scenario, scenarioId: string, activeFileName: string): string[] {
   if (isScenarioSolved(runtime, scenarioId, activeFileName)) return ["Scenario complete."];
+  if (runtime.flags.solutionViewed) return ["Not complete: the solution was viewed for this attempt. Reset the lab and solve it without opening the solution to mark it complete."];
 
   if (runtime.kind === "cicd") {
     if (scenarioId === "githubActionsMissingSecret" && !runtime.flags.secretsConfigured) {
@@ -70,6 +73,29 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
   if (runtime.kind === "kubernetes") {
     if (!runtime.flags.kubernetesValidated) return ["Not complete: inspect the workload, fix the Kubernetes configuration, and verify the rollout."];
     markOperationalScenarioSolved(runtime, "kubernetesValidated", "Kubernetes workload troubleshooting completed.");
+    return ["Scenario complete."];
+  }
+
+  if (runtime.kind === "appsec") {
+    if (!appsecFixApplied(runtime, scenarioId)) return ["Not complete: Java security findings still exist in dependencies, secrets, container config, or source code."];
+    if (scenarioId === "javaDependencySecretsContainerAudit") {
+      if (!runtime.flags.securityPassed) return ["Not complete: dependency-check has not passed after the dependency fix."];
+      if (!runtime.flags.secretsConfigured) return ["Not complete: gitleaks has not passed after externalizing the JWT secret."];
+      if (!runtime.flags.lintPassed) return ["Not complete: trivy config has not passed after adding the non-root container user."];
+    }
+    if (scenarioId === "javaCodeAuthSqlAudit" && !runtime.flags.securityPassed) return ["Not complete: semgrep still needs to pass after the code fixes."];
+    if (!runtime.flags.runPassing) return ["Not complete: run mvn test after the Java security fixes."];
+    markAppsecScenarioSolved(runtime, "Java application security audit passed.");
+    return ["Scenario complete."];
+  }
+
+  if (runtime.kind === "cloudsec") {
+    if (!runtime.flags.initialized) return ["Not complete: start from the GuardDuty finding list."];
+    if (!runtime.flags.validationPassed) return ["Not complete: inspect GuardDuty, CloudTrail, and CloudWatch Logs before changing IAM."];
+    if (!runtime.flags.cleanPlan) return ["Not complete: inspect AWS Config resource history for the policy change."];
+    if (!cloudsecFixApplied(runtime, scenarioId)) return ["Not complete: DeveloperSupportRole still has broad S3 or iam:PassRole access."];
+    if (!runtime.flags.securityPassed) return ["Not complete: run IAM simulation after narrowing the policy."];
+    markCloudsecScenarioSolved(runtime);
     return ["Scenario complete."];
   }
 
@@ -146,6 +172,7 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
 }
 
 export function isScenarioSolved(runtime: Scenario, scenarioId: string, activeFileName: string): boolean {
+  if (runtime.flags.solutionViewed) return false;
   if (runtime.kind === "iam") return Boolean(runtime.flags.iamValidated);
   if (runtime.kind === "scp") return Boolean(runtime.flags.scpValidated);
   if (runtime.kind === "pr") return Boolean(runtime.flags.reviewPassed);
@@ -157,6 +184,8 @@ export function isScenarioSolved(runtime: Scenario, scenarioId: string, activeFi
   if (runtime.kind === "gitops") return Boolean(runtime.flags.gitopsValidated);
   if (runtime.kind === "linux") return Boolean(runtime.flags.linuxValidated);
   if (runtime.kind === "kubernetes") return Boolean(runtime.flags.kubernetesValidated);
+  if (runtime.kind === "appsec") return Boolean(runtime.flags.appsecValidated);
+  if (runtime.kind === "cloudsec") return Boolean(runtime.flags.cloudsecValidated);
   if (runtime.kind === "awsconfig") return Boolean(runtime.flags.configValidated && runtime.flags.cleanPlan);
   if (scenarioId === "githubActionsMissingSecret") return Boolean(runtime.flags.secretsConfigured && runtime.flags.runPassing);
   if (scenarioId === "githubActionsWrongWorkingDirectory") return Boolean(runtime.flags.workflowFixed && runtime.flags.runPassing);

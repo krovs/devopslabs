@@ -1,0 +1,172 @@
+id: javaCodeAuthSqlAudit
+kind: appsec
+title: Java Code Authorization And SQL Audit
+description: A Spring Boot code review finds an admin endpoint trusting a request header for authorization and a repository query built with string concatenation.
+primaryFile: src/main/java/com/acme/checkout/UserController.java
+tips:
+  - Start with semgrep scan to identify code-level findings.
+  - The admin endpoint must use trusted Spring Security authorization, not a request header.
+  - The repository must not concatenate user input into SQL.
+  - Use @PreAuthorize for the admin endpoint.
+  - Use a parameterized JdbcTemplate query for email lookup.
+  - Run mvn test after the code fixes.
+files:
+  "pom.xml": |
+    <project xmlns="http://maven.apache.org/POM/4.0.0">
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.acme</groupId>
+      <artifactId>checkout-api</artifactId>
+      <version>1.0.0</version>
+
+      <properties>
+        <java.version>17</java.version>
+        <spring-boot.version>3.2.6</spring-boot.version>
+      </properties>
+
+      <dependencies>
+        <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-security</artifactId>
+          <version>${spring-boot.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-jdbc</artifactId>
+          <version>${spring-boot.version}</version>
+        </dependency>
+      </dependencies>
+    </project>
+  "src/main/java/com/acme/checkout/UserController.java": |
+    package com.acme.checkout;
+
+    import java.util.List;
+    import org.springframework.web.bind.annotation.GetMapping;
+    import org.springframework.web.bind.annotation.RequestHeader;
+    import org.springframework.web.bind.annotation.RestController;
+
+    @RestController
+    public class UserController {
+      private final UserRepository users;
+
+      public UserController(UserRepository users) {
+        this.users = users;
+      }
+
+      @GetMapping("/admin/users")
+      public List<UserRecord> adminUsers(@RequestHeader("X-Role") String role) {
+        if (!"ADMIN".equals(role)) {
+          throw new SecurityException("admin role required");
+        }
+        return users.findAll();
+      }
+    }
+  "src/main/java/com/acme/checkout/UserRepository.java": |
+    package com.acme.checkout;
+
+    import java.util.List;
+    import org.springframework.jdbc.core.JdbcTemplate;
+    import org.springframework.stereotype.Repository;
+
+    @Repository
+    public class UserRepository {
+      private final JdbcTemplate jdbc;
+
+      public UserRepository(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+      }
+
+      public List<UserRecord> findByEmail(String email) {
+        String sql = "select id, email from users where email = '" + email + "'";
+        return jdbc.query(sql, (rs, row) -> new UserRecord(rs.getLong("id"), rs.getString("email")));
+      }
+
+      public List<UserRecord> findAll() {
+        return jdbc.query("select id, email from users", (rs, row) -> new UserRecord(rs.getLong("id"), rs.getString("email")));
+      }
+    }
+  "src/main/java/com/acme/checkout/UserRecord.java": |
+    package com.acme.checkout;
+
+    public record UserRecord(Long id, String email) {}
+  "runbook.md": |
+    Goal:
+    - Review and fix code-level Java security findings.
+
+    Constraints:
+    - Do not trust client-controlled headers for authorization.
+    - Do not concatenate request-controlled values into SQL.
+    - Keep the endpoint path and repository behavior.
+    - Re-run semgrep and tests after fixes.
+solution:
+  summary: |
+    The controller authorizes admin access from a client-controlled X-Role header, and the repository builds a SQL statement by concatenating the email value.
+  steps:
+    - Run semgrep scan to find the broken authorization and SQL injection findings.
+    - Replace the X-Role header check with @PreAuthorize("hasRole('ADMIN')").
+    - Remove the RequestHeader import and add the PreAuthorize import.
+    - Change findByEmail to use a ? placeholder and pass email as a query parameter.
+    - Run semgrep scan again.
+    - Run mvn test.
+  explanation: |
+    Application security review should trace whether authorization decisions come from trusted identity context and whether untrusted input reaches an interpreter. The header can be forged by a caller, and string-built SQL lets input change query structure. Spring Security annotations and parameterized queries keep those boundaries explicit.
+  outcome: |
+    The admin endpoint uses Spring Security authorization, the email lookup is parameterized, Semgrep has no blocking findings, and tests pass.
+  focusFileName: src/main/java/com/acme/checkout/UserController.java
+  replacements:
+    - fileName: src/main/java/com/acme/checkout/UserController.java
+      search: |
+        import org.springframework.web.bind.annotation.RequestHeader;
+      replace: |
+        import org.springframework.security.access.prepost.PreAuthorize;
+    - fileName: src/main/java/com/acme/checkout/UserController.java
+      search: |
+          @GetMapping("/admin/users")
+          public List<UserRecord> adminUsers(@RequestHeader("X-Role") String role) {
+            if (!"ADMIN".equals(role)) {
+              throw new SecurityException("admin role required");
+            }
+            return users.findAll();
+          }
+      replace: |
+          @PreAuthorize("hasRole('ADMIN')")
+          @GetMapping("/admin/users")
+          public List<UserRecord> adminUsers() {
+            return users.findAll();
+          }
+    - fileName: src/main/java/com/acme/checkout/UserRepository.java
+      search: |
+          public List<UserRecord> findByEmail(String email) {
+            String sql = "select id, email from users where email = '" + email + "'";
+            return jdbc.query(sql, (rs, row) -> new UserRecord(rs.getLong("id"), rs.getString("email")));
+          }
+      replace: |
+          public List<UserRecord> findByEmail(String email) {
+            String sql = "select id, email from users where email = ?";
+            return jdbc.query(sql, (rs, row) -> new UserRecord(rs.getLong("id"), rs.getString("email")), email);
+          }
+  commands:
+    - semgrep scan
+    - mvn test
+    - check
+backend:
+  bucket: appsec
+  key: checkout-api-java-code-review
+  table: application-security
+  locked: false
+  lockId: null
+awsResources:
+  - type: java_service
+    name: checkout-api
+    id: checkout-api
+    status: failed
+    note: Code audit found client-controlled authorization and SQL injection risk.
+stateResources:
+  - address: controller.admin.authorization
+    id: request-header
+  - address: repository.user.findByEmail
+    id: string-concat-sql
+flags:
+  initialized: false
+  securityPassed: false
+  runPassing: false
+  appsecValidated: false

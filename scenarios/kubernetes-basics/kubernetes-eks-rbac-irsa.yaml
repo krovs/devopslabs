@@ -1,0 +1,137 @@
+id: kubernetesEksRbacIrsa
+kind: kubernetes
+title: Kubernetes EKS RBAC And IRSA Triage
+description: An EKS workload uses the wrong service account IAM role and is not bound to the namespace Role; fix the ServiceAccount annotation and RBAC subject before rolling out.
+primaryFile: serviceaccount.yaml
+tips:
+  - Start with kubectl get pods.
+  - Logs show both Kubernetes RBAC and AWS credential failures.
+  - Use kubectl auth can-i to test the service account inside the payments namespace.
+  - The deployment uses serviceAccountName checkout-api.
+  - The RoleBinding currently points at checkout-worker instead of checkout-api.
+  - The ServiceAccount annotation must use the payments IRSA role.
+files:
+  "serviceaccount.yaml": |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: checkout-api
+      namespace: payments
+      annotations:
+        eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/eks-default-readonly
+  "rbac.yaml": |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: checkout-api-reader
+      namespace: payments
+    rules:
+      - apiGroups: [""]
+        resources: ["configmaps", "secrets"]
+        verbs: ["get", "list"]
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: checkout-api-reader
+      namespace: payments
+    subjects:
+      - kind: ServiceAccount
+        name: checkout-worker
+        namespace: payments
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: checkout-api-reader
+  "deployment.yaml": |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: checkout-api
+      namespace: payments
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: checkout-api
+      template:
+        metadata:
+          labels:
+            app: checkout-api
+        spec:
+          serviceAccountName: checkout-api
+          containers:
+            - name: checkout-api
+              image: ghcr.io/acme/checkout-api:1.4.2
+              env:
+                - name: ORDERS_QUEUE_URL
+                  value: https://sqs.eu-west-1.amazonaws.com/111122223333/orders
+  "runbook.md": |
+    Goal:
+    - Restore checkout-api access in the payments namespace on EKS.
+
+    Constraints:
+    - Keep the deployment on serviceAccountName checkout-api.
+    - Do not grant cluster-admin or bind the default service account.
+    - Bind the existing namespace Role to the workload service account.
+    - Annotate the ServiceAccount with the approved payments IRSA role.
+    - Verify Kubernetes RBAC and web identity trust before restarting the rollout.
+solution:
+  summary: |
+    checkout-api runs as the checkout-api service account, but the RoleBinding grants permissions to checkout-worker and the ServiceAccount is annotated with the default read-only IAM role instead of the payments IRSA role.
+  steps:
+    - Run kubectl get pods to see checkout-api is running but failing authorization checks.
+    - Run kubectl logs checkout-api to confirm Kubernetes RBAC and AWS AccessDenied errors.
+    - Run kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments to test namespace RBAC.
+    - Change the RoleBinding subject name from checkout-worker to checkout-api.
+    - Change the ServiceAccount annotation to arn:aws:iam::111122223333:role/eks-checkout-api-payments.
+    - Run aws sts assume-role-with-web-identity to verify the IRSA trust path.
+    - Restart checkout-api and verify rollout status.
+  explanation: |
+    EKS IRSA connects a Kubernetes ServiceAccount to an IAM role, while Kubernetes RBAC controls namespace API permissions. Both identities must line up with the workload's serviceAccountName. Broadening the Role or switching to the default service account would hide the problem instead of fixing the intended access path.
+  outcome: |
+    checkout-api keeps its dedicated service account, can read the namespace configuration it needs, assumes the approved payments IAM role through IRSA, and rolls out successfully.
+  focusFileName: serviceaccount.yaml
+  replacements:
+    - fileName: serviceaccount.yaml
+      search: |
+        eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/eks-default-readonly
+      replace: |
+        eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/eks-checkout-api-payments
+    - fileName: rbac.yaml
+      search: |
+        name: checkout-worker
+      replace: |
+        name: checkout-api
+  commands:
+    - kubectl get pods
+    - kubectl logs checkout-api
+    - kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments
+    - aws sts assume-role-with-web-identity
+    - kubectl rollout restart deployment checkout-api
+    - kubectl rollout status deployment checkout-api
+backend:
+  bucket: kubernetes
+  key: checkout-api-eks-rbac-irsa
+  table: workloads
+  locked: false
+  lockId: null
+awsResources:
+  - type: service_account
+    name: checkout-api
+    id: payments/checkout-api
+    status: failed
+    note: RoleBinding points at checkout-worker and the ServiceAccount has the default read-only IRSA role.
+stateResources:
+  - address: serviceaccount.payments.checkout-api.irsa
+    id: eks-default-readonly
+  - address: rolebinding.payments.checkout-api-reader.subject
+    id: checkout-worker
+  - address: deployment.checkout-api.rollout
+    id: AccessDenied
+flags:
+  initialized: false
+  validationPassed: false
+  securityPassed: false
+  cleanPlan: false
+  kubernetesValidated: false

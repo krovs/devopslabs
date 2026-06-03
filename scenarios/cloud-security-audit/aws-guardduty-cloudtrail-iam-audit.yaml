@@ -1,0 +1,155 @@
+id: awsGuardDutyCloudTrailIamAudit
+kind: cloudsec
+title: AWS GuardDuty CloudTrail IAM Audit
+description: Investigate a GuardDuty finding with CloudTrail, CloudWatch Logs, AWS Config, and IAM simulation, then narrow an overbroad developer support role.
+primaryFile: iam/policy.json
+tips:
+  - Start with aws guardduty list-findings.
+  - Pull the finding details before changing IAM.
+  - Use CloudTrail and CloudWatch Logs to identify the role and actions used.
+  - Use AWS Config resource history to see when the policy changed.
+  - Simulate the role before and after the policy fix.
+  - The support role should read only the prod-audit-logs bucket prefix for support cases.
+files:
+  "iam/policy.json": |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "SupportTroubleshootingRead",
+          "Effect": "Allow",
+          "Action": [
+            "s3:*",
+            "iam:PassRole"
+          ],
+          "Resource": "*"
+        }
+      ]
+    }
+  "guardduty/finding.json": |
+    {
+      "Id": "gd-9f3b2c1a",
+      "Type": "UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS",
+      "Severity": 8.1,
+      "Resource": "arn:aws:iam::123456789012:role/DeveloperSupportRole",
+      "Service": {
+        "Action": {
+          "AwsApiCallAction": {
+            "Api": "GetObject",
+            "ServiceName": "s3.amazonaws.com",
+            "RemoteIpDetails": {
+              "IpAddressV4": "198.51.100.77",
+              "Country": "Exampleland"
+            }
+          }
+        }
+      }
+    }
+  "cloudtrail/events.json": |
+    [
+      {
+        "eventTime": "2026-06-03T07:42:11Z",
+        "eventSource": "sts.amazonaws.com",
+        "eventName": "AssumeRole",
+        "userIdentity": "arn:aws:iam::123456789012:user/alex",
+        "requestParameters": {
+          "roleArn": "arn:aws:iam::123456789012:role/DeveloperSupportRole"
+        }
+      },
+      {
+        "eventTime": "2026-06-03T07:43:02Z",
+        "eventSource": "s3.amazonaws.com",
+        "eventName": "GetObject",
+        "userIdentity": "arn:aws:iam::123456789012:role/DeveloperSupportRole",
+        "requestParameters": {
+          "bucketName": "prod-customer-data",
+          "key": "exports/full-customer-list.csv"
+        }
+      }
+    ]
+  "config/timeline.json": |
+    [
+      {
+        "configurationItemCaptureTime": "2026-06-02T18:21:54Z",
+        "resourceType": "AWS::IAM::Policy",
+        "resourceName": "DeveloperSupportPolicy",
+        "changedBy": "arn:aws:iam::123456789012:user/alex",
+        "changeSummary": "Policy changed from support log read access to s3:* and iam:PassRole on *"
+      }
+    ]
+  "runbook.md": |
+    Goal:
+    - Investigate the GuardDuty finding and remove the risky permission path.
+
+    Constraints:
+    - Do not disable GuardDuty, CloudTrail, AWS Config, or logging.
+    - Confirm the affected role and actions before changing policy.
+    - Keep support read access to prod-audit-logs/support-cases only.
+    - Remove iam:PassRole and broad S3 access from DeveloperSupportRole.
+    - Prove the revised policy no longer allows broad S3 or pass-role access.
+solution:
+  summary: |
+    GuardDuty reported suspicious S3 access using DeveloperSupportRole. CloudTrail and CloudWatch Logs show the role read customer data, AWS Config shows the policy was broadened, and IAM simulation confirms s3:* plus iam:PassRole on all resources.
+  steps:
+    - Run aws guardduty list-findings to find the active finding.
+    - Run aws guardduty get-findings to inspect the role, API, severity, and remote IP.
+    - Run aws cloudtrail lookup-events to identify the AssumeRole and GetObject events.
+    - Run aws logs filter-log-events to correlate the CloudTrail event context.
+    - Run aws configservice get-resource-config-history to see the IAM policy change.
+    - Run aws iam simulate-principal-policy to prove the current permissions are too broad.
+    - Replace s3:* and iam:PassRole on * with scoped S3 read access to prod-audit-logs/support-cases.
+    - Run aws iam simulate-principal-policy again and check the scenario.
+  explanation: |
+    A cloud security audit should connect detection, activity history, configuration drift, and effective permissions. GuardDuty gives the lead, CloudTrail and CloudWatch Logs show what happened, AWS Config shows when policy changed, and IAM simulation proves whether the permission path still exists.
+  outcome: |
+    DeveloperSupportRole can read only support-case audit objects, iam:PassRole is removed, broad S3 access is denied, and the investigation trail identifies the risky policy change.
+  focusFileName: iam/policy.json
+  replacements:
+    - fileName: iam/policy.json
+      search: |
+                "s3:*",
+                "iam:PassRole"
+      replace: |
+                "s3:GetObject",
+                "s3:ListBucket"
+    - fileName: iam/policy.json
+      search: |
+          "Resource": "*"
+      replace: |
+          "Resource": [
+            "arn:aws:s3:::prod-audit-logs",
+            "arn:aws:s3:::prod-audit-logs/support-cases/*"
+          ]
+  commands:
+    - aws guardduty list-findings
+    - aws guardduty get-findings
+    - aws cloudtrail lookup-events
+    - aws logs filter-log-events
+    - aws configservice get-resource-config-history
+    - aws iam simulate-principal-policy
+    - check
+backend:
+  bucket: cloud-security-audit
+  key: guardduty-cloudtrail-iam-audit
+  table: investigations
+  locked: false
+  lockId: null
+awsResources:
+  - type: guardduty_finding
+    name: gd-9f3b2c1a
+    id: UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS
+    status: failed
+    note: DeveloperSupportRole has broad S3 and iam:PassRole permissions after a recent policy change.
+stateResources:
+  - address: guardduty.finding.gd-9f3b2c1a
+    id: active
+  - address: iam.role.DeveloperSupportRole.s3
+    id: "s3:*"
+  - address: iam.role.DeveloperSupportRole.passrole
+    id: allowed
+flags:
+  initialized: false
+  validationPassed: false
+  securityPassed: false
+  cleanPlan: false
+  cloudsecValidated: false

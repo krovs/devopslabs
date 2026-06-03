@@ -223,7 +223,7 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "Kubernetes labs focus on workload health, rendered manifests, and rollout convergence. Start from symptoms in pods and events, then inspect the source that owns the workload: a Deployment manifest or Helm values.",
+          "Kubernetes labs focus on workload health, rendered manifests, namespace access, and rollout convergence. Start from symptoms in pods and events, then inspect the source that owns the workload: a Deployment manifest, ServiceAccount, RBAC binding, or Helm values.",
         ],
       },
       {
@@ -231,13 +231,23 @@ export const documentationSections: DocSection[] = [
         ariaLabel: "Kubernetes troubleshooting flow",
         nodes: [
           { title: "Cluster", detail: "pods, events, logs" },
-          { title: "Source", detail: "manifest or Helm chart" },
+          { title: "Source", detail: "manifest, RBAC, or Helm chart" },
           { title: "Rollout", detail: "restart, upgrade, status" },
         ],
       },
       {
         type: "code",
-        text: "kubectl get pods\nkubectl get events\nkubectl describe pod checkout-api\nkubectl logs checkout-api\nkubectl rollout restart deployment checkout-api\nkubectl rollout status deployment checkout-api\nkubectl scale deployment checkout-api --replicas=2\nhelm lint checkout ./chart\nhelm template checkout ./chart\nhelm upgrade checkout ./chart",
+        text: "kubectl get pods\nkubectl get events\nkubectl describe pod checkout-api\nkubectl logs checkout-api\nkubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments\naws sts assume-role-with-web-identity\nkubectl rollout restart deployment checkout-api\nkubectl rollout status deployment checkout-api\nkubectl scale deployment checkout-api --replicas=2\nhelm lint checkout ./chart\nhelm template checkout ./chart\nhelm upgrade checkout ./chart",
+      },
+      {
+        type: "paragraph",
+        content: [
+          "For EKS service account labs, check both identities. ",
+          { code: "kubectl auth can-i" },
+          " validates Kubernetes RBAC for the service account subject, while ",
+          { code: "aws sts assume-role-with-web-identity" },
+          " validates the IAM role trust path exposed by the ServiceAccount annotation.",
+        ],
       },
       {
         type: "paragraph",
@@ -452,6 +462,78 @@ export const documentationSections: DocSection[] = [
           ["Scope secret access to the correct environment path and customer managed KMS key where required."],
           ["Validate DNS and certificate changes before routing production traffic to a new endpoint."],
           ["Review AWS managed service defaults; many secure settings are opt-in in Terraform."],
+        ],
+      },
+    ],
+  },
+  {
+    id: "wiki-appsec",
+    navTitle: "AppSec",
+    title: "Application Security",
+    blocks: [
+      {
+        type: "paragraph",
+        content: [
+          "Application Security labs model DevSecOps review of Java services. Treat package risk, source-code findings, committed secrets, and container hardening as separate signals that all need clean validation before release.",
+        ],
+      },
+      {
+        type: "diagram",
+        ariaLabel: "Java application security audit flow",
+        nodes: [
+          { title: "Dependencies", detail: "dependency-check" },
+          { title: "Code", detail: "semgrep" },
+          { title: "Release", detail: "gitleaks, trivy, tests" },
+        ],
+      },
+      {
+        type: "code",
+        text: "mvn test\nmvn org.owasp:dependency-check-maven:check\nsemgrep scan\ngitleaks detect\ntrivy config .",
+      },
+      {
+        type: "paragraph",
+        content: [
+          "For Java code review, verify that authorization decisions come from trusted security context and that user input does not change SQL structure. ",
+          { code: "@PreAuthorize" },
+          " and parameterized queries are common safe patterns in Spring applications.",
+        ],
+      },
+    ],
+  },
+  {
+    id: "wiki-cloudsec",
+    navTitle: "Cloud Audit",
+    title: "Cloud Security Audit",
+    blocks: [
+      {
+        type: "paragraph",
+        content: [
+          "Cloud Security Audit labs model AWS security investigations. Start from a detection signal, correlate it with activity logs and configuration history, then prove the effective permission path before changing IAM.",
+        ],
+      },
+      {
+        type: "diagram",
+        ariaLabel: "AWS cloud security audit flow",
+        nodes: [
+          { title: "Detection", detail: "GuardDuty finding" },
+          { title: "Evidence", detail: "CloudTrail, Logs, Config" },
+          { title: "Access", detail: "IAM simulation" },
+        ],
+      },
+      {
+        type: "code",
+        text: "aws guardduty list-findings\naws guardduty get-findings\naws cloudtrail lookup-events\naws logs filter-log-events\naws configservice get-resource-config-history\naws iam simulate-principal-policy",
+      },
+      {
+        type: "paragraph",
+        content: [
+          "Use ",
+          { code: "aws configservice get-resource-config-history" },
+          " for AWS Config resource history. The CLI namespace is ",
+          { code: "configservice" },
+          ", not ",
+          { code: "config" },
+          ".",
         ],
       },
     ],

@@ -265,6 +265,34 @@ export const scenarioManifest = [
     "path": "../scenarios/kubernetes-basics/kubernetes-helm-values-port.yaml"
   },
   {
+    "id": "kubernetesEksRbacIrsa",
+    "kind": "kubernetes",
+    "title": "Kubernetes EKS RBAC And IRSA Triage",
+    "description": "An EKS workload uses the wrong service account IAM role and is not bound to the namespace Role; fix the ServiceAccount annotation and RBAC subject before rolling out.",
+    "path": "../scenarios/kubernetes-basics/kubernetes-eks-rbac-irsa.yaml"
+  },
+  {
+    "id": "javaDependencySecretsContainerAudit",
+    "kind": "appsec",
+    "title": "Java Dependency Secrets And Container Audit",
+    "description": "A Spring Boot service fails DevSecOps gates because it uses a vulnerable logging dependency, commits a JWT secret, and runs the container as root.",
+    "path": "../scenarios/application-security/java-dependency-secrets-container-audit.yaml"
+  },
+  {
+    "id": "javaCodeAuthSqlAudit",
+    "kind": "appsec",
+    "title": "Java Code Authorization And SQL Audit",
+    "description": "A Spring Boot code review finds an admin endpoint trusting a request header for authorization and a repository query built with string concatenation.",
+    "path": "../scenarios/application-security/java-code-auth-sql-audit.yaml"
+  },
+  {
+    "id": "awsGuardDutyCloudTrailIamAudit",
+    "kind": "cloudsec",
+    "title": "AWS GuardDuty CloudTrail IAM Audit",
+    "description": "Investigate a GuardDuty finding with CloudTrail, CloudWatch Logs, AWS Config, and IAM simulation, then narrow an overbroad developer support role.",
+    "path": "../scenarios/cloud-security-audit/aws-guardduty-cloudtrail-iam-audit.yaml"
+  },
+  {
     "id": "iamBlankSecretsReadonly",
     "kind": "iam",
     "title": "IAM Blank Secrets Read Only",

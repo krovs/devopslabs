@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { checkScenario, isScenarioSolved } from "./completion";
 import { loadAllScenarios, scenarios, validateScenario } from "./scenarios";
 import type { Scenario } from "./types";
 
@@ -91,5 +92,41 @@ describe("scenarios", () => {
         expect(source, `${scenario.id} replacement for ${replacement.fileName} does not match the current lab file`).toContain(replacement.search);
       }
     }
+  });
+
+  it("does not complete a lab after the solution was viewed", () => {
+    const scenario = {
+      id: "assisted",
+      title: "Assisted",
+      description: "Looks solved but used the solution.",
+      primaryFile: "main.tf",
+      files: { "main.tf": "resource fixed" },
+      backend: {
+        bucket: "tf-state-training",
+        key: "assisted.tfstate",
+        table: "tf-locks",
+        locked: false,
+        lockId: null,
+      },
+      awsResources: [],
+      stateResources: [],
+      flags: {
+        initialized: true,
+        cleanPlan: true,
+        solutionViewed: true,
+      },
+      solution: {
+        summary: "Fix it.",
+        steps: ["Apply the fix."],
+        commands: ["terraform plan"],
+        explanation: "The lab is solved when Terraform is clean.",
+        outcome: "Terraform is clean.",
+      },
+    } satisfies Scenario;
+
+    expect(isScenarioSolved(scenario, "assisted", "main.tf")).toBe(false);
+    expect(checkScenario(scenario, "assisted", "main.tf")).toEqual([
+      "Not complete: the solution was viewed for this attempt. Reset the lab and solve it without opening the solution to mark it complete.",
+    ]);
   });
 });

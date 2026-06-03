@@ -49,6 +49,14 @@ export const scenarioOrderByGroup = {
     "kubernetesImagePullBackOffTriage",
     "kubernetesReadinessProbePort",
     "kubernetesHelmValuesPort",
+    "kubernetesEksRbacIrsa",
+  ],
+  applicationSecurity: [
+    "javaDependencySecretsContainerAudit",
+    "javaCodeAuthSqlAudit",
+  ],
+  cloudSecurityAudit: [
+    "awsGuardDutyCloudTrailIamAudit",
   ],
   identityAccess: [
     "iamBlankSecretsReadonly",

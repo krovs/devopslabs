@@ -1,6 +1,13 @@
 import type { CommandHandlers } from "./commands";
 import { checkScenario as checkScenarioCompletion } from "./completion";
 import {
+  dependencyCheck as runDependencyCheck,
+  gitleaksDetect as runGitleaksDetect,
+  mvnTest as runMvnTest,
+  semgrepScan as runSemgrepScan,
+  trivyConfig as runTrivyConfig,
+} from "./simulators/appsec";
+import {
   githubRunRerun as runGithubRunRerun,
   githubRunView as runGithubRunView,
   githubSecretList as runGithubSecretList,
@@ -8,9 +15,19 @@ import {
   jenkinsBuildLog as runJenkinsBuildLog,
   jenkinsRebuild as runJenkinsRebuild,
 } from "./simulators/cicd";
+import {
+  cloudsecSimulatePrincipalPolicy as runCloudsecSimulatePrincipalPolicy,
+  cloudTrailLookupEvents as runCloudTrailLookupEvents,
+  configResourceHistory as runConfigResourceHistory,
+  guardDutyGetFindings as runGuardDutyGetFindings,
+  guardDutyListFindings as runGuardDutyListFindings,
+  logsFilterLogEvents as runCloudsecLogsFilterLogEvents,
+} from "./simulators/cloudsec";
 import { argocdAppGet as runArgocdAppGet, fluxReconcileKustomization as runFluxReconcileKustomization } from "./simulators/gitops";
 import {
   runKubectlDescribePod,
+  runEksAssumeRoleWithWebIdentity,
+  runKubectlAuthCanI,
   runKubectlGetEvents,
   runKubectlGetPods,
   runKubectlLogs,
@@ -157,12 +174,25 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     kubectlDescribePod: () => withRuntimeRefresh(() => runKubectlDescribePod(runtime(), scenarioId())),
     kubectlGetEvents: () => withRuntimeRefresh(() => runKubectlGetEvents(runtime(), scenarioId())),
     kubectlLogs: () => withRuntimeRefresh(() => runKubectlLogs(runtime(), scenarioId())),
+    kubectlAuthCanI: () => withRuntimeRefresh(() => runKubectlAuthCanI(runtime(), scenarioId())),
+    eksAssumeRoleWithWebIdentity: () => withRuntimeRefresh(() => runEksAssumeRoleWithWebIdentity(runtime(), scenarioId())),
     kubectlRolloutRestart: () => withRuntimeRefresh(() => runKubectlRolloutRestart(runtime(), scenarioId())),
     kubectlRolloutStatus: () => withRuntimeRefresh(() => runKubectlRolloutStatus(runtime(), scenarioId())),
     kubectlScaleDeployment: () => withRuntimeRefresh(() => runKubectlScale(runtime())),
     helmLint: () => withRuntimeRefresh(() => runHelmLint(runtime(), scenarioId())),
     helmTemplate: () => withRuntimeRefresh(() => runHelmTemplate(runtime(), scenarioId())),
     helmUpgrade: () => withRuntimeRefresh(() => runHelmUpgrade(runtime(), scenarioId())),
+    mvnTest: () => withRuntimeRefresh(() => runMvnTest(runtime(), scenarioId())),
+    dependencyCheck: () => withRuntimeRefresh(() => runDependencyCheck(runtime(), scenarioId())),
+    semgrepScan: () => withRuntimeRefresh(() => runSemgrepScan(runtime(), scenarioId())),
+    gitleaksDetect: () => withRuntimeRefresh(() => runGitleaksDetect(runtime(), scenarioId())),
+    trivyConfig: () => withRuntimeRefresh(() => runTrivyConfig(runtime(), scenarioId())),
+    guardDutyListFindings: () => withRuntimeRefresh(() => runGuardDutyListFindings(runtime(), scenarioId())),
+    guardDutyGetFindings: () => withRuntimeRefresh(() => runGuardDutyGetFindings(runtime(), scenarioId())),
+    cloudTrailLookupEvents: () => withRuntimeRefresh(() => runCloudTrailLookupEvents(runtime(), scenarioId())),
+    logsFilterLogEvents: () => withRuntimeRefresh(() => runCloudsecLogsFilterLogEvents(runtime(), scenarioId())),
+    configResourceHistory: () => withRuntimeRefresh(() => runConfigResourceHistory(runtime(), scenarioId())),
+    cloudsecSimulatePrincipalPolicy: () => withRuntimeRefresh(() => runCloudsecSimulatePrincipalPolicy(runtime(), scenarioId())),
     checkScenario: () => withRuntimeRefresh(() => checkScenarioCompletion(runtime(), scenarioId(), activeFileName())),
   };
 }

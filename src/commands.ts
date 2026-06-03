@@ -57,12 +57,25 @@ export type CommandHandlers = {
   kubectlDescribePod: () => string[];
   kubectlGetEvents: () => string[];
   kubectlLogs: () => string[];
+  kubectlAuthCanI: () => string[];
+  eksAssumeRoleWithWebIdentity: () => string[];
   kubectlRolloutRestart: () => string[];
   kubectlRolloutStatus: () => string[];
   kubectlScaleDeployment: () => string[];
   helmLint: () => string[];
   helmTemplate: () => string[];
   helmUpgrade: () => string[];
+  mvnTest: () => string[];
+  dependencyCheck: () => string[];
+  semgrepScan: () => string[];
+  gitleaksDetect: () => string[];
+  trivyConfig: () => string[];
+  guardDutyListFindings: () => string[];
+  guardDutyGetFindings: () => string[];
+  cloudTrailLookupEvents: () => string[];
+  logsFilterLogEvents: () => string[];
+  configResourceHistory: () => string[];
+  cloudsecSimulatePrincipalPolicy: () => string[];
   checkScenario: () => string[];
 };
 
@@ -133,12 +146,35 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "kubectl describe pod checkout-api") return handlers.kubectlDescribePod();
     if (input === "kubectl get events") return handlers.kubectlGetEvents();
     if (input === "kubectl logs checkout-api") return handlers.kubectlLogs();
+    if (input === "kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments") return handlers.kubectlAuthCanI();
+    if (input === "aws sts assume-role-with-web-identity") return handlers.eksAssumeRoleWithWebIdentity();
     if (input === "kubectl rollout restart deployment checkout-api") return handlers.kubectlRolloutRestart();
     if (input === "kubectl rollout status deployment checkout-api") return handlers.kubectlRolloutStatus();
     if (input === "kubectl scale deployment checkout-api --replicas=2") return handlers.kubectlScaleDeployment();
     if (input === "helm lint checkout ./chart") return handlers.helmLint();
     if (input === "helm template checkout ./chart") return handlers.helmTemplate();
     if (input === "helm upgrade checkout ./chart") return handlers.helmUpgrade();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "appsec") {
+    if (input === "mvn test") return handlers.mvnTest();
+    if (input === "mvn org.owasp:dependency-check-maven:check") return handlers.dependencyCheck();
+    if (input === "semgrep scan") return handlers.semgrepScan();
+    if (input === "gitleaks detect") return handlers.gitleaksDetect();
+    if (input === "trivy config .") return handlers.trivyConfig();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "cloudsec") {
+    if (input === "aws guardduty list-findings") return handlers.guardDutyListFindings();
+    if (input === "aws guardduty get-findings") return handlers.guardDutyGetFindings();
+    if (input === "aws cloudtrail lookup-events") return handlers.cloudTrailLookupEvents();
+    if (input === "aws logs filter-log-events") return handlers.logsFilterLogEvents();
+    if (input === "aws configservice get-resource-config-history") return handlers.configResourceHistory();
+    if (input === "aws iam simulate-principal-policy") return handlers.cloudsecSimulatePrincipalPolicy();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -247,7 +283,15 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "kubernetes") {
-    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
+    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
+  }
+
+  if (runtime.kind === "appsec") {
+    return ["Available commands:", "  mvn test", "  mvn org.owasp:dependency-check-maven:check", "  semgrep scan", "  gitleaks detect", "  trivy config .", "  check", "  help"];
+  }
+
+  if (runtime.kind === "cloudsec") {
+    return ["Available commands:", "  aws guardduty list-findings", "  aws guardduty get-findings", "  aws cloudtrail lookup-events", "  aws logs filter-log-events", "  aws configservice get-resource-config-history", "  aws iam simulate-principal-policy", "  check", "  help"];
   }
 
   return [

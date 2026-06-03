@@ -2,6 +2,8 @@
   import CertificateCheck from "carbon-icons-svelte/lib/CertificateCheck.svelte";
   import ChartLineData from "carbon-icons-svelte/lib/ChartLineData.svelte";
   import Code from "carbon-icons-svelte/lib/Code.svelte";
+  import ApplicationWeb from "carbon-icons-svelte/lib/ApplicationWeb.svelte";
+  import CloudAuditing from "carbon-icons-svelte/lib/CloudAuditing.svelte";
   import DocumentTasks from "carbon-icons-svelte/lib/DocumentTasks.svelte";
   import Firewall from "carbon-icons-svelte/lib/Firewall.svelte";
   import FlowLogsVpc from "carbon-icons-svelte/lib/FlowLogsVpc.svelte";
@@ -33,6 +35,10 @@
   <LinuxAlt {size} />
 {:else if id === "kubernetes"}
   <LogoKubernetes {size} />
+{:else if id === "appsec"}
+  <ApplicationWeb {size} />
+{:else if id === "cloudsec"}
+  <CloudAuditing {size} />
 {:else if id === "terragrunt"}
   <FolderTree {size} />
 {:else if id === "iam"}

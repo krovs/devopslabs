@@ -80,6 +80,10 @@ function isHelmValuesScenario(scenarioId: string): boolean {
   return scenarioId === "kubernetesHelmValuesPort";
 }
 
+function isEksRbacIrsaScenario(scenarioId: string): boolean {
+  return scenarioId === "kubernetesEksRbacIrsa";
+}
+
 function readinessProbeUsesAppPort(deployment: string): boolean {
   return /readinessProbe:[\s\S]*httpGet:[\s\S]*port: 8080/.test(deployment);
 }
@@ -88,9 +92,18 @@ function helmValuesUseAppPort(values: string): boolean {
   return /containerPort:\s*8080/.test(values);
 }
 
+function eksRbacBindsCheckoutApi(rbac: string): boolean {
+  return /kind:\s*ServiceAccount[\s\S]*name:\s*checkout-api[\s\S]*namespace:\s*payments/.test(rbac);
+}
+
+function eksServiceAccountUsesPaymentsRole(serviceAccount: string): boolean {
+  return serviceAccount.includes("eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/eks-checkout-api-payments");
+}
+
 export function runKubectlGetPods(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.initialized = true;
   if (runtime.flags.kubernetesValidated) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   1/1     Running   0"];
+  if (isEksRbacIrsaScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-5d9f6bbd76-zm9kq   1/1     Running   3"];
   if (isHelmValuesScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-7f5f6c9f7b-r2lsk   0/1     Running   0"];
   if (isReadinessProbeScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   0/1     Running   0"];
   return ["NAME                            READY   STATUS             RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   0/1     ImagePullBackOff   4"];
@@ -98,6 +111,17 @@ export function runKubectlGetPods(runtime: Scenario, scenarioId: string): string
 
 export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.validationPassed = true;
+  if (isEksRbacIrsaScenario(scenarioId)) {
+    return [
+      "Name: checkout-api-5d9f6bbd76-zm9kq",
+      "Namespace: payments",
+      "Service Account: checkout-api",
+      "Status: Running",
+      "Warning  FailedAuthorization  serviceaccount payments/checkout-api cannot get resource configmaps",
+      "Warning  AccessDenied          IRSA role eks-default-readonly cannot send messages to orders queue",
+    ];
+  }
+
   if (isHelmValuesScenario(scenarioId)) {
     return [
       "Name: checkout-api-7f5f6c9f7b-r2lsk",
@@ -129,6 +153,14 @@ export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): st
 
 export function runKubectlGetEvents(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.kubernetesEventsChecked = true;
+  if (isEksRbacIrsaScenario(scenarioId)) {
+    return [
+      "LAST SEEN   TYPE      REASON                OBJECT                              MESSAGE",
+      "3m          Warning   FailedAuthorization   pod/checkout-api-5d9f6bbd76-zm9kq   RBAC denied configmaps get for system:serviceaccount:payments:checkout-api",
+      "2m          Warning   AccessDenied          pod/checkout-api-5d9f6bbd76-zm9kq   AWS role eks-default-readonly cannot access orders queue",
+    ];
+  }
+
   if (isHelmValuesScenario(scenarioId)) {
     return [
       "LAST SEEN   TYPE      REASON      OBJECT                              MESSAGE",
@@ -154,6 +186,14 @@ export function runKubectlGetEvents(runtime: Scenario, scenarioId: string): stri
 }
 
 export function runKubectlLogs(runtime: Scenario, scenarioId: string): string[] {
+  if (isEksRbacIrsaScenario(scenarioId)) {
+    if (runtime.flags.kubernetesValidated) return ["loaded checkout-config from namespace payments", "sent order message to SQS queue orders"];
+    return [
+      "ERROR kubernetes client: configmaps \"checkout-config\" is forbidden: User \"system:serviceaccount:payments:checkout-api\" cannot get resource \"configmaps\" in namespace \"payments\"",
+      "ERROR aws sdk: AccessDenied for sqs:SendMessage using role arn:aws:iam::111122223333:role/eks-default-readonly",
+    ];
+  }
+
   if (isHelmValuesScenario(scenarioId)) return ["checkout-api listening on :8080", "GET /healthz 200 OK"];
   if (isReadinessProbeScenario(scenarioId)) return ["checkout-api listening on :8080", "GET /healthz 200 OK"];
   return runtime.flags.kubernetesValidated
@@ -161,8 +201,56 @@ export function runKubectlLogs(runtime: Scenario, scenarioId: string): string[] 
     : ["Error from server (BadRequest): container checkout-api is waiting to start: trying and failing to pull image"];
 }
 
+export function runKubectlAuthCanI(runtime: Scenario, scenarioId: string): string[] {
+  if (!isEksRbacIrsaScenario(scenarioId)) return ["yes"];
+
+  runtime.flags.validationPassed = true;
+  const rbac = runtime.files["rbac.yaml"] ?? "";
+  if (eksRbacBindsCheckoutApi(rbac)) {
+    return ["yes", "system:serviceaccount:payments:checkout-api can get configmaps in namespace payments"];
+  }
+
+  return ["no", "RoleBinding checkout-api-reader grants checkout-worker, not checkout-api"];
+}
+
+export function runEksAssumeRoleWithWebIdentity(runtime: Scenario, scenarioId: string): string[] {
+  if (!isEksRbacIrsaScenario(scenarioId)) return ["AssumeRoleWithWebIdentity skipped: this Kubernetes lab does not use EKS IRSA."];
+
+  const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
+  if (eksServiceAccountUsesPaymentsRole(serviceAccount)) {
+    runtime.flags.securityPassed = true;
+    return [
+      "Token issuer: oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B716D3041E",
+      "sub: system:serviceaccount:payments:checkout-api",
+      "AssumeRoleWithWebIdentity: allowed",
+      "RoleArn: arn:aws:iam::111122223333:role/eks-checkout-api-payments",
+    ];
+  }
+
+  setFirstResource(runtime, "failed", "ServiceAccount still points at eks-default-readonly instead of the approved payments IRSA role.");
+  return [
+    "Token issuer: oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B716D3041E",
+    "sub: system:serviceaccount:payments:checkout-api",
+    "AssumeRoleWithWebIdentity: denied",
+    "Finding: ServiceAccount annotation uses arn:aws:iam::111122223333:role/eks-default-readonly",
+  ];
+}
+
 export function runKubectlRolloutRestart(runtime: Scenario, scenarioId: string): string[] {
   const deployment = runtime.files["deployment.yaml"] ?? "";
+  if (isEksRbacIrsaScenario(scenarioId)) {
+    const rbac = runtime.files["rbac.yaml"] ?? "";
+    const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
+    if (runtime.flags.validationPassed && runtime.flags.securityPassed && eksRbacBindsCheckoutApi(rbac) && eksServiceAccountUsesPaymentsRole(serviceAccount)) {
+      runtime.flags.cleanPlan = true;
+      setFirstResource(runtime, "drifted", "Rollout restarted after RBAC and IRSA were aligned to checkout-api.");
+      return ["deployment.apps/checkout-api restarted"];
+    }
+
+    setFirstResource(runtime, "failed", "Rollout still has a broken RoleBinding subject, a wrong IRSA role, or missing validation checks.");
+    return ["deployment.apps/checkout-api restarted", "rollout status: authorization checks still failing"];
+  }
+
   if (isReadinessProbeScenario(scenarioId)) {
     if (runtime.flags.validationPassed && runtime.flags.kubernetesEventsChecked && readinessProbeUsesAppPort(deployment)) {
       runtime.flags.cleanPlan = true;
@@ -198,6 +286,24 @@ export function runKubectlScale(runtime: Scenario): string[] {
 
 export function runKubectlRolloutStatus(runtime: Scenario, scenarioId: string): string[] {
   const deployment = runtime.files["deployment.yaml"] ?? "";
+  if (isEksRbacIrsaScenario(scenarioId)) {
+    const rbac = runtime.files["rbac.yaml"] ?? "";
+    const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
+    if (runtime.flags.cleanPlan && runtime.flags.validationPassed && runtime.flags.securityPassed && eksRbacBindsCheckoutApi(rbac) && eksServiceAccountUsesPaymentsRole(serviceAccount)) {
+      runtime.flags.kubernetesValidated = true;
+      setFirstResource(runtime, "success", "checkout-api uses the payments ServiceAccount RBAC binding and assumes the approved EKS IRSA role.");
+      runtime.stateResources = runtime.stateResources.map((resource) => {
+        if (resource.address === "serviceaccount.payments.checkout-api.irsa") return { ...resource, id: "eks-checkout-api-payments" };
+        if (resource.address === "rolebinding.payments.checkout-api-reader.subject") return { ...resource, id: "checkout-api" };
+        if (resource.address === "deployment.checkout-api.rollout") return { ...resource, id: "Ready" };
+        return resource;
+      });
+      return ["Waiting for deployment checkout-api rollout to finish...", "deployment \"checkout-api\" successfully rolled out"];
+    }
+
+    return ["Waiting for deployment checkout-api rollout to finish...", "rollout status: pending. Verify RBAC, IRSA, and restart the deployment."];
+  }
+
   if (isHelmValuesScenario(scenarioId)) {
     const values = runtime.files["values.yaml"] ?? "";
     if (runtime.flags.cleanPlan && runtime.flags.validationPassed && helmValuesUseAppPort(values)) {
