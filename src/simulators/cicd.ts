@@ -142,19 +142,23 @@ export function genericGithubActionsFixApplied(runtime: Scenario, scenarioId: st
   }
 
   if (scenarioId === "jenkinsMissingCredentialsBinding") {
-    const lines = fileLines(file);
-    const withCredentialsIndex = lineIndexContaining(lines, "withCredentials([usernamePassword(");
+    const jenkinsfile = runtime.files["Jenkinsfile"] ?? file;
+    const lines = fileLines(jenkinsfile);
+    const withCredentialsIndex = lineIndexContaining(lines, "withCredentials([");
+    const usernamePasswordIndex = lineIndexContaining(lines, "usernamePassword(");
     const loginIndex = lineIndexContaining(lines, "docker login");
     const pushIndex = lineIndexContaining(lines, "docker push");
     return withCredentialsIndex !== -1
+      && usernamePasswordIndex !== -1
       && loginIndex !== -1
       && pushIndex !== -1
-      && withCredentialsIndex < loginIndex
+      && withCredentialsIndex < usernamePasswordIndex
+      && usernamePasswordIndex < loginIndex
       && loginIndex < pushIndex
-      && file.includes("credentialsId: 'ghcr-push'")
-      && file.includes("usernameVariable: 'REGISTRY_USER'")
-      && file.includes("passwordVariable: 'REGISTRY_TOKEN'")
-      && file.includes("--password-stdin");
+      && jenkinsfile.includes("credentialsId: 'ghcr-push'")
+      && jenkinsfile.includes("usernameVariable: 'REGISTRY_USER'")
+      && jenkinsfile.includes("passwordVariable: 'REGISTRY_TOKEN'")
+      && jenkinsfile.includes("--password-stdin");
   }
 
   return false;
