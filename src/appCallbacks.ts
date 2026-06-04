@@ -28,8 +28,17 @@ export function createAppCallbacks(options: AppCallbacksOptions) {
     groupCompletionLabel(ids: string[]): string {
       return options.labMenu.groupCompletionLabel(ids);
     },
+    groupCompletionPercent(ids: string[]): number {
+      return options.labMenu.groupCompletionPercent(ids);
+    },
+    groupCompletionState(ids: string[]): "complete" | "partial" | "empty" {
+      return options.labMenu.groupCompletionState(ids);
+    },
     toggleScenarioCompletion(id: string, event: Event): void {
       options.labMenu.toggleCompletion(id, event);
+    },
+    toggleGroupCompletion(ids: string[], event: Event): void {
+      options.labMenu.toggleGroupCompletion(ids, event);
     },
     incidentDisplayTitle(id: string): string {
       return options.labMenuFilters.incidentDisplayTitle(id);

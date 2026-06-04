@@ -273,6 +273,28 @@ select {
   border-top: 0;
 }
 
+.menu-global-progress {
+  display: grid;
+  padding: 0 2px 2px;
+}
+
+.menu-global-progress-track {
+  height: 5px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--menu-global-progress-color, var(--accent)) 42%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 10%, transparent);
+}
+
+.menu-global-progress-track span {
+  display: block;
+  width: var(--menu-global-progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--menu-global-progress-color, var(--accent));
+  transition: width 180ms ease;
+}
+
 .lab-menu-section {
   gap: 6px;
 }
@@ -347,12 +369,20 @@ select {
     0 0 22px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+.menu-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
 .menu-group-button {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   min-height: 38px;
   padding: 8px 10px;
   border-color: transparent;
@@ -586,11 +616,24 @@ select {
   color: var(--ok);
   font-size: 14px;
   font-weight: 800;
+  cursor: pointer;
+  user-select: none;
 }
 
 .scenario-check-empty {
   border: 1px solid color-mix(in srgb, var(--muted) 42%, transparent);
   background: transparent;
+  color: transparent;
+}
+
+.group-check {
+  margin-left: 7px;
+}
+
+.group-check-progress {
+  border-color: color-mix(in srgb, var(--accent) 58%, transparent);
+  background:
+    linear-gradient(0deg, color-mix(in srgb, var(--accent) 26%, transparent) var(--group-completion-percent, 0%), transparent 0);
   color: transparent;
 }
 
@@ -646,7 +689,9 @@ select {
   margin: 0;
   padding: 10px 0 34px;
   color: var(--text);
-  font-size: 32px;
+  font-family: "Recursive", "SFMono-Regular", Consolas, monospace;
+  font-size: clamp(32px, 4vw, 38px);
+  font-style: normal;
   font-weight: 700;
   text-align: center;
 }

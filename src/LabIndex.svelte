@@ -10,6 +10,24 @@
 
   let { labGroups, groupcompletionlabel, onopenlabgroup }: Props = $props();
 
+  const indexQuotes = [
+    [
+      { text: "Remember the " },
+      { text: "basics", className: "" },
+      { text: ". Practice " },
+      { text: "hands-on", className: "pill-mauve" },
+      { text: "." },
+    ],
+    [
+      { text: "My DevOps " },
+      { text: "notes", className: "" },
+      { text: ". As " },
+      { text: "exercises", className: "pill-mauve" },
+      { text: "." },
+    ],
+  ];
+  const selectedQuote = indexQuotes[Math.floor(Math.random() * indexQuotes.length)];
+
   function providerClass(provider: string): string {
     return `provider-${provider.toLowerCase()}`;
   }
@@ -17,7 +35,13 @@
 
 <section class="lab-index" aria-label="Lab index">
   <p class="lab-index-intro">
-    Remember the <span>basics</span>. Practice <span class="pill-mauve">hands-on</span>.
+    {#each selectedQuote as part}
+      {#if part.className !== undefined}
+        <span class={part.className}>{part.text}</span>
+      {:else}
+        {part.text}
+      {/if}
+    {/each}
   </p>
   {#each labGroups as group}
     <button type="button" class="lab-index-card" onclick={() => onopenlabgroup(group.id)}>

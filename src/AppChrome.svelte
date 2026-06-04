@@ -47,7 +47,10 @@
   ontogglegroup={app.callbacks.toggleMenuGroup}
   onselectscenario={app.scenarioNavigation.selectScenario}
   ontogglecompletion={app.callbacks.toggleScenarioCompletion}
+  ontogglegroupcompletion={app.callbacks.toggleGroupCompletion}
   groupcompletionlabel={app.callbacks.groupCompletionLabel}
+  groupcompletionpercent={app.callbacks.groupCompletionPercent}
+  groupcompletionstate={app.callbacks.groupCompletionState}
   menugroupvisible={app.callbacks.menuGroupVisible}
   filteredscenarioids={app.callbacks.filteredScenarioIds}
   labmenutitle={app.callbacks.labMenuTitle}

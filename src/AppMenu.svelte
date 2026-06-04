@@ -27,7 +27,10 @@
     ontogglegroup: (group: MenuGroupId) => void;
     onselectscenario: (id: string) => void;
     ontogglecompletion: (id: string, event: Event) => void;
+    ontogglegroupcompletion: (ids: string[], event: Event) => void;
     groupcompletionlabel: (ids: string[]) => string;
+    groupcompletionpercent: (ids: string[]) => number;
+    groupcompletionstate: (ids: string[]) => "complete" | "partial" | "empty";
     menugroupvisible: (ids: string[], query: string) => boolean;
     filteredscenarioids: (ids: string[], query: string) => string[];
     labmenutitle: (id: string) => string;
@@ -53,7 +56,10 @@
     ontogglegroup,
     onselectscenario,
     ontogglecompletion,
+    ontogglegroupcompletion,
     groupcompletionlabel,
+    groupcompletionpercent,
+    groupcompletionstate,
     menugroupvisible,
     filteredscenarioids,
     labmenutitle,
@@ -66,12 +72,21 @@
     { id: "cyberpunk", label: "Cyber theme" },
   ];
 
+  let totalScenarioIds = $derived(labGroups.flatMap((group) => group.ids));
+  let completedTotal = $derived(totalScenarioIds.filter((id) => completedScenarioIds.includes(id)).length);
+  let totalProgressPercent = $derived(totalScenarioIds.length ? Math.round((completedTotal / totalScenarioIds.length) * 100) : 0);
+  let totalProgressColor = $derived(totalProgressPercent >= 100 ? "var(--ok)" : "var(--accent)");
+
   function isSelectedLabGroup(groupId: MenuGroupId): boolean {
     return highlightedMenuGroup === groupId;
   }
 
   function toggleCompletionWithKeyboard(id: string, event: KeyboardEvent): void {
     if (event.key === "Enter" || event.key === " ") ontogglecompletion(id, event);
+  }
+
+  function toggleGroupCompletionWithKeyboard(ids: string[], event: KeyboardEvent): void {
+    if (event.key === "Enter" || event.key === " ") ontogglegroupcompletion(ids, event);
   }
 </script>
 
@@ -106,6 +121,19 @@
         <span>Documentation</span>
       </button>
     </div>
+    <div
+      class="menu-global-progress"
+      aria-label={`Overall lab progress ${completedTotal} of ${totalScenarioIds.length}`}
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax={totalScenarioIds.length}
+      aria-valuenow={completedTotal}
+      style={`--menu-global-progress: ${totalProgressPercent}%; --menu-global-progress-color: ${totalProgressColor}`}
+    >
+      <div class="menu-global-progress-track">
+        <span></span>
+      </div>
+    </div>
   </section>
 
   <section class="menu-section">
@@ -134,22 +162,39 @@
     </label>
     {#each labGroups as group}
       {#if menugroupvisible(group.ids, menuSearchQuery)}
+        {@const visibleIds = filteredscenarioids(group.ids, menuSearchQuery)}
+        {@const groupState = groupcompletionstate(group.ids)}
+        {@const groupPercent = groupcompletionpercent(group.ids)}
         <div class="menu-lab-group" class:selected-section={isSelectedLabGroup(group.id)}>
-          <button
-            type="button"
-            class="menu-group-button"
-            aria-expanded={openMenuGroups.includes(group.id) || Boolean(menuSearchQuery.trim())}
-            onclick={() => ontogglegroup(group.id)}
-          >
-            <span>
-              <strong>{group.title}</strong>
-            </span>
-            <small>{groupcompletionlabel(group.ids)}</small>
-          </button>
+          <div class="menu-group-header">
+            <span
+              class:scenario-check-empty={groupState !== "complete"}
+              class:group-check-progress={groupState === "partial"}
+              class="scenario-check group-check"
+              role="checkbox"
+              tabindex="0"
+              style={`--group-completion-percent: ${groupPercent}%`}
+              aria-label={groupState === "complete" ? `Mark ${group.title} incomplete` : `Mark ${group.title} complete`}
+              aria-checked={groupState === "partial" ? "mixed" : groupState === "complete" ? "true" : "false"}
+              onclick={(event) => ontogglegroupcompletion(group.ids, event)}
+              onkeydown={(event) => toggleGroupCompletionWithKeyboard(group.ids, event)}
+            >{groupState === "complete" ? "✓" : ""}</span>
+            <button
+              type="button"
+              class="menu-group-button"
+              aria-expanded={openMenuGroups.includes(group.id) || Boolean(menuSearchQuery.trim())}
+              onclick={() => ontogglegroup(group.id)}
+            >
+              <span>
+                <strong>{group.title}</strong>
+              </span>
+              <small>{groupcompletionlabel(group.ids)}</small>
+            </button>
+          </div>
           {#if openMenuGroups.includes(group.id) || menuSearchQuery.trim()}
             {#key incidentMode}
               <div class="scenario-list">
-                {#each filteredscenarioids(group.ids, menuSearchQuery) as id}
+                {#each visibleIds as id}
                   <button
                     type="button"
                     class={`scenario-difficulty ${scenarioDifficultyClass(id)}`}
