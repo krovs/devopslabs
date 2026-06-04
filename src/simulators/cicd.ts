@@ -317,7 +317,7 @@ export function githubRunView(runtime: Scenario, scenarioId: string): string[] {
       "status: failure",
       "failed step: aws-actions/configure-aws-credentials@v4",
       "error: The security token included in the request is invalid or role-to-assume is empty.",
-      "hint: secrets.AWS_ROLE_ARN is not available to this workflow.",
+      "secrets.AWS_ROLE_ARN is not available to this workflow.",
     ];
   }
 
@@ -337,7 +337,7 @@ export function githubRunView(runtime: Scenario, scenarioId: string): string[] {
       "status: failure",
       "failed step: aws-actions/configure-aws-credentials@v4",
       "error: Not authorized to perform sts:AssumeRoleWithWebIdentity",
-      "hint: trust policy subject allows refs/heads/master, but this run is refs/heads/main.",
+      "trust policy subject allows refs/heads/master, but this run is refs/heads/main.",
     ];
   }
 
@@ -375,7 +375,6 @@ export function jenkinsBuildLog(runtime: Scenario, scenarioId: string): string[]
     "stage: Publish image",
     "docker login ghcr.io",
     "Cannot perform an interactive login from a non TTY device",
-    "hint: Jenkins folder platform-delivery has a GHCR username/password credential; see jenkins/credentials.md",
   ];
 }
 

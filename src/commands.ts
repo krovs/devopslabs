@@ -70,6 +70,7 @@ export type CommandHandlers = {
   semgrepScan: () => string[];
   gitleaksDetect: () => string[];
   trivyConfig: () => string[];
+  threatModelReview: () => string[];
   guardDutyListFindings: () => string[];
   guardDutyGetFindings: () => string[];
   cloudTrailLookupEvents: () => string[];
@@ -164,6 +165,12 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "semgrep scan") return handlers.semgrepScan();
     if (input === "gitleaks detect") return handlers.gitleaksDetect();
     if (input === "trivy config .") return handlers.trivyConfig();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "threatmodel") {
+    if (input === "threatmodel review") return handlers.threatModelReview();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -288,6 +295,10 @@ function commandHelp(runtime: Scenario): string[] {
 
   if (runtime.kind === "appsec") {
     return ["Available commands:", "  mvn test", "  mvn org.owasp:dependency-check-maven:check", "  semgrep scan", "  gitleaks detect", "  trivy config .", "  check", "  help"];
+  }
+
+  if (runtime.kind === "threatmodel") {
+    return ["Available commands:", "  threatmodel review", "  check", "  help"];
   }
 
   if (runtime.kind === "cloudsec") {

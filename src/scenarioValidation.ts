@@ -8,6 +8,7 @@ export function validateScenario(scenario: Scenario): void {
   if (!Array.isArray(scenario.awsResources)) throw new Error(`${scenario.id} is missing awsResources`);
   if (!Array.isArray(scenario.stateResources)) throw new Error(`${scenario.id} is missing stateResources`);
   if (scenario.kind === "networking" && !scenario.networking) throw new Error(`${scenario.id} is missing networking`);
+  if (scenario.kind === "threatmodel" && !scenario.threatModel) throw new Error(`${scenario.id} is missing threatModel`);
   if (scenario.kind === "pr" && !scenario.prReview) throw new Error(`${scenario.id} is missing prReview`);
   if (!scenario.solution) throw new Error(`${scenario.id} is missing solution`);
   if (!scenario.solution.summary) throw new Error(`${scenario.id} is missing solution summary`);
@@ -17,4 +18,5 @@ export function validateScenario(scenario: Scenario): void {
   if (!scenario.solution.outcome) throw new Error(`${scenario.id} is missing solution outcome`);
   if (scenario.solution.apply === "networkingControls" && scenario.kind !== "networking") throw new Error(`${scenario.id} uses networking solution apply mode outside networking`);
   if (scenario.solution.apply === "prReview" && scenario.kind !== "pr") throw new Error(`${scenario.id} uses PR solution apply mode outside PR`);
+  if (scenario.solution.apply === "threatModelControls" && scenario.kind !== "threatmodel") throw new Error(`${scenario.id} uses threat model solution apply mode outside threat modeling`);
 }

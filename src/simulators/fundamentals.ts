@@ -13,6 +13,7 @@ export function runLinuxLs(runtime: Scenario): string[] {
 
 export function runLinuxCatLog(runtime: Scenario): string[] {
   runtime.flags.initialized = true;
+  runtime.flags.validationPassed = true;
   return [
     "2026-06-01T09:14:22Z INFO starting web service",
     "2026-06-01T09:14:23Z ERROR missing PORT in service.env",
@@ -57,7 +58,7 @@ export function runLinuxSs(runtime: Scenario): string[] {
 
 export function runLinuxSystemctlStatus(runtime: Scenario): string[] {
   if (runtime.flags.linuxValidated) return ["web.service - demo web service", "Active: active (running)", "Main PID: 4242"];
-  return ["web.service - demo web service", "Active: failed", "Result: exit-code", "Hint: check app.log and service.env"];
+  return ["web.service - demo web service", "Active: failed", "Result: exit-code"];
 }
 
 export function runLinuxSystemctlRestart(runtime: Scenario): string[] {
@@ -65,6 +66,9 @@ export function runLinuxSystemctlRestart(runtime: Scenario): string[] {
   if (env.includes("PORT=8080") && runtime.flags.validationPassed && runtime.flags.linuxResourcesChecked) {
     runtime.flags.linuxValidated = true;
     setFirstResource(runtime, "success", "Service starts after logs and system resources were checked and PORT was restored.");
+    runtime.stateResources = runtime.stateResources.map((resource) =>
+      resource.address === "file.service.env" ? { ...resource, id: "PORT=8080" } : resource,
+    );
     return ["Restarting web.service...", "web.service is active (running)."];
   }
 

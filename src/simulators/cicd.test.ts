@@ -72,7 +72,7 @@ pipeline {
 }
 `);
 
-    expect(genericGithubActionsFixApplied(scenario, "jenkinsMissingCredentialsBinding", "jenkins/credentials.md")).toBe(true);
+    expect(genericGithubActionsFixApplied(scenario, "jenkinsMissingCredentialsBinding", "Jenkinsfile")).toBe(true);
   });
 
   it("rejects Jenkins credentials binding with shell references as variable names", () => {
@@ -111,7 +111,6 @@ function jenkinsScenarioWith(jenkinsfile: string): Scenario {
     description: "Test fixture.",
     files: {
       Jenkinsfile: jenkinsfile,
-      "jenkins/credentials.md": "id: ghcr-push",
     },
     backend: {
       bucket: "jenkins",

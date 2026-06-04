@@ -6,6 +6,7 @@ import type { createNetworkSession } from "./networkSession.svelte";
 import type { SavedSession } from "./runtimeSession";
 import type { createScenarioSession, ScenarioSessionLoadOptions } from "./scenarioSession.svelte";
 import type { createTerminalSession } from "./terminalSession.svelte";
+import type { createThreatModelSession } from "./threatModelSession.svelte";
 import { initialTerminalLines } from "./terminalUtils";
 import type { createTipsSession } from "./tipsSession.svelte";
 
@@ -19,6 +20,7 @@ export type ScenarioNavigationOptions = {
   labMenuFilters: ReturnType<typeof createLabMenuFilters>;
   labProgress: ReturnType<typeof createLabProgress>;
   networkSession: ReturnType<typeof createNetworkSession>;
+  threatModelSession: ReturnType<typeof createThreatModelSession>;
   terminal: ReturnType<typeof createTerminalSession>;
   tipsSession: ReturnType<typeof createTipsSession>;
   savedSession: SavedSession | null;
@@ -39,6 +41,7 @@ export function createScenarioNavigation(options: ScenarioNavigationOptions) {
 
     if (!result) {
       options.networkSession.resetForScenario();
+      options.threatModelSession.resetForScenario();
       options.labProgress.resetForScenario(false);
       return;
     }
@@ -55,6 +58,7 @@ export function createScenarioNavigation(options: ScenarioNavigationOptions) {
     );
     options.tipsSession.reset(result.restored ? options.savedSession?.revealedTipCount ?? 0 : 0);
     options.networkSession.resetForScenario(result.runtime.networking?.traces?.[0]?.id ?? null);
+    options.threatModelSession.resetForScenario();
     options.labProgress.resetForScenario(options.isSolved());
     if (loadOptions.persist ?? true) options.onSave();
     void options.terminal.scroll();

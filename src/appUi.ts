@@ -19,6 +19,7 @@ const resourceTitleByKind: Partial<Record<NonNullable<Scenario["kind"]>, string>
   policy: "Policy",
   linux: "Linux",
   networking: "Network",
+  threatmodel: "Threat Model",
 };
 
 const contextualStateKinds = new Set<Scenario["kind"]>([
@@ -35,6 +36,7 @@ const contextualStateKinds = new Set<Scenario["kind"]>([
   "policy",
   "linux",
   "networking",
+  "threatmodel",
 ]);
 
 export function getInitialTheme(): ThemeName {

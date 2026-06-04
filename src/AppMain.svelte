@@ -17,7 +17,7 @@
   class:is-resizing-terminal={app.appShell.isResizingTerminal}
   class:docs-page={app.view.currentPage === "docs"}
   class:index-page={app.view.currentPage === "index"}
-  class:network-page={app.view.currentPage === "labs" && app.view.runtime?.kind === "networking"}
+  class:network-page={app.view.currentPage === "labs" && (app.view.runtime?.kind === "networking" || app.view.runtime?.kind === "threatmodel")}
   class="app-shell"
   style={`--terminal-height: ${app.appShell.terminalHeight}px`}
 >

@@ -55,6 +55,10 @@ export const scenarioOrderByGroup = {
     "javaDependencySecretsContainerAudit",
     "javaCodeAuthSqlAudit",
   ],
+  threatModeling: [
+    "strideCheckoutThreatModel",
+    "oidcDeploymentThreatModel",
+  ],
   cloudSecurityAudit: [
     "awsGuardDutyCloudTrailIamAudit",
   ],

@@ -1,0 +1,276 @@
+id: strideCheckoutThreatModel
+kind: threatmodel
+title: STRIDE Checkout Threat Model
+description: A checkout API threat model is missing key STRIDE risks across user identity, payment webhooks, order storage, and rate limiting.
+primaryFile: threat-model.md
+tips:
+  - Read architecture.md before editing the threat model.
+  - The public API crosses a trust boundary into the checkout service.
+  - Payment webhooks need authenticity checks.
+  - Orders data needs protection against disclosure.
+  - The API needs an availability control.
+  - Add concrete threats and mitigations, not just STRIDE category names.
+files:
+  "architecture.md": |
+    # Checkout API Data Flow
+
+    Components:
+    - Browser client sends checkout requests to the public API.
+    - Checkout API validates the user token and creates an order.
+    - Payment provider sends webhook callbacks to /webhooks/payment.
+    - Checkout API stores order records in the orders database.
+    - Support users read order status from an internal admin view.
+
+    Trust boundaries:
+    - Internet to public API.
+    - External payment provider to webhook endpoint.
+    - Checkout service to orders database.
+    - Support network to internal admin view.
+
+    Security assumptions:
+    - User identity comes from JWT claims.
+    - Payment provider signs webhooks with a shared secret.
+    - Orders contain customer email, shipping address, and payment status.
+  "threat-model.md": |
+    # STRIDE Threat Model
+
+    | Area            | STRIDE                 | Threat | Mitigation |
+    | --------------- | ---------------------- | ------ | ---------- |
+    | Checkout API    | Spoofing               | TODO   | TODO       |
+    | Payment webhook | Tampering              | TODO   | TODO       |
+    | Orders database | Information Disclosure | TODO   | TODO       |
+    | Public API      | Denial of Service      | TODO   | TODO       |
+  "runbook.md": |
+    Goal:
+    - Complete the missing STRIDE threat model entries for checkout-api.
+
+    Constraints:
+    - Cover spoofing, tampering, information disclosure, and denial of service.
+    - Tie each threat to the checkout architecture.
+    - Include concrete mitigations a DevSecOps team could implement or verify.
+    - Do not replace the table with generic category definitions.
+solution:
+  summary: |
+    The threat model names STRIDE categories but does not describe concrete checkout threats or mitigations.
+  steps:
+    - Read architecture.md to identify trust boundaries and sensitive assets.
+    - Fill the Spoofing row with forged user identity or token misuse and JWT validation as the mitigation.
+    - Fill the Tampering row with modified payment webhook callbacks and signature verification as the mitigation.
+    - Fill the Information Disclosure row with order/customer data exposure and encryption plus least-privilege access as the mitigation.
+    - Fill the Denial of Service row with checkout endpoint flooding and rate limiting or throttling as the mitigation.
+    - Run threatmodel review.
+  explanation: |
+    STRIDE is useful when each category is grounded in a real data flow. The checkout API has clear trust boundaries: unauthenticated internet clients, an external payment provider, a database with customer data, and an internal support surface. A good model records abuse cases and specific controls the team can test.
+  outcome: |
+    The threat model covers the missing STRIDE risks with concrete mitigations for identity, webhook integrity, data protection, and availability.
+  apply: threatModelControls
+  focusFileName: threat-model.md
+  replacements:
+    - fileName: threat-model.md
+      search: |
+        | Checkout API    | Spoofing               | TODO   | TODO       |
+      replace: |
+        | Checkout API | Spoofing | Attacker forges or reuses a user JWT to place orders as another customer. | Validate issuer, audience, expiry, and signature on every request; bind authorization to trusted JWT claims. |
+    - fileName: threat-model.md
+      search: |
+        | Payment webhook | Tampering              | TODO   | TODO       |
+      replace: |
+        | Payment webhook | Tampering | Attacker modifies or replays a payment callback to mark an unpaid order as paid. | Verify payment provider webhook signatures, timestamp tolerance, and idempotency keys before updating orders. |
+    - fileName: threat-model.md
+      search: |
+        | Orders database | Information Disclosure | TODO   | TODO       |
+      replace: |
+        | Orders database | Information Disclosure | Customer email, shipping address, or payment status could be exposed through broad database or support access. | Encrypt order data at rest and restrict database/admin access with least-privilege roles and audit logging. |
+    - fileName: threat-model.md
+      search: |
+        | Public API      | Denial of Service      | TODO   | TODO       |
+      replace: |
+        | Public API | Denial of Service | High-volume checkout requests could exhaust API or database capacity and prevent legitimate orders. | Apply rate limiting, request throttling, autoscaling alarms, and circuit breakers around expensive operations. |
+  commands:
+    - threatmodel review
+backend:
+  bucket: threatmodel
+  key: checkout-api-stride
+  table: threat-models
+  locked: false
+  lockId: null
+awsResources:
+  - type: threat_model
+    name: checkout-api
+    id: stride-checkout
+    status: failed
+    note: STRIDE table has missing threat and mitigation entries.
+stateResources:
+  - address: stride.spoofing
+    id: missing
+  - address: stride.tampering
+    id: missing
+  - address: stride.information-disclosure
+    id: missing
+  - address: stride.denial-of-service
+    id: missing
+flags:
+  securityPassed: false
+  threatModelValidated: false
+threatModel:
+  findings:
+    - Checkout identity coverage is missing.
+    - Payment webhook integrity coverage is missing.
+    - Orders data disclosure coverage is missing.
+    - Public API availability coverage is missing.
+  nodes:
+    - id: browser
+      label: Browser Client
+      type: external
+      x: 12
+      y: 34
+      note: Internet client sends checkout requests with user JWTs.
+    - id: public_api
+      label: Public API
+      type: process
+      x: 32
+      y: 34
+      width: 132px
+      note: Internet-facing API crosses into the checkout service trust boundary.
+    - id: checkout
+      label: Checkout Service
+      type: multiple-process
+      x: 52
+      y: 34
+      note: Validates identity, creates orders, and processes payment state.
+    - id: payment
+      label: Payment Provider
+      type: external
+      x: 52
+      y: 76
+      note: External provider posts payment callbacks to /webhooks/payment.
+    - id: orders
+      label: Orders Database
+      type: datastore
+      x: 74
+      y: 34
+      note: Stores customer email, shipping address, and payment status.
+    - id: support
+      label: Support Admin
+      type: internal
+      x: 74
+      y: 76
+      note: Internal support users read order status.
+  links:
+    - from: browser
+      to: public_api
+      label: checkout request
+      controlIds: threat_checkout_identity,mitigation_checkout_identity,threat_public_api_dos,mitigation_public_api_dos
+    - from: public_api
+      to: checkout
+      label: validated request
+      controlIds: threat_checkout_identity,mitigation_checkout_identity
+    - from: payment
+      to: checkout
+      label: payment webhook
+      controlIds: threat_payment_webhook,mitigation_payment_webhook
+    - from: checkout
+      to: orders
+      label: order writes
+      controlIds: threat_orders_disclosure,mitigation_orders_disclosure
+    - from: support
+      to: orders
+      label: admin reads
+      controlIds: threat_orders_disclosure,mitigation_orders_disclosure
+  boundaries:
+    - id: internet_edge
+      label: Internet / Public API Boundary
+      x: 22
+      y: 8
+      height: 82
+    - id: service_boundary
+      label: Checkout Service Boundary
+      x: 42
+      y: 10
+      height: 78
+    - id: restricted_data
+      label: Restricted Data Boundary
+      x: 66
+      y: 8
+      height: 82
+  controls:
+    - id: threat_checkout_identity
+      rowId: checkout_identity
+      field: threat
+      label: Checkout API threat
+      nodeId: public_api,checkout
+      stride: Spoofing
+      value: TODO
+      answer: Attacker forges or reuses a user JWT to place orders as another customer
+      options: TODO,Attacker forges or reuses a user JWT to place orders as another customer,API logs contain too much request metadata,Slow database query causes checkout latency
+      note: Tie spoofing to the user identity crossing the public API boundary.
+    - id: mitigation_checkout_identity
+      rowId: checkout_identity
+      field: mitigation
+      label: Checkout API mitigation
+      nodeId: public_api,checkout
+      stride: Spoofing
+      value: TODO
+      answer: Validate issuer audience expiry and signature on every request
+      options: TODO,Validate issuer audience expiry and signature on every request,Compress API responses,Add a database read replica
+      note: Identity mitigation must verify trusted JWT claims and signature.
+    - id: threat_payment_webhook
+      rowId: payment_webhook
+      field: threat
+      label: Payment webhook threat
+      nodeId: payment,checkout
+      stride: Tampering
+      value: TODO
+      answer: Attacker modifies or replays a payment callback to mark an unpaid order as paid
+      options: TODO,Attacker modifies or replays a payment callback to mark an unpaid order as paid,Support user forgets an order number,JWT issuer rotates signing keys
+      note: The webhook crosses from an external provider into checkout state.
+    - id: mitigation_payment_webhook
+      rowId: payment_webhook
+      field: mitigation
+      label: Payment webhook mitigation
+      nodeId: payment,checkout
+      stride: Tampering
+      value: TODO
+      answer: Verify webhook signatures timestamp tolerance and idempotency keys before updating orders
+      options: TODO,Verify webhook signatures timestamp tolerance and idempotency keys before updating orders,Increase application log retention,Move static assets to a CDN
+      note: Integrity control must cover authenticity and replay protection.
+    - id: threat_orders_disclosure
+      rowId: orders_disclosure
+      field: threat
+      label: Orders data threat
+      nodeId: orders,support
+      stride: Information Disclosure
+      value: TODO
+      answer: Customer email shipping address or payment status could be exposed through broad database or support access
+      options: TODO,Customer email shipping address or payment status could be exposed through broad database or support access,Checkout pod has a readiness probe failure,Payment provider returns duplicate events
+      note: Focus on sensitive customer data in the orders database.
+    - id: mitigation_orders_disclosure
+      rowId: orders_disclosure
+      field: mitigation
+      label: Orders data mitigation
+      nodeId: orders,support
+      stride: Information Disclosure
+      value: TODO
+      answer: Encrypt order data and restrict database and admin access with least-privilege roles and audit logging
+      options: TODO,Encrypt order data and restrict database and admin access with least-privilege roles and audit logging,Raise checkout CPU limits,Switch to a larger NAT gateway
+      note: Mitigation should combine data protection and least-privilege access.
+    - id: threat_public_api_dos
+      rowId: public_api_dos
+      field: threat
+      label: Public API threat
+      nodeId: browser,public_api
+      stride: Denial of Service
+      value: TODO
+      answer: High-volume checkout requests could exhaust API or database capacity and prevent legitimate orders
+      options: TODO,High-volume checkout requests could exhaust API or database capacity and prevent legitimate orders,Support user reads the wrong order,Database encryption key rotates
+      note: Availability risk starts at the public API edge.
+    - id: mitigation_public_api_dos
+      rowId: public_api_dos
+      field: mitigation
+      label: Public API mitigation
+      nodeId: browser,public_api
+      stride: Denial of Service
+      value: TODO
+      answer: Apply rate limiting request throttling autoscaling alarms and circuit breakers around expensive operations
+      options: TODO,Apply rate limiting request throttling autoscaling alarms and circuit breakers around expensive operations,Add more support admin roles,Disable webhook replay checks
+      note: Mitigation should reduce request pressure and protect expensive dependencies.

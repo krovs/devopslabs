@@ -7,6 +7,7 @@ export type SavedRuntimePatch = {
   awsResources?: Scenario["awsResources"];
   stateResources?: Scenario["stateResources"];
   networkingControls?: Record<string, string>;
+  threatModelControls?: Record<string, string>;
   prReview?: {
     decision?: string;
     selectedFindingIds: string[];
@@ -60,6 +61,13 @@ export function restoreRuntime(baseScenario: Scenario, patch: SavedRuntimePatch)
     }));
   }
 
+  if (restored.threatModel && patch.threatModelControls) {
+    restored.threatModel.controls = restored.threatModel.controls.map((control) => ({
+      ...control,
+      value: patch.threatModelControls?.[control.id] ?? control.value,
+    }));
+  }
+
   if (restored.prReview && patch.prReview) {
     restored.prReview.decision = patch.prReview.decision;
     restored.prReview.findings = restored.prReview.findings.map((finding) => ({
@@ -87,6 +95,9 @@ export function createRuntimePatch(current: Scenario, baseScenario: Scenario): S
     stateResources: valuesMatch(current.stateResources, baseScenario.stateResources) ? undefined : current.stateResources,
     networkingControls: current.networking
       ? Object.fromEntries(current.networking.controls.map((control) => [control.id, control.value]))
+      : undefined,
+    threatModelControls: current.threatModel
+      ? Object.fromEntries(current.threatModel.controls.map((control) => [control.id, control.value]))
       : undefined,
     prReview: current.prReview
       ? {

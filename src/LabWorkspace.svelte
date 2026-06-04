@@ -2,6 +2,7 @@
   import NetworkingWorkspace from "./NetworkingWorkspace.svelte";
   import PrWorkspace from "./PrWorkspace.svelte";
   import StandardLabWorkspace from "./StandardLabWorkspace.svelte";
+  import ThreatModelWorkspace from "./ThreatModelWorkspace.svelte";
   import type { AppController } from "./appController.svelte";
 
   interface Props {
@@ -22,6 +23,8 @@
   </section>
 {:else if app.view.runtime.kind === "networking" && app.view.runtime.networking}
   <NetworkingWorkspace {app} />
+{:else if app.view.runtime.kind === "threatmodel" && app.view.runtime.threatModel}
+  <ThreatModelWorkspace {app} />
 {:else if app.view.runtime.kind === "pr" && app.view.runtime.prReview}
   <PrWorkspace {app} />
 {:else}

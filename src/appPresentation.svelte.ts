@@ -11,6 +11,7 @@ import type { ScenarioSummary } from "./scenarioManifest";
 import { createScenarioNavigation } from "./scenarioNavigation.svelte";
 import type { createScenarioSession } from "./scenarioSession.svelte";
 import type { createTerminalSession } from "./terminalSession.svelte";
+import type { createThreatModelSession } from "./threatModelSession.svelte";
 import type { createTipsSession } from "./tipsSession.svelte";
 
 type AppPresentationOptions = {
@@ -20,6 +21,7 @@ type AppPresentationOptions = {
   labMenuFilters: ReturnType<typeof createLabMenuFilters>;
   labProgress: ReturnType<typeof createLabProgress>;
   networkSession: ReturnType<typeof createNetworkSession>;
+  threatModelSession: ReturnType<typeof createThreatModelSession>;
   terminal: ReturnType<typeof createTerminalSession>;
   tipsSession: ReturnType<typeof createTipsSession>;
   persistenceSession: ReturnType<typeof createPersistenceSession>;
@@ -36,6 +38,7 @@ export function createAppPresentation({
   labMenuFilters,
   labProgress,
   networkSession,
+  threatModelSession,
   terminal,
   tipsSession,
   persistenceSession,
@@ -60,6 +63,7 @@ export function createAppPresentation({
     labMenuFilters,
     labProgress,
     networkSession,
+    threatModelSession,
     terminal,
     tipsSession,
     savedSession,

@@ -286,6 +286,20 @@ export const scenarioManifest = [
     "path": "../scenarios/application-security/java-code-auth-sql-audit.yaml"
   },
   {
+    "id": "strideCheckoutThreatModel",
+    "kind": "threatmodel",
+    "title": "STRIDE Checkout Threat Model",
+    "description": "A checkout API threat model is missing key STRIDE risks across user identity, payment webhooks, order storage, and rate limiting.",
+    "path": "../scenarios/threat-modeling/stride-checkout-threat-model.yaml"
+  },
+  {
+    "id": "oidcDeploymentThreatModel",
+    "kind": "threatmodel",
+    "title": "OIDC Deployment Threat Model",
+    "description": "A GitHub Actions OIDC deployment design is missing STRIDE coverage for repository identity, workflow integrity, artifact provenance, and production role scope.",
+    "path": "../scenarios/threat-modeling/oidc-deployment-threat-model.yaml"
+  },
+  {
     "id": "awsGuardDutyCloudTrailIamAudit",
     "kind": "cloudsec",
     "title": "AWS GuardDuty CloudTrail IAM Audit",

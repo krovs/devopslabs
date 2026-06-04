@@ -33,6 +33,7 @@
 
   let workflowResource = $derived(runtime.awsResources[0]);
   let repositorySecrets = $derived(runtime.stateResources.filter((resource) => resource.address.startsWith("secret.")));
+  let repositoryCredentials = $derived(runtime.stateResources.filter((resource) => resource.address.startsWith("credential.")));
   let repositoryPaths = $derived(runtime.stateResources.filter((resource) => resource.address.startsWith("path.")));
   let stateIdentifierLabel = $derived(rightResourceTitle === "Terraform State" ? "Remote ID" : "Value");
 
@@ -91,17 +92,29 @@
       </article>
 
       <article class="pipeline-card">
-        <h3>Repository Secrets</h3>
-        <div class="pill-list">
-          {#if repositorySecrets.length === 0}
-            <span class="pill pill-danger">none</span>
-          {/if}
-          {#each repositorySecrets as secret}
-            <span class={secret.address === "secret.AWS_ROLE_ARN" ? "pill pill-ok" : "pill"}>
-              {secret.address.replace("secret.", "")}
-            </span>
-          {/each}
-        </div>
+        {#if repositoryCredentials.length}
+          <h3>Credentials</h3>
+          <div class="path-list">
+            {#each repositoryCredentials as credential}
+              <div class="path-row">
+                <code>{credential.address.replace("credential.", "")}</code>
+                <span class="badge badge-ok">{credential.id}</span>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <h3>Repository Secrets</h3>
+          <div class="pill-list">
+            {#if repositorySecrets.length === 0}
+              <span class="pill pill-danger">none</span>
+            {/if}
+            {#each repositorySecrets as secret}
+              <span class={secret.address === "secret.AWS_ROLE_ARN" ? "pill pill-ok" : "pill"}>
+                {secret.address.replace("secret.", "")}
+              </span>
+            {/each}
+          </div>
+        {/if}
       </article>
 
       <article class="pipeline-card">

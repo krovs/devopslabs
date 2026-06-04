@@ -89,6 +89,7 @@ import {
   terraformStateMv as runTerraformStateMv,
   terraformValidate as runTerraformValidate,
 } from "./simulators/terraform";
+import { threatModelReview as runThreatModelReview } from "./simulators/threatmodel";
 import type { Scenario } from "./types";
 
 export type CommandHandlerContext = {
@@ -187,6 +188,7 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     semgrepScan: () => withRuntimeRefresh(() => runSemgrepScan(runtime(), scenarioId())),
     gitleaksDetect: () => withRuntimeRefresh(() => runGitleaksDetect(runtime(), scenarioId())),
     trivyConfig: () => withRuntimeRefresh(() => runTrivyConfig(runtime(), scenarioId())),
+    threatModelReview: () => withRuntimeRefresh(() => runThreatModelReview(runtime(), scenarioId())),
     guardDutyListFindings: () => withRuntimeRefresh(() => runGuardDutyListFindings(runtime(), scenarioId())),
     guardDutyGetFindings: () => withRuntimeRefresh(() => runGuardDutyGetFindings(runtime(), scenarioId())),
     cloudTrailLookupEvents: () => withRuntimeRefresh(() => runCloudTrailLookupEvents(runtime(), scenarioId())),

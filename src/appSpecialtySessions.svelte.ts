@@ -2,6 +2,7 @@ import type { createLabActionCallbacks } from "./labActions.svelte";
 import { createNetworkSession } from "./networkSession.svelte";
 import { createPrReviewSession } from "./prReviewSession.svelte";
 import type { createScenarioSession } from "./scenarioSession.svelte";
+import { createThreatModelSession } from "./threatModelSession.svelte";
 
 type AppSpecialtySessionsOptions = {
   scenario: ReturnType<typeof createScenarioSession>;
@@ -26,9 +27,17 @@ export function createAppSpecialtySessions({ scenario, labActionCallbacks, onSav
     onCompleted: labActionCallbacks.onCompleted,
     onSave,
   });
+  const threatModelSession = createThreatModelSession({
+    runtime: () => scenario.runtime,
+    refreshRuntime: scenario.refresh,
+    addTerminalLines: labActionCallbacks.addTerminalLines,
+    onCompleted: labActionCallbacks.onCompleted,
+    onSave,
+  });
 
   return {
     networkSession,
     prReviewSession,
+    threatModelSession,
   };
 }

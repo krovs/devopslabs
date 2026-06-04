@@ -501,6 +501,38 @@ export const documentationSections: DocSection[] = [
     ],
   },
   {
+    id: "wiki-threatmodel",
+    navTitle: "Threat Model",
+    title: "Threat Modeling",
+    blocks: [
+      {
+        type: "paragraph",
+        content: [
+          "Threat Modeling labs model design review before implementation or release. Ground each STRIDE category in a real data flow, trust boundary, sensitive asset, identity path, and mitigation that a team can verify.",
+        ],
+      },
+      {
+        type: "diagram",
+        ariaLabel: "Threat modeling review flow",
+        nodes: [
+          { title: "Data Flow", detail: "components, trust boundaries" },
+          { title: "STRIDE", detail: "threats by area" },
+          { title: "Controls", detail: "mitigations, review" },
+        ],
+      },
+      {
+        type: "code",
+        text: "threatmodel review",
+      },
+      {
+        type: "paragraph",
+        content: [
+          "Avoid generic category definitions. A useful model names who can abuse the flow, what asset is affected, and which concrete control reduces the risk.",
+        ],
+      },
+    ],
+  },
+  {
     id: "wiki-cloudsec",
     navTitle: "Cloud Audit",
     title: "Cloud Security Audit",

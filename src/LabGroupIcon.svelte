@@ -18,6 +18,7 @@
   import Network_3 from "carbon-icons-svelte/lib/Network_3.svelte";
   import Pipelines from "carbon-icons-svelte/lib/Pipelines.svelte";
   import PiggyBank from "carbon-icons-svelte/lib/PiggyBank.svelte";
+  import SkillLevelAdvanced from "carbon-icons-svelte/lib/SkillLevelAdvanced.svelte";
   import type { MenuGroupId } from "./labCatalog";
 
   let { id, size = 32 }: { id: MenuGroupId; size?: number } = $props();
@@ -37,6 +38,8 @@
   <LogoKubernetes {size} />
 {:else if id === "appsec"}
   <ApplicationWeb {size} />
+{:else if id === "threatmodel"}
+  <SkillLevelAdvanced {size} />
 {:else if id === "cloudsec"}
   <CloudAuditing {size} />
 {:else if id === "terragrunt"}

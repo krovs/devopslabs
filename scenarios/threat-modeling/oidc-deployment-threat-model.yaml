@@ -1,0 +1,263 @@
+id: oidcDeploymentThreatModel
+kind: threatmodel
+title: OIDC Deployment Threat Model
+description: A GitHub Actions OIDC deployment design is missing STRIDE coverage for repository identity, workflow integrity, artifact provenance, and production role scope.
+primaryFile: threat-model.md
+tips:
+  - Start with architecture.md and follow the token exchange into AWS STS.
+  - Treat GitHub repository identity and AWS role trust as a Spoofing risk.
+  - The workflow file and deployment artifact can both be tampered with.
+  - Production deploy permissions should be constrained to the service being released.
+  - Choose concrete mitigations that a delivery or platform team could enforce.
+files:
+  "architecture.md": |
+    # OIDC Deployment Data Flow
+
+    Components:
+    - A developer pushes a change to the GitHub repository.
+    - GitHub Actions starts the deployment workflow from the repository branch.
+    - The workflow requests an OIDC token from the GitHub OIDC provider.
+    - AWS STS exchanges the token for the production deploy role.
+    - The workflow publishes an immutable deployment artifact.
+    - The production environment deploys the signed artifact.
+
+    Trust boundaries:
+    - Developer workstation to source control.
+    - GitHub workflow identity to AWS cloud identity.
+    - CI artifact publishing to production deployment.
+
+    Security assumptions:
+    - AWS trusts GitHub OIDC claims instead of long-lived AWS keys.
+    - Production deploys are limited to the protected production environment.
+    - Artifacts must be traceable to the reviewed source commit.
+  "threat-model.md": |
+    # OIDC Deployment Threat Model
+
+    | Area | STRIDE | Threat | Mitigation |
+    | --- | --- | --- | --- |
+    | GitHub OIDC subject | Spoofing | TODO | TODO |
+    | Deploy workflow | Tampering | TODO | TODO |
+    | Deployment artifact | Tampering | TODO | TODO |
+    | Production environment | Elevation of Privilege | TODO | TODO |
+  "runbook.md": |
+    Goal:
+    - Complete the missing STRIDE entries for the OIDC production deployment path.
+
+    Constraints:
+    - Tie each threat to a real data flow in architecture.md.
+    - Cover repository identity, workflow integrity, artifact provenance, and production role scope.
+    - Prefer enforceable controls such as OIDC claim restrictions, protected branches, artifact signing, and least-privilege IAM.
+    - Do not answer with generic STRIDE definitions.
+solution:
+  summary: |
+    The deployment design names OIDC and production deployment components, but the threat model does not capture concrete abuse cases or controls.
+  steps:
+    - Read architecture.md and identify the trust boundaries between GitHub and AWS.
+    - Fill the Spoofing row with an untrusted branch or fork obtaining a deploy token and restrict OIDC trust claims as the mitigation.
+    - Fill the workflow Tampering row with malicious workflow changes and protected branch review controls as the mitigation.
+    - Fill the artifact Tampering row with artifact substitution and signing or provenance verification as the mitigation.
+    - Fill the Elevation of Privilege row with an overbroad deploy role and least-privilege IAM plus environment approval as the mitigation.
+    - Run threatmodel review.
+  explanation: |
+    OIDC removes long-lived cloud keys, but the security boundary moves to repository identity, workflow permissions, token claims, and production role scope. A useful threat model records who can mint the token, who can change the workflow, how artifacts are trusted, and what the assumed role can change.
+  outcome: |
+    The deployment threat model covers repository identity, workflow tampering, artifact provenance, and production least privilege with concrete mitigations.
+  apply: threatModelControls
+  focusFileName: threat-model.md
+  commands:
+    - threatmodel review
+backend:
+  bucket: threatmodel
+  key: oidc-deployment-stride
+  table: threat-models
+  locked: false
+  lockId: null
+awsResources:
+  - type: threat_model
+    name: oidc-deployment
+    id: oidc-deploy
+    status: failed
+    note: OIDC deployment model has missing threat and mitigation entries.
+stateResources:
+  - address: threat.oidc-subject
+    id: missing
+  - address: threat.workflow-tampering
+    id: missing
+  - address: threat.artifact-tampering
+    id: missing
+  - address: threat.production-privilege
+    id: missing
+flags:
+  securityPassed: false
+  threatModelValidated: false
+threatModel:
+  findings:
+    - GitHub OIDC subject coverage is missing.
+    - Deployment workflow tampering coverage is missing.
+    - Artifact provenance coverage is missing.
+    - Production deploy role scope coverage is missing.
+  nodes:
+    - id: developer
+      label: Developer
+      type: external
+      x: 10
+      y: 34
+      note: Pushes reviewed source changes to the repository.
+    - id: repo
+      label: GitHub Repository
+      type: datastore
+      x: 27
+      y: 34
+      note: Stores source code and workflow definitions.
+    - id: actions
+      label: GitHub Actions
+      type: multiple-process
+      x: 45
+      y: 34
+      note: Runs the deployment workflow and publishes artifacts.
+    - id: oidc
+      label: GitHub OIDC Provider
+      type: process
+      x: 45
+      y: 74
+      note: Issues short-lived tokens with repository and environment claims.
+    - id: sts
+      label: AWS STS
+      type: process
+      x: 63
+      y: 34
+      note: Exchanges the OIDC token for the production deploy role.
+    - id: artifact
+      label: Artifact Registry
+      type: datastore
+      x: 80
+      y: 34
+      note: Stores immutable release artifacts or container digests.
+    - id: prod
+      label: Production Service
+      type: multiple-process
+      x: 80
+      y: 74
+      note: Deploys the reviewed artifact into production.
+  links:
+    - from: developer
+      to: repo
+      label: push change
+      controlIds: threat_workflow_tampering,mitigation_workflow_tampering
+    - from: repo
+      to: actions
+      label: workflow trigger
+      controlIds: threat_workflow_tampering,mitigation_workflow_tampering
+    - from: actions
+      to: oidc
+      label: request token
+      controlIds: threat_oidc_subject,mitigation_oidc_subject
+    - from: oidc
+      to: sts
+      label: assume role
+      controlIds: threat_oidc_subject,mitigation_oidc_subject,threat_prod_privilege,mitigation_prod_privilege
+    - from: actions
+      to: artifact
+      label: publish artifact
+      controlIds: threat_artifact_tampering,mitigation_artifact_tampering
+    - from: artifact
+      to: prod
+      label: deploy release
+      controlIds: threat_artifact_tampering,mitigation_artifact_tampering,threat_prod_privilege,mitigation_prod_privilege
+  boundaries:
+    - id: source_control
+      label: Source Control Boundary
+      x: 35
+      y: 8
+      height: 82
+    - id: cloud_identity
+      label: Cloud Identity Boundary
+      x: 55
+      y: 8
+      height: 82
+    - id: production
+      label: Production Boundary
+      x: 72
+      y: 8
+      height: 82
+  controls:
+    - id: threat_oidc_subject
+      rowId: oidc_subject
+      field: threat
+      label: GitHub OIDC subject threat
+      nodeId: actions,oidc,sts
+      stride: Spoofing
+      value: TODO
+      answer: Attacker runs workflow from an untrusted branch or fork to request a deploy token
+      options: TODO,Attacker runs workflow from an untrusted branch or fork to request a deploy token,Build cache misses slow the deployment,Artifact registry stores too many old tags
+      note: Focus on who is allowed to mint an identity token for AWS.
+    - id: mitigation_oidc_subject
+      rowId: oidc_subject
+      field: mitigation
+      label: GitHub OIDC subject mitigation
+      nodeId: actions,oidc,sts
+      stride: Spoofing
+      value: TODO
+      answer: Restrict OIDC trust to repository branch environment and audience claims
+      options: TODO,Restrict OIDC trust to repository branch environment and audience claims,Increase workflow timeout,Add a larger runner
+      note: The AWS trust policy should match expected GitHub claims.
+    - id: threat_workflow_tampering
+      rowId: workflow_tampering
+      field: threat
+      label: Deploy workflow threat
+      nodeId: repo,actions
+      stride: Tampering
+      value: TODO
+      answer: Attacker changes the workflow to request broader permissions or deploy unsafe steps
+      options: TODO,Attacker changes the workflow to request broader permissions or deploy unsafe steps,Developer forgets to update the release notes,STS returns credentials that expire normally
+      note: Workflow files are deployment logic and must be protected.
+    - id: mitigation_workflow_tampering
+      rowId: workflow_tampering
+      field: mitigation
+      label: Deploy workflow mitigation
+      nodeId: repo,actions
+      stride: Tampering
+      value: TODO
+      answer: Require protected branches code review CODEOWNERS and least-privilege workflow permissions
+      options: TODO,Require protected branches code review CODEOWNERS and least-privilege workflow permissions,Enable verbose console output,Run builds only on weekends
+      note: Protect workflow changes and minimize default token permissions.
+    - id: threat_artifact_tampering
+      rowId: artifact_tampering
+      field: threat
+      label: Artifact threat
+      nodeId: actions,artifact,prod
+      stride: Tampering
+      value: TODO
+      answer: Attacker swaps or modifies the artifact before production deployment
+      options: TODO,Attacker swaps or modifies the artifact before production deployment,Production logs rotate every day,Repository branch name is too long
+      note: Production must know the artifact matches the reviewed source.
+    - id: mitigation_artifact_tampering
+      rowId: artifact_tampering
+      field: mitigation
+      label: Artifact mitigation
+      nodeId: actions,artifact,prod
+      stride: Tampering
+      value: TODO
+      answer: Sign artifacts verify provenance pin actions and deploy immutable digests
+      options: TODO,Sign artifacts verify provenance pin actions and deploy immutable digests,Use a shorter repository name,Disable artifact retention
+      note: Signing and immutable references reduce substitution risk.
+    - id: threat_prod_privilege
+      rowId: production_privilege
+      field: threat
+      label: Production role threat
+      nodeId: sts,prod
+      stride: Elevation of Privilege
+      value: TODO
+      answer: Deploy role can modify production resources outside the intended service boundary
+      options: TODO,Deploy role can modify production resources outside the intended service boundary,OIDC token is short lived,Artifact digest is visible in logs
+      note: The assumed role should not become a broad production admin path.
+    - id: mitigation_prod_privilege
+      rowId: production_privilege
+      field: mitigation
+      label: Production role mitigation
+      nodeId: sts,prod
+      stride: Elevation of Privilege
+      value: TODO
+      answer: Scope deploy role permissions to required resources and require environment approvals
+      options: TODO,Scope deploy role permissions to required resources and require environment approvals,Delete old workflow runs,Use a faster deployment runner
+      note: Combine least-privilege IAM with protected production approvals.

@@ -2,7 +2,7 @@
 
 A small Svelte + TypeScript web app for practicing DevOps and cloud troubleshooting scenarios.
 
-The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, Java application security auditing, AWS cloud security auditing, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Helm, Maven, Semgrep, Gitleaks, Trivy, Kyverno, Istio, Cilium, or certificate services.
+The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, Java application security auditing, threat modeling, AWS cloud security auditing, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Helm, Maven, Semgrep, Gitleaks, Trivy, Kyverno, Istio, Cilium, or certificate services.
 
 ## Features
 
@@ -15,6 +15,7 @@ The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, Jav
 - GitOps scenarios for Argo CD Application and Flux Kustomization reconciliation failures
 - Policy as Code scenarios for Kubernetes, Kyverno, Istio, and Cilium policy patterns
 - Application Security scenarios for Java dependency, secret, container, authorization, and injection audit patterns
+- Threat Modeling scenarios for data flows, trust boundaries, STRIDE risks, and mitigations
 - Cloud Security Audit scenarios for GuardDuty, CloudTrail, CloudWatch Logs, AWS Config, and IAM investigation workflows
 - Observability and FinOps scenarios for CloudWatch, logs, Cost Explorer, and cost-resource cleanup
 - YAML-backed scenarios bundled at build time
@@ -197,6 +198,7 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 - Kubernetes EKS RBAC and IRSA service account triage
 - Java dependency, secrets, and container audit
 - Java authorization and SQL injection code audit
+- STRIDE checkout threat model review
 - AWS GuardDuty, CloudTrail, Config, and IAM audit
 - IAM S3 prefix least-privilege policy
 - IAM GitHub OIDC environment trust policy
@@ -272,6 +274,7 @@ Scenario kinds:
 - `kind: gitops`: uses Argo CD and Flux-style reconciliation commands for Kubernetes GitOps workflows.
 - `kind: kubernetes`: uses Kubernetes, EKS IRSA, RBAC, and Helm-style commands for pod, rollout, service account, and chart troubleshooting.
 - `kind: appsec`: uses Java application security commands such as `mvn test`, dependency-check, Semgrep, Gitleaks, and Trivy.
+- `kind: threatmodel`: uses threat-modeling commands such as `threatmodel review`.
 - `kind: cloudsec`: uses GuardDuty, CloudTrail, CloudWatch Logs, AWS Config, and IAM simulation commands for AWS security investigation.
 - `kind: iam`: uses identity simulation or inspection commands and least-privilege checks across AWS and Azure-style exercises.
 - `kind: scp`: uses AWS Organizations policy inspection and IAM-style simulation to model SCP deny guardrails.
@@ -294,6 +297,8 @@ GitOps scenarios use `kind: gitops` and model Kubernetes desired-state reconcili
 Kubernetes scenarios use `kind: kubernetes` and model workload triage through `kubectl` plus Helm chart workflows. Current labs cover ImagePullBackOff events, readiness probe port mismatches, Helm values that render the wrong container port, and EKS service account access that combines Kubernetes RBAC with IRSA.
 
 Application Security scenarios use `kind: appsec` and model Java DevSecOps audit workflows. Current labs cover vulnerable dependencies, committed secrets, root containers, client-controlled authorization, and SQL injection.
+
+Threat Modeling scenarios use `kind: threatmodel` and model design-review workflows. Current labs cover STRIDE coverage for checkout data flows, trust boundaries, customer data, webhook integrity, identity, availability, and OIDC deployment paths between GitHub Actions and AWS.
 
 Cloud Security Audit scenarios use `kind: cloudsec` and model AWS security investigation workflows. Current labs cover GuardDuty findings, CloudTrail activity, CloudWatch Logs event context, AWS Config policy history, and IAM simulation for overbroad permissions.
 

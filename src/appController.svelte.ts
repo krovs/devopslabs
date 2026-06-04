@@ -27,7 +27,7 @@ export function createAppController() {
     savedSession,
     onSave: saveSession,
   });
-  const { networkSession, prReviewSession } = createAppSpecialtySessions({
+  const { networkSession, prReviewSession, threatModelSession } = createAppSpecialtySessions({
     scenario,
     labActionCallbacks,
     onSave: saveSession,
@@ -54,6 +54,7 @@ export function createAppController() {
     labProgress,
     networkSession,
     prReviewSession,
+    threatModelSession,
     editorSession,
     commandSession,
     terminal,
@@ -68,6 +69,7 @@ export function createAppController() {
     labMenuFilters,
     labProgress,
     networkSession,
+    threatModelSession,
     terminal,
     tipsSession,
     persistenceSession,
@@ -97,6 +99,7 @@ export function createAppController() {
     labProgress,
     networkSession,
     prReviewSession,
+    threatModelSession,
     scenarioNavigation,
     saveSession,
     terminal,

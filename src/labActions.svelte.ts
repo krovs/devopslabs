@@ -8,6 +8,7 @@ import type { createPrReviewSession } from "./prReviewSession.svelte";
 import type { createScenarioSession } from "./scenarioSession.svelte";
 import { applyLessonSolution } from "./solutionApplier";
 import type { createTerminalSession } from "./terminalSession.svelte";
+import type { createThreatModelSession } from "./threatModelSession.svelte";
 
 export type LabActionsOptions = {
   scenario: ReturnType<typeof createScenarioSession>;
@@ -15,6 +16,7 @@ export type LabActionsOptions = {
   labProgress: ReturnType<typeof createLabProgress>;
   networkSession: ReturnType<typeof createNetworkSession>;
   prReviewSession: ReturnType<typeof createPrReviewSession>;
+  threatModelSession: ReturnType<typeof createThreatModelSession>;
   editorSession: ReturnType<typeof createEditorSession>;
   commandSession: ReturnType<typeof createCommandSession>;
   terminal: ReturnType<typeof createTerminalSession>;
@@ -111,6 +113,10 @@ export function createLabActions(options: LabActionsOptions) {
         applyPrReviewSolution: () => {
           options.prReviewSession.applyExpectedReview();
           options.prReviewSession.submit();
+        },
+        applyThreatModelSolution: () => {
+          options.threatModelSession.applyControlAnswers();
+          options.threatModelSession.reviewScenario();
         },
         onCompleted: celebrateIfScenarioCompleted,
         onSave: options.onSave,

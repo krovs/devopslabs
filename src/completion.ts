@@ -6,12 +6,13 @@ import { iamFixApplied, markIamScenarioSolved, scpFixApplied, scpSuccessNote } f
 import { dnsFixApplied, finopsFixApplied, observabilityFixApplied, secretsFixApplied } from "./simulators/ops";
 import { policyFixApplied } from "./simulators/policy";
 import { hasStateAddress } from "./simulators/terraform";
+import { markThreatModelScenarioSolved, threatModelFixApplied } from "./simulators/threatmodel";
 import type { Scenario, ScenarioFlags } from "./types";
 
 type OperationalCompletionFlag = Extract<
   keyof ScenarioFlags,
   "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated" | "policyValidated" | "gitopsValidated"
-  | "linuxValidated" | "kubernetesValidated" | "appsecValidated" | "cloudsecValidated"
+  | "linuxValidated" | "kubernetesValidated" | "appsecValidated" | "threatModelValidated" | "cloudsecValidated"
 >;
 
 function markFirstResource(runtime: Scenario, status: string, note: string): void {
@@ -78,14 +79,22 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
 
   if (runtime.kind === "appsec") {
     if (!appsecFixApplied(runtime, scenarioId)) return ["Not complete: Java security findings still exist in dependencies, secrets, container config, or source code."];
+    const javaAppsecScenario = scenarioId === "javaDependencySecretsContainerAudit" || scenarioId === "javaCodeAuthSqlAudit";
     if (scenarioId === "javaDependencySecretsContainerAudit") {
       if (!runtime.flags.securityPassed) return ["Not complete: dependency-check has not passed after the dependency fix."];
       if (!runtime.flags.secretsConfigured) return ["Not complete: gitleaks has not passed after externalizing the JWT secret."];
       if (!runtime.flags.lintPassed) return ["Not complete: trivy config has not passed after adding the non-root container user."];
     }
     if (scenarioId === "javaCodeAuthSqlAudit" && !runtime.flags.securityPassed) return ["Not complete: semgrep still needs to pass after the code fixes."];
-    if (!runtime.flags.runPassing) return ["Not complete: run mvn test after the Java security fixes."];
+    if (javaAppsecScenario && !runtime.flags.runPassing) return ["Not complete: run mvn test after the Java security fixes."];
     markAppsecScenarioSolved(runtime, "Java application security audit passed.");
+    return ["Scenario complete."];
+  }
+
+  if (runtime.kind === "threatmodel") {
+    if (!threatModelFixApplied(runtime, scenarioId)) return ["Not complete: STRIDE table still needs concrete threats and mitigations."];
+    if (!runtime.flags.securityPassed) return ["Not complete: run threatmodel review after completing the STRIDE table."];
+    markThreatModelScenarioSolved(runtime);
     return ["Scenario complete."];
   }
 
@@ -185,6 +194,7 @@ export function isScenarioSolved(runtime: Scenario, scenarioId: string, activeFi
   if (runtime.kind === "linux") return Boolean(runtime.flags.linuxValidated);
   if (runtime.kind === "kubernetes") return Boolean(runtime.flags.kubernetesValidated);
   if (runtime.kind === "appsec") return Boolean(runtime.flags.appsecValidated);
+  if (runtime.kind === "threatmodel") return Boolean(runtime.flags.threatModelValidated);
   if (runtime.kind === "cloudsec") return Boolean(runtime.flags.cloudsecValidated);
   if (runtime.kind === "awsconfig") return Boolean(runtime.flags.configValidated && runtime.flags.cleanPlan);
   if (scenarioId === "githubActionsMissingSecret") return Boolean(runtime.flags.secretsConfigured && runtime.flags.runPassing);

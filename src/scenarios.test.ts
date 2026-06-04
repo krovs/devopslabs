@@ -50,7 +50,7 @@ describe("scenarios", () => {
     expect(() => validateScenario(invalidScenario)).toThrow("invalid is missing files");
   });
 
-  it("requires networking and PR models for those scenario kinds", () => {
+  it("requires networking, threat modeling, and PR models for those scenario kinds", () => {
     const baseScenario: Scenario = {
       id: "invalidNetworking",
       kind: "networking",
@@ -72,6 +72,7 @@ describe("scenarios", () => {
     };
 
     expect(() => validateScenario(baseScenario)).toThrow("invalidNetworking is missing networking");
+    expect(() => validateScenario({ ...baseScenario, id: "invalidThreatModel", kind: "threatmodel" })).toThrow("invalidThreatModel is missing threatModel");
     expect(() => validateScenario({ ...baseScenario, id: "invalidPr", kind: "pr" })).toThrow("invalidPr is missing prReview");
   });
 

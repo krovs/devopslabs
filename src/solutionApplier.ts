@@ -7,6 +7,7 @@ export type SolutionApplierOptions = {
   dispatchCommand: (command: string, runtime: Scenario) => string[];
   applyNetworkingSolution: () => void;
   applyPrReviewSolution: () => void;
+  applyThreatModelSolution: () => void;
   onCompleted: () => void;
   onSave: () => void;
 };
@@ -18,6 +19,7 @@ export function applyLessonSolution({
   dispatchCommand,
   applyNetworkingSolution,
   applyPrReviewSolution,
+  applyThreatModelSolution,
   onCompleted,
   onSave,
 }: SolutionApplierOptions): void {
@@ -36,6 +38,12 @@ export function applyLessonSolution({
 
   if (lessonSolution.apply === "prReview" && runtime.prReview) {
     applyPrReviewSolution();
+    onSave();
+    return;
+  }
+
+  if (lessonSolution.apply === "threatModelControls" && runtime.threatModel) {
+    applyThreatModelSolution();
     onSave();
     return;
   }

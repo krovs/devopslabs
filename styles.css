@@ -1605,7 +1605,17 @@ th {
   min-height: 0;
 }
 
+.threat-model-workspace {
+  display: grid;
+  min-height: 0;
+}
+
 .networking-workspace .panel-header {
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
+.threat-model-workspace .panel-header {
   min-height: 36px;
   padding: 6px 10px;
 }
@@ -1660,11 +1670,14 @@ th {
 }
 
 .network-diagram-panel,
-.network-controls-panel {
+.network-controls-panel,
+.threat-diagram-panel,
+.threat-controls-panel {
   min-height: 0;
 }
 
-.network-diagram-panel {
+.network-diagram-panel,
+.threat-diagram-panel {
   min-width: 0;
 }
 
@@ -1693,6 +1706,14 @@ th {
   border-color: var(--ok);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 44%, transparent), 0 0 28px color-mix(in srgb, var(--ok) 22%, transparent);
   animation: network-success-sweep 780ms ease-out;
+}
+
+.threat-canvas {
+  background:
+    radial-gradient(circle at 12px 12px, color-mix(in srgb, var(--accent) 18%, transparent) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(90deg, color-mix(in srgb, var(--line) 34%, transparent) 1px, transparent 1px) 0 0 / 56px 56px,
+    linear-gradient(0deg, color-mix(in srgb, var(--line) 34%, transparent) 1px, transparent 1px) 0 0 / 56px 56px,
+    var(--table-bg);
 }
 
 .network-links {
@@ -1736,10 +1757,27 @@ th {
   vector-effect: non-scaling-stroke;
 }
 
+.threat-links {
+  z-index: 4;
+}
+
+.threat-links path {
+  stroke-width: 0.74;
+}
+
+.threat-links marker path {
+  fill: var(--ok);
+  stroke: none;
+}
+
 .network-links path.failed-link {
   stroke: var(--danger);
   stroke-dasharray: 4 3;
   animation: failed-link-flow 900ms linear infinite;
+}
+
+.threat-links marker#threat-arrow-failed path {
+  fill: var(--danger);
 }
 
 .network-node {
@@ -1787,6 +1825,109 @@ th {
   outline: 2px solid var(--warn);
   outline-offset: 2px;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 30%, transparent), 0 12px 28px rgb(17 17 27 / 0.22);
+}
+
+.threat-node {
+  place-content: center;
+  gap: 0;
+  min-height: var(--node-height, 56px);
+  border: 1.5px solid color-mix(in srgb, var(--accent) 72%, var(--line));
+  background: var(--panel);
+  z-index: 5;
+}
+
+.threat-node.threat-external,
+.threat-node.threat-internal {
+  width: var(--node-width, 126px);
+  height: var(--node-height, 68px);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+  border-radius: 0;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  box-shadow: none;
+}
+
+.threat-node.threat-internal {
+  border-style: dashed;
+}
+
+.threat-node.threat-process,
+.threat-node.threat-multiple-process {
+  width: 104px;
+  height: 104px;
+  aspect-ratio: 1;
+  min-height: 0;
+  padding: 10px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+  box-shadow: 0 10px 24px rgb(17 17 27 / 0.18);
+}
+
+.threat-node.threat-multiple-process {
+  box-shadow:
+    inset 0 0 0 4px color-mix(in srgb, var(--panel) 88%, transparent),
+    inset 0 0 0 7px color-mix(in srgb, var(--accent) 42%, transparent),
+    0 10px 24px rgb(17 17 27 / 0.18);
+}
+
+.threat-node.threat-datastore {
+  width: var(--node-width, 118px);
+  height: var(--node-height, 76px);
+  min-height: 0;
+  border: 0;
+  border-top: 2px solid color-mix(in srgb, var(--ok) 76%, var(--line));
+  border-bottom: 2px solid color-mix(in srgb, var(--ok) 76%, var(--line));
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.threat-node.threat-datastore::before,
+.threat-node.threat-datastore::after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--ok) 76%, var(--line));
+  content: "";
+}
+
+.threat-node.threat-datastore::before {
+  top: 7px;
+}
+
+.threat-node.threat-datastore::after {
+  bottom: 7px;
+}
+
+.threat-node.threat-covered {
+  border-color: var(--ok);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 30%, transparent), 0 12px 26px rgb(17 17 27 / 0.2);
+}
+
+.threat-boundary-line {
+  position: absolute;
+  width: 72px;
+  transform: translateX(-50%);
+  border-left: 2px dashed #eab308;
+  border-radius: 50%;
+  opacity: 0.88;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.threat-boundary-line span {
+  position: absolute;
+  left: -22px;
+  top: 50%;
+  width: max-content;
+  max-width: 220px;
+  transform: rotate(-90deg) translateX(-50%);
+  transform-origin: left top;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .network-node span {
@@ -1967,6 +2108,18 @@ th {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
+}
+
+.threat-controls label em {
+  width: fit-content;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--table-bg));
+  color: var(--accent);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 @keyframes failed-link-flow {
@@ -2217,11 +2370,13 @@ th {
     grid-template-columns: 1fr;
   }
 
-  .networking-workspace {
+  .networking-workspace,
+  .threat-model-workspace {
     grid-template-columns: 1fr;
   }
 
-  .network-main-row {
+  .network-main-row,
+  .threat-main-row {
     grid-template-columns: 1fr;
   }
 

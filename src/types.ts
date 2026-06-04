@@ -44,6 +44,7 @@ export type ScenarioFlags = {
   linuxValidated?: boolean;
   kubernetesValidated?: boolean;
   appsecValidated?: boolean;
+  threatModelValidated?: boolean;
   cloudsecValidated?: boolean;
   solutionViewed?: boolean;
   linuxResourcesChecked?: boolean;
@@ -100,6 +101,55 @@ export type NetworkingModel = {
   traces?: NetworkTrace[];
 };
 
+export type ThreatModelNode = {
+  id: string;
+  label: string;
+  type: string;
+  x: string;
+  y: string;
+  width?: string;
+  height?: string;
+  note?: string;
+};
+
+export type ThreatModelLink = {
+  from: string;
+  to: string;
+  label: string;
+  status?: string;
+  controlIds?: string;
+  routeY?: string;
+};
+
+export type ThreatModelBoundary = {
+  id: string;
+  label: string;
+  x: string;
+  y?: string;
+  height?: string;
+};
+
+export type ThreatModelControl = {
+  id: string;
+  rowId: string;
+  field: "threat" | "mitigation" | string;
+  label: string;
+  nodeId?: string;
+  stride: string;
+  value: string;
+  answer: string;
+  options: string;
+  note?: string;
+};
+
+export type ThreatModelModel = {
+  nodes: ThreatModelNode[];
+  links: ThreatModelLink[];
+  controls: ThreatModelControl[];
+  boundaries?: ThreatModelBoundary[];
+  findings?: string[];
+};
+
 export type PrFinding = {
   id: string;
   label: string;
@@ -130,13 +180,13 @@ export type ScenarioSolutionReplacement = {
 
 export type Scenario = {
   id: string;
-  kind?: "terraform" | "terragrunt" | "cicd" | "gitops" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops" | "policy" | "linux" | "kubernetes" | "appsec" | "cloudsec";
+  kind?: "terraform" | "terragrunt" | "cicd" | "gitops" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops" | "policy" | "linux" | "kubernetes" | "appsec" | "threatmodel" | "cloudsec";
   title: string;
   description: string;
   primaryFile?: string;
   tips?: string[];
   solution?: {
-    apply?: "networkingControls" | "prReview" | string;
+    apply?: "networkingControls" | "prReview" | "threatModelControls" | string;
     summary?: string;
     steps?: string[];
     commands?: string[];
@@ -152,5 +202,6 @@ export type Scenario = {
   stateResources: StateResource[];
   flags: ScenarioFlags;
   networking?: NetworkingModel;
+  threatModel?: ThreatModelModel;
   prReview?: PrReviewModel;
 };
