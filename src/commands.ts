@@ -77,6 +77,11 @@ export type CommandHandlers = {
   logsFilterLogEvents: () => string[];
   configResourceHistory: () => string[];
   cloudsecSimulatePrincipalPolicy: () => string[];
+  mlPipelineStatus: () => string[];
+  mlArtifactsList: () => string[];
+  mlPipelineRun: () => string[];
+  mlModelDescribe: () => string[];
+  mlModelPromote: () => string[];
   checkScenario: () => string[];
 };
 
@@ -182,6 +187,16 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "aws logs filter-log-events") return handlers.logsFilterLogEvents();
     if (input === "aws configservice get-resource-config-history") return handlers.configResourceHistory();
     if (input === "aws iam simulate-principal-policy") return handlers.cloudsecSimulatePrincipalPolicy();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "mlops") {
+    if (input === "ml pipeline status") return handlers.mlPipelineStatus();
+    if (input === "ml artifacts list") return handlers.mlArtifactsList();
+    if (input === "ml pipeline run") return handlers.mlPipelineRun();
+    if (input === "ml model describe") return handlers.mlModelDescribe();
+    if (input === "ml model promote") return handlers.mlModelPromote();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -303,6 +318,10 @@ function commandHelp(runtime: Scenario): string[] {
 
   if (runtime.kind === "cloudsec") {
     return ["Available commands:", "  aws guardduty list-findings", "  aws guardduty get-findings", "  aws cloudtrail lookup-events", "  aws logs filter-log-events", "  aws configservice get-resource-config-history", "  aws iam simulate-principal-policy", "  check", "  help"];
+  }
+
+  if (runtime.kind === "mlops") {
+    return ["Available commands:", "  ml pipeline status", "  ml artifacts list", "  ml pipeline run", "  ml model describe", "  ml model promote", "  check", "  help"];
   }
 
   return [

@@ -3,6 +3,7 @@ import { appsecFixApplied, markAppsecScenarioSolved } from "./simulators/appsec"
 import { cloudsecFixApplied, markCloudsecScenarioSolved } from "./simulators/cloudsec";
 import { gitopsFixApplied } from "./simulators/gitops";
 import { iamFixApplied, markIamScenarioSolved, scpFixApplied, scpSuccessNote } from "./simulators/identity";
+import { markMlopsScenarioSolved, mlopsFixApplied } from "./simulators/mlops";
 import { dnsFixApplied, finopsFixApplied, observabilityFixApplied, secretsFixApplied } from "./simulators/ops";
 import { policyFixApplied } from "./simulators/policy";
 import { hasStateAddress } from "./simulators/terraform";
@@ -12,7 +13,7 @@ import type { Scenario, ScenarioFlags } from "./types";
 type OperationalCompletionFlag = Extract<
   keyof ScenarioFlags,
   "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated" | "policyValidated" | "gitopsValidated"
-  | "linuxValidated" | "kubernetesValidated" | "appsecValidated" | "threatModelValidated" | "cloudsecValidated"
+  | "linuxValidated" | "kubernetesValidated" | "appsecValidated" | "threatModelValidated" | "cloudsecValidated" | "mlopsValidated"
 >;
 
 function markFirstResource(runtime: Scenario, status: string, note: string): void {
@@ -108,6 +109,14 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
     return ["Scenario complete."];
   }
 
+  if (runtime.kind === "mlops") {
+    if (!runtime.flags.initialized) return ["Not complete: inspect the MLOps pipeline or model registry status before applying the fix."];
+    if (!mlopsFixApplied(runtime, scenarioId)) return ["Not complete: MLOps configuration still has the wrong dataset version or promotion metadata."];
+    if (!runtime.flags.runPassing) return ["Not complete: run the MLOps validation command after applying the fix."];
+    markMlopsScenarioSolved(runtime);
+    return ["Scenario complete."];
+  }
+
   if (runtime.kind === "iam") {
     if (!iamFixApplied(runtime, scenarioId)) return ["Not complete: IAM policy or trust conditions are still too broad or missing required constraints."];
     markIamScenarioSolved(runtime, "IAM validation passed for the requested access path.");
@@ -196,6 +205,7 @@ export function isScenarioSolved(runtime: Scenario, scenarioId: string, activeFi
   if (runtime.kind === "appsec") return Boolean(runtime.flags.appsecValidated);
   if (runtime.kind === "threatmodel") return Boolean(runtime.flags.threatModelValidated);
   if (runtime.kind === "cloudsec") return Boolean(runtime.flags.cloudsecValidated);
+  if (runtime.kind === "mlops") return Boolean(runtime.flags.mlopsValidated);
   if (runtime.kind === "awsconfig") return Boolean(runtime.flags.configValidated && runtime.flags.cleanPlan);
   if (scenarioId === "githubActionsMissingSecret") return Boolean(runtime.flags.secretsConfigured && runtime.flags.runPassing);
   if (scenarioId === "githubActionsWrongWorkingDirectory") return Boolean(runtime.flags.workflowFixed && runtime.flags.runPassing);

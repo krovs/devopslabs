@@ -62,6 +62,10 @@ export const scenarioOrderByGroup = {
   cloudSecurityAudit: [
     "awsGuardDutyCloudTrailIamAudit",
   ],
+  mlops: [
+    "mlopsTrainingDatasetVersion",
+    "mlopsModelRegistryPromotionGate",
+  ],
   identityAccess: [
     "iamBlankSecretsReadonly",
     "iamBlankCloudWatchLogsWrite",

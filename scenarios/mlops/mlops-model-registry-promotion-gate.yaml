@@ -1,0 +1,91 @@
+id: mlopsModelRegistryPromotionGate
+kind: mlops
+title: MLOps Model Registry Promotion Gate
+description: A fraud model candidate cannot be promoted because the model card is missing approval metadata required by the registry gate.
+primaryFile: model-card.md
+tips:
+  - Inspect the model registry entry before editing metadata.
+  - The evaluation report already meets the metric gate.
+  - Promotion requires a named approver and the approved registry stage.
+  - Do not lower the metric threshold to force promotion.
+files:
+  "model-card.md": |
+    # Fraud Detector Model Card
+
+    Model: fraud-detector
+    Version: v42
+    Candidate run: train-20260603-1842
+    Validation AUC: 0.947
+    Bias review: passed
+    Approval: pending
+    Approved by: TODO
+    Target stage: staging
+  "promotion-policy.yaml": |
+    model: fraud-detector
+    minimum_auc: "0.94"
+    required_bias_review: passed
+    required_approval: security-review
+    production_stage: production
+  "evaluation.json": |
+    {
+      "model": "fraud-detector",
+      "version": "v42",
+      "auc": 0.947,
+      "false_positive_rate": 0.031,
+      "bias_review": "passed"
+    }
+solution:
+  summary: |
+    The model candidate passes evaluation, but the registry promotion gate is blocked because the model card still says approval is pending and targets staging.
+  steps:
+    - Run ml model describe to inspect the candidate and promotion gate.
+    - Update model-card.md so Approval is security-review.
+    - Set Approved by to ml-risk-board.
+    - Set Target stage to production.
+    - Run ml model promote and then check.
+  explanation: |
+    Registry promotion should combine metric evidence with governance metadata. The candidate already satisfies the AUC and bias-review gates, so the safe fix is to record the required approval and production target without weakening the policy.
+  outcome: |
+    The fraud-detector v42 candidate is promoted to production with the required security-review approval metadata.
+  focusFileName: model-card.md
+  replacements:
+    - fileName: model-card.md
+      search: |
+        Approval: pending
+      replace: |
+        Approval: security-review
+    - fileName: model-card.md
+      search: |
+        Approved by: TODO
+      replace: |
+        Approved by: ml-risk-board
+    - fileName: model-card.md
+      search: |
+        Target stage: staging
+      replace: |
+        Target stage: production
+  commands:
+    - ml model describe
+    - ml model promote
+backend:
+  bucket: mlops
+  key: fraud-detector-registry
+  table: model-registry
+  locked: false
+  lockId: null
+awsResources:
+  - type: model_registry
+    name: fraud-detector
+    id: fraud-detector:v42
+    status: failed
+    note: Promotion gate is blocked by missing approval metadata.
+stateResources:
+  - address: model.fraud-detector.v42
+    id: candidate
+  - address: gate.security-review
+    id: pending
+flags:
+  initialized: false
+  validationPassed: false
+  runPassing: false
+  mlopsValidated: false

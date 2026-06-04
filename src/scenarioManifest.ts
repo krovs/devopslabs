@@ -307,6 +307,20 @@ export const scenarioManifest = [
     "path": "../scenarios/cloud-security-audit/aws-guardduty-cloudtrail-iam-audit.yaml"
   },
   {
+    "id": "mlopsTrainingDatasetVersion",
+    "kind": "mlops",
+    "title": "MLOps Training Dataset Version",
+    "description": "A churn training pipeline fails because it uses an unpinned dataset alias instead of the approved dataset artifact version.",
+    "path": "../scenarios/mlops/mlops-training-dataset-version.yaml"
+  },
+  {
+    "id": "mlopsModelRegistryPromotionGate",
+    "kind": "mlops",
+    "title": "MLOps Model Registry Promotion Gate",
+    "description": "A fraud model candidate cannot be promoted because the model card is missing approval metadata required by the registry gate.",
+    "path": "../scenarios/mlops/mlops-model-registry-promotion-gate.yaml"
+  },
+  {
     "id": "iamBlankSecretsReadonly",
     "kind": "iam",
     "title": "IAM Blank Secrets Read Only",

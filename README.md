@@ -2,7 +2,7 @@
 
 A small Svelte + TypeScript web app for practicing DevOps and cloud troubleshooting scenarios.
 
-The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, Java application security auditing, threat modeling, AWS cloud security auditing, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Helm, Maven, Semgrep, Gitleaks, Trivy, Kyverno, Istio, Cilium, or certificate services.
+The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, Java application security auditing, threat modeling, AWS cloud security auditing, MLOps, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Helm, Maven, Semgrep, Gitleaks, Trivy, Kyverno, Istio, Cilium, ML platforms, or certificate services.
 
 ## Features
 
@@ -17,6 +17,7 @@ The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, Jav
 - Application Security scenarios for Java dependency, secret, container, authorization, and injection audit patterns
 - Threat Modeling scenarios for data flows, trust boundaries, STRIDE risks, and mitigations
 - Cloud Security Audit scenarios for GuardDuty, CloudTrail, CloudWatch Logs, AWS Config, and IAM investigation workflows
+- MLOps scenarios for dataset artifacts, training runs, model registry gates, and promotion metadata
 - Observability and FinOps scenarios for CloudWatch, logs, Cost Explorer, and cost-resource cleanup
 - YAML-backed scenarios bundled at build time
 - Collapsible side menu with completion counts
@@ -118,6 +119,11 @@ kubectl scale deployment checkout-api --replicas=2
 helm lint checkout ./chart
 helm template checkout ./chart
 helm upgrade checkout ./chart
+ml pipeline status
+ml artifacts list
+ml pipeline run
+ml model describe
+ml model promote
 mvn test
 mvn org.owasp:dependency-check-maven:check
 semgrep scan
@@ -199,7 +205,10 @@ Scenarios are ordered in the menu from easier, single-signal fixes toward harder
 - Java dependency, secrets, and container audit
 - Java authorization and SQL injection code audit
 - STRIDE checkout threat model review
+- OIDC deployment threat model review
 - AWS GuardDuty, CloudTrail, Config, and IAM audit
+- MLOps training dataset version pinning
+- MLOps model registry promotion gate
 - IAM S3 prefix least-privilege policy
 - IAM GitHub OIDC environment trust policy
 - IAM KMS encryption context policy
@@ -276,6 +285,7 @@ Scenario kinds:
 - `kind: appsec`: uses Java application security commands such as `mvn test`, dependency-check, Semgrep, Gitleaks, and Trivy.
 - `kind: threatmodel`: uses threat-modeling commands such as `threatmodel review`.
 - `kind: cloudsec`: uses GuardDuty, CloudTrail, CloudWatch Logs, AWS Config, and IAM simulation commands for AWS security investigation.
+- `kind: mlops`: uses MLOps validation commands for training pipelines, artifact inspection, model registry metadata, and promotion gates.
 - `kind: iam`: uses identity simulation or inspection commands and least-privilege checks across AWS and Azure-style exercises.
 - `kind: scp`: uses AWS Organizations policy inspection and IAM-style simulation to model SCP deny guardrails.
 - `kind: policy`: uses policy-as-code validation commands such as `kyverno test .` and Kubernetes server dry-run.
@@ -301,6 +311,8 @@ Application Security scenarios use `kind: appsec` and model Java DevSecOps audit
 Threat Modeling scenarios use `kind: threatmodel` and model design-review workflows. Current labs cover STRIDE coverage for checkout data flows, trust boundaries, customer data, webhook integrity, identity, availability, and OIDC deployment paths between GitHub Actions and AWS.
 
 Cloud Security Audit scenarios use `kind: cloudsec` and model AWS security investigation workflows. Current labs cover GuardDuty findings, CloudTrail activity, CloudWatch Logs event context, AWS Config policy history, and IAM simulation for overbroad permissions.
+
+MLOps scenarios use `kind: mlops` and model deterministic ML delivery workflows. Current labs cover immutable dataset artifact pinning, training pipeline validation, model registry approval metadata, metric gates, and production promotion.
 
 Incident Mode is a menu option that hides unsolved lab names and direct scenario descriptions. It replaces them with generic incident context, changes tips into optional clues, and keeps solved labs visible for review.
 

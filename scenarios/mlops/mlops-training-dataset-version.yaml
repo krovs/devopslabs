@@ -1,0 +1,82 @@
+id: mlopsTrainingDatasetVersion
+kind: mlops
+title: MLOps Training Dataset Version
+description: A churn training pipeline fails because it uses an unpinned dataset alias instead of the approved dataset artifact version.
+primaryFile: pipeline.yaml
+tips:
+  - Start with ml pipeline status to see why training is blocked.
+  - List available artifacts before changing pipeline.yaml.
+  - The approved churn dataset version is already in the artifact registry.
+  - Pin the dataset version; do not use latest for a production training run.
+files:
+  "pipeline.yaml": |
+    pipeline: churn-risk-training
+    owner: ml-platform
+    dataset:
+      name: customer-churn
+      version: latest
+    training:
+      image: ghcr.io/acme/churn-trainer:1.14.2
+      metric: auc
+      minimum_auc: "0.91"
+    output:
+      model_name: churn-risk
+      registry_stage: candidate
+  "runbook.md": |
+    Goal:
+    - Fix the training pipeline so it uses the approved immutable dataset artifact.
+
+    Constraints:
+    - Do not train against the latest alias.
+    - Use the dataset version that passed quality checks.
+    - Run the pipeline after editing the config.
+  "pipeline.log": |
+    2026-06-04T09:13:22Z pipeline=churn-risk-training status=failed
+    2026-06-04T09:13:23Z error=Dataset version latest is not allowed for production candidate training.
+    2026-06-04T09:13:23Z hint=Use an approved immutable dataset artifact.
+solution:
+  summary: |
+    The training pipeline is configured with dataset.version latest, so the production candidate run cannot prove which data snapshot produced the model.
+  steps:
+    - Run ml pipeline status to confirm the dataset version policy failure.
+    - Run ml artifacts list to find the approved customer-churn dataset artifact.
+    - Change pipeline.yaml so dataset.version is churn-2026-05-17.
+    - Run ml pipeline run to validate the training pipeline.
+    - Run check.
+  explanation: |
+    MLOps training runs need reproducible inputs. Pinning the approved dataset artifact lets the team trace the candidate model back to a known data quality report and prevents accidental retraining on a moving latest alias.
+  outcome: |
+    The churn training pipeline runs against dataset artifact churn-2026-05-17 and produces a valid candidate model.
+  focusFileName: pipeline.yaml
+  replacements:
+    - fileName: pipeline.yaml
+      search: |
+        version: latest
+      replace: |
+        version: churn-2026-05-17
+  commands:
+    - ml pipeline status
+    - ml artifacts list
+    - ml pipeline run
+backend:
+  bucket: mlops
+  key: churn-risk-training
+  table: model-runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: ml_pipeline
+    name: churn-risk-training
+    id: run-20260604-0913
+    status: failed
+    note: Training is blocked because the dataset version is not pinned.
+stateResources:
+  - address: artifact.customer-churn
+    id: latest
+  - address: model.churn-risk
+    id: missing-candidate
+flags:
+  initialized: false
+  validationPassed: false
+  runPassing: false
+  mlopsValidated: false

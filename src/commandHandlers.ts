@@ -68,6 +68,13 @@ import {
   secretsManagerDescribeSecret as runSecretsManagerDescribeSecret,
   secretsSsmGetParameter as runSecretsSsmGetParameter,
 } from "./simulators/ops";
+import {
+  mlArtifactsList as runMlArtifactsList,
+  mlModelDescribe as runMlModelDescribe,
+  mlModelPromote as runMlModelPromote,
+  mlPipelineRun as runMlPipelineRun,
+  mlPipelineStatus as runMlPipelineStatus,
+} from "./simulators/mlops";
 import { kubectlDryRun as runKubectlDryRun, kyvernoTest as runKyvernoTest } from "./simulators/policy";
 import {
   terragruntHclfmt as runTerragruntHclfmt,
@@ -195,6 +202,11 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     logsFilterLogEvents: () => withRuntimeRefresh(() => runCloudsecLogsFilterLogEvents(runtime(), scenarioId())),
     configResourceHistory: () => withRuntimeRefresh(() => runConfigResourceHistory(runtime(), scenarioId())),
     cloudsecSimulatePrincipalPolicy: () => withRuntimeRefresh(() => runCloudsecSimulatePrincipalPolicy(runtime(), scenarioId())),
+    mlPipelineStatus: () => withRuntimeRefresh(() => runMlPipelineStatus(runtime(), scenarioId())),
+    mlArtifactsList: () => withRuntimeRefresh(() => runMlArtifactsList(runtime(), scenarioId())),
+    mlPipelineRun: () => withRuntimeRefresh(() => runMlPipelineRun(runtime(), scenarioId())),
+    mlModelDescribe: () => withRuntimeRefresh(() => runMlModelDescribe(runtime(), scenarioId())),
+    mlModelPromote: () => withRuntimeRefresh(() => runMlModelPromote(runtime(), scenarioId())),
     checkScenario: () => withRuntimeRefresh(() => checkScenarioCompletion(runtime(), scenarioId(), activeFileName())),
   };
 }

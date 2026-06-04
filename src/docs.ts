@@ -571,6 +571,38 @@ export const documentationSections: DocSection[] = [
     ],
   },
   {
+    id: "wiki-mlops",
+    navTitle: "MLOps",
+    title: "MLOps",
+    blocks: [
+      {
+        type: "paragraph",
+        content: [
+          "MLOps labs model deterministic ML delivery checks. Treat dataset versions, training runs, evaluation metrics, model registry metadata, and promotion gates as release controls.",
+        ],
+      },
+      {
+        type: "diagram",
+        ariaLabel: "MLOps delivery flow",
+        nodes: [
+          { title: "Artifacts", detail: "datasets, models" },
+          { title: "Pipeline", detail: "train, evaluate" },
+          { title: "Registry", detail: "approve, promote" },
+        ],
+      },
+      {
+        type: "code",
+        text: "ml pipeline status\nml artifacts list\nml pipeline run\nml model describe\nml model promote",
+      },
+      {
+        type: "paragraph",
+        content: [
+          "A good MLOps fix preserves traceability. Prefer immutable dataset versions, passing metric evidence, and explicit approval metadata over bypassing promotion policy.",
+        ],
+      },
+    ],
+  },
+  {
     id: "wiki-troubleshooting",
     navTitle: "Troubleshooting",
     title: "Troubleshooting Patterns",

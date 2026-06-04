@@ -1,5 +1,6 @@
 <script lang="ts">
   import CertificateCheck from "carbon-icons-svelte/lib/CertificateCheck.svelte";
+  import AiLaunch from "carbon-icons-svelte/lib/AiLaunch.svelte";
   import ChartLineData from "carbon-icons-svelte/lib/ChartLineData.svelte";
   import Code from "carbon-icons-svelte/lib/Code.svelte";
   import ApplicationWeb from "carbon-icons-svelte/lib/ApplicationWeb.svelte";
@@ -42,6 +43,8 @@
   <SkillLevelAdvanced {size} />
 {:else if id === "cloudsec"}
   <CloudAuditing {size} />
+{:else if id === "mlops"}
+  <AiLaunch {size} />
 {:else if id === "terragrunt"}
   <FolderTree {size} />
 {:else if id === "iam"}
