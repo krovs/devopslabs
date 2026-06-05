@@ -20,6 +20,7 @@ export function createAppShellSession(options: AppShellSessionOptions) {
   let terminalHeight = $state(getInitialTerminalHeight(clampTerminalHeight));
   let isResizingTerminal = $state(false);
   let isMenuOpen = $state(false);
+  let isDocsOpen = $state(false);
   let menuSearchQuery = $state("");
   let openMenuGroups = $state<MenuGroupId[]>(getInitialOpenMenuGroups(options.initialScenarioId, options.scenarioMenuGroup));
   let highlightedMenuGroup = $state<MenuGroupId | null>(null);
@@ -59,6 +60,9 @@ export function createAppShellSession(options: AppShellSessionOptions) {
     },
     get isMenuOpen() {
       return isMenuOpen;
+    },
+    get isDocsOpen() {
+      return isDocsOpen;
     },
     get menuSearchQuery() {
       return menuSearchQuery;
@@ -101,6 +105,7 @@ export function createAppShellSession(options: AppShellSessionOptions) {
     },
     handleGlobalKeydown(event: KeyboardEvent): void {
       if (event.key === "Escape") {
+        isDocsOpen = false;
         isMenuOpen = false;
         openMenuGroups = [];
         highlightedMenuGroup = null;
@@ -120,10 +125,13 @@ export function createAppShellSession(options: AppShellSessionOptions) {
       if (!openMenuGroups.includes(group)) openMenuGroups = [...openMenuGroups, group];
     },
     openDocs(): void {
-      currentPage = "docs";
+      isDocsOpen = true;
       isMenuOpen = false;
       openMenuGroups = [];
       highlightedMenuGroup = null;
+    },
+    closeDocs(): void {
+      isDocsOpen = false;
     },
     openLabs(): void {
       currentPage = "index";

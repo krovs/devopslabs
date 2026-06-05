@@ -1,5 +1,7 @@
 <script lang="ts">
-  type PageName = "index" | "labs" | "docs";
+  import Document from "carbon-icons-svelte/lib/Document.svelte";
+
+  type PageName = "index" | "labs";
 
   interface Props {
     currentPage: PageName;
@@ -10,6 +12,7 @@
     healthLabel: string;
     incidentMode: boolean;
     onopenmenu: () => void;
+    onopenreference: () => void;
     onopensolution: () => void;
     onreset: () => void;
   }
@@ -23,6 +26,7 @@
     healthLabel,
     incidentMode,
     onopenmenu,
+    onopenreference,
     onopensolution,
     onreset,
   }: Props = $props();
@@ -53,6 +57,10 @@
         <span class="badge badge-warn">incident</span>
       {/if}
     </div>
+    <button type="button" class="reference-button" onclick={onopenreference}>
+      <Document size={16} aria-hidden="true" />
+      <span>Reference</span>
+    </button>
     {#if !incidentMode}
       <button type="button" class="solution-button" onclick={onopensolution}>Show solution</button>
     {/if}

@@ -82,9 +82,9 @@
       {/if}
     </section>
 
-    {#if tips.length}
+    {#if !incidentMode && tips.length}
       <aside class="tips-panel pr-tips" aria-label="Scenario tips">
-        <h3>{incidentMode ? "Clues" : "Tips"}</h3>
+        <h3>Tips</h3>
         <ol>
           {#each tips as tip}
             <li>{tip}</li>

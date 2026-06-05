@@ -53,6 +53,7 @@ export const scenarioOrderByGroup = {
   ],
   applicationSecurity: [
     "javaDependencySecretsContainerAudit",
+    "containerImageCveGate",
     "javaCodeAuthSqlAudit",
   ],
   threatModeling: [

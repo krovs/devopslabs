@@ -47,9 +47,9 @@
 <section class="panel resources-panel">
   <div class="panel-header">
     <h2>Resources</h2>
-    {#if scenarioTips.length}
+    {#if !incidentMode && scenarioTips.length}
       <button type="button" disabled={revealedTipCount >= scenarioTips.length} onclick={onrevealtip}>
-        {revealedTipCount >= scenarioTips.length ? "No more clues" : incidentMode ? "Reveal clue" : "Show tip"}
+        {revealedTipCount >= scenarioTips.length ? "No more tips" : "Show tip"}
       </button>
     {/if}
   </div>
@@ -180,9 +180,9 @@
       </article>
     </div>
   {/if}
-  {#if visibleTips.length}
+  {#if !incidentMode && visibleTips.length}
     <aside class="tips-panel" aria-label="Scenario tips">
-      <h3>{incidentMode ? "Clues" : "Tips"}</h3>
+      <h3>Tips</h3>
       <ol>
         {#each visibleTips as tip}
           <li>{tip}</li>

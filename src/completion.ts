@@ -1,5 +1,5 @@
 import { isGenericGithubActionsScenario, workflowFailedStep } from "./simulators/cicd";
-import { appsecFixApplied, markAppsecScenarioSolved } from "./simulators/appsec";
+import { appsecFixApplied, containerImageGateIssues, markAppsecScenarioSolved } from "./simulators/appsec";
 import { cloudsecFixApplied, markCloudsecScenarioSolved } from "./simulators/cloudsec";
 import { gitopsFixApplied } from "./simulators/gitops";
 import { iamFixApplied, markIamScenarioSolved, scpFixApplied, scpSuccessNote } from "./simulators/identity";
@@ -79,8 +79,17 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
   }
 
   if (runtime.kind === "appsec") {
-    if (!appsecFixApplied(runtime, scenarioId)) return ["Not complete: Java security findings still exist in dependencies, secrets, container config, or source code."];
+    if (scenarioId === "containerImageCveGate" && !appsecFixApplied(runtime, scenarioId)) {
+      return containerImageGateIssues(runtime).map((issue) => `Not complete: ${issue}`);
+    }
+    if (!appsecFixApplied(runtime, scenarioId)) return ["Not complete: application security findings still exist in dependencies, secrets, container config, source code, or image gate configuration."];
     const javaAppsecScenario = scenarioId === "javaDependencySecretsContainerAudit" || scenarioId === "javaCodeAuthSqlAudit";
+    if (scenarioId === "containerImageCveGate") {
+      if (!runtime.flags.securityPassed) return ["Not complete: run trivy image after fixing the base image, dependency scope, and scanner exception."];
+      if (!runtime.flags.runPassing) return ["Not complete: run npm audit --production to confirm production dependencies are clean."];
+      markAppsecScenarioSolved(runtime, "Container image CVE gate passed.");
+      return ["Scenario complete."];
+    }
     if (scenarioId === "javaDependencySecretsContainerAudit") {
       if (!runtime.flags.securityPassed) return ["Not complete: dependency-check has not passed after the dependency fix."];
       if (!runtime.flags.secretsConfigured) return ["Not complete: gitleaks has not passed after externalizing the JWT secret."];

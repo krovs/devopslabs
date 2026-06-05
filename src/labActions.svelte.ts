@@ -73,7 +73,6 @@ export function createLabActions(options: LabActionsOptions) {
       scenarioId: options.scenario.currentId,
       solved,
       isCompleted: options.labMenu.completedScenarioIds.includes(options.scenario.currentId),
-      isManuallyUnchecked: options.labMenu.manuallyUncheckedScenarioIds.includes(options.scenario.currentId),
     });
     if (transition.shouldMarkCompleted) {
       options.labMenu.markCompleted(options.scenario.currentId);

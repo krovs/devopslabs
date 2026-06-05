@@ -54,10 +54,13 @@ export type CommandHandlers = {
   linuxSystemctlStatus: () => string[];
   linuxSystemctlRestart: () => string[];
   kubectlGetPods: () => string[];
+  kubectlDescribeDeployment: () => string[];
   kubectlDescribePod: () => string[];
   kubectlGetEvents: () => string[];
   kubectlLogs: () => string[];
   kubectlAuthCanI: () => string[];
+  eksIamListRoles: () => string[];
+  eksIamGetRole: (roleName?: string) => string[];
   eksAssumeRoleWithWebIdentity: () => string[];
   kubectlRolloutRestart: () => string[];
   kubectlRolloutStatus: () => string[];
@@ -70,6 +73,9 @@ export type CommandHandlers = {
   semgrepScan: () => string[];
   gitleaksDetect: () => string[];
   trivyConfig: () => string[];
+  trivyImage: () => string[];
+  dockerHistory: () => string[];
+  npmAuditProduction: () => string[];
   threatModelReview: () => string[];
   guardDutyListFindings: () => string[];
   guardDutyGetFindings: () => string[];
@@ -149,10 +155,13 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
 
   if (runtime.kind === "kubernetes") {
     if (input === "kubectl get pods") return handlers.kubectlGetPods();
+    if (input === "kubectl describe deployment checkout-api") return handlers.kubectlDescribeDeployment();
     if (input === "kubectl describe pod checkout-api") return handlers.kubectlDescribePod();
     if (input === "kubectl get events") return handlers.kubectlGetEvents();
     if (input === "kubectl logs checkout-api") return handlers.kubectlLogs();
     if (input === "kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments") return handlers.kubectlAuthCanI();
+    if (input === "aws iam list-roles") return handlers.eksIamListRoles();
+    if (args[0] === "aws" && args[1] === "iam" && args[2] === "get-role" && args[3] === "--role-name") return handlers.eksIamGetRole(args[4]);
     if (input === "aws sts assume-role-with-web-identity") return handlers.eksAssumeRoleWithWebIdentity();
     if (input === "kubectl rollout restart deployment checkout-api") return handlers.kubectlRolloutRestart();
     if (input === "kubectl rollout status deployment checkout-api") return handlers.kubectlRolloutStatus();
@@ -170,6 +179,10 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "semgrep scan") return handlers.semgrepScan();
     if (input === "gitleaks detect") return handlers.gitleaksDetect();
     if (input === "trivy config .") return handlers.trivyConfig();
+    if (input === "gh run view") return handlers.githubRunView();
+    if (input === "trivy image checkout-api:pr-184") return handlers.trivyImage();
+    if (input === "docker history checkout-api:pr-184") return handlers.dockerHistory();
+    if (input === "npm audit --production") return handlers.npmAuditProduction();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -305,11 +318,11 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "kubernetes") {
-    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
+    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe deployment checkout-api", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws iam list-roles", "  aws iam get-role --role-name <name>", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
   }
 
   if (runtime.kind === "appsec") {
-    return ["Available commands:", "  mvn test", "  mvn org.owasp:dependency-check-maven:check", "  semgrep scan", "  gitleaks detect", "  trivy config .", "  check", "  help"];
+    return ["Available commands:", "  mvn test", "  mvn org.owasp:dependency-check-maven:check", "  semgrep scan", "  gitleaks detect", "  trivy config .", "  gh run view", "  trivy image checkout-api:pr-184", "  docker history checkout-api:pr-184", "  npm audit --production", "  check", "  help"];
   }
 
   if (runtime.kind === "threatmodel") {

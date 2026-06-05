@@ -2,7 +2,7 @@ import { incidentDescription, menuGroupIds, scenarioKindLabel, scenarioMenuGroup
 import type { Scenario } from "./types";
 
 export type ThemeName = "latte" | "mocha" | "dracula" | "cyberpunk";
-export type AppPage = "index" | "labs" | "docs";
+export type AppPage = "index" | "labs";
 export type LabModalKind = "solution" | "completion";
 
 const resourceTitleByKind: Partial<Record<NonNullable<Scenario["kind"]>, string>> = {
@@ -93,7 +93,6 @@ export function getIncidentDisplayTitle(scenario: ScenarioCatalogItem, scenarioI
 }
 
 export function getPageDescription(page: AppPage, incidentMode: boolean, solved: boolean, runtime: Scenario): string {
-  if (page === "docs") return "Commands, best practices, and troubleshooting notes for the labs.";
   if (page === "index") return "Choose a lab. Completed scenarios are marked in the list.";
   if (!incidentMode || solved) return runtime.description;
   return incidentDescription(runtime);

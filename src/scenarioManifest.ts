@@ -279,6 +279,13 @@ export const scenarioManifest = [
     "path": "../scenarios/application-security/java-dependency-secrets-container-audit.yaml"
   },
   {
+    "id": "containerImageCveGate",
+    "kind": "appsec",
+    "title": "Container Image CVE Gate",
+    "description": "A container release is blocked by image vulnerability findings and needs a patched base image plus a narrow, documented scanner exception.",
+    "path": "../scenarios/application-security/container-image-cve-gate.yaml"
+  },
+  {
     "id": "javaCodeAuthSqlAudit",
     "kind": "appsec",
     "title": "Java Code Authorization And SQL Audit",

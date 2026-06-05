@@ -17,6 +17,7 @@ export type ScenarioNavigationLoadOptions = ScenarioSessionLoadOptions & {
 export type ScenarioNavigationOptions = {
   appShell: ReturnType<typeof createAppShellSession>;
   scenario: ReturnType<typeof createScenarioSession>;
+  scenarioIds: string[];
   labMenuFilters: ReturnType<typeof createLabMenuFilters>;
   labProgress: ReturnType<typeof createLabProgress>;
   networkSession: ReturnType<typeof createNetworkSession>;
@@ -25,6 +26,7 @@ export type ScenarioNavigationOptions = {
   tipsSession: ReturnType<typeof createTipsSession>;
   savedSession: SavedSession | null;
   incidentMode: () => boolean;
+  completedScenarioIds: () => string[];
   isSolved: () => boolean;
   onFlushPending: () => void;
   onSave: () => void;
@@ -68,6 +70,20 @@ export function createScenarioNavigation(options: ScenarioNavigationOptions) {
     load,
     selectScenario(id: string): void {
       void load(id);
+      options.appShell.openScenario();
+    },
+    selectRandomScenario(): void {
+      options.appShell.setIncidentMode(true);
+
+      const completedIds = new Set(options.completedScenarioIds());
+      const unsolvedIds = options.scenarioIds.filter((id) => !completedIds.has(id));
+      const availableUnsolvedIds = unsolvedIds.filter((id) => id !== options.scenario.currentId);
+      const availableIds = options.scenarioIds.filter((id) => id !== options.scenario.currentId);
+      const randomIds = availableUnsolvedIds.length ? availableUnsolvedIds : availableIds.length ? availableIds : options.scenarioIds;
+      const randomId = randomIds[Math.floor(Math.random() * randomIds.length)];
+      if (!randomId) return;
+
+      void load(randomId);
       options.appShell.openScenario();
     },
     openDocs(): void {

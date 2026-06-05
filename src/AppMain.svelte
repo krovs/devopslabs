@@ -1,6 +1,5 @@
 <script lang="ts">
   import AppTopbar from "./AppTopbar.svelte";
-  import Documentation from "./Documentation.svelte";
   import LabIndex from "./LabIndex.svelte";
   import LabWorkspace from "./LabWorkspace.svelte";
   import type { AppController } from "./appController.svelte";
@@ -15,7 +14,6 @@
 
 <main
   class:is-resizing-terminal={app.appShell.isResizingTerminal}
-  class:docs-page={app.view.currentPage === "docs"}
   class:index-page={app.view.currentPage === "index"}
   class:network-page={app.view.currentPage === "labs" && (app.view.runtime?.kind === "networking" || app.view.runtime?.kind === "threatmodel")}
   class="app-shell"
@@ -33,13 +31,12 @@
       if (app.view.currentPage === "labs") app.appShell.openMenuForScenario(app.view.currentScenarioId);
       else app.appShell.openMenu();
     }}
+    onopenreference={app.scenarioNavigation.openDocs}
     onopensolution={app.labActions.openSolutionModal}
     onreset={() => void app.scenarioNavigation.load(app.view.currentScenarioId)}
   />
 
-  {#if app.view.currentPage === "docs"}
-    <Documentation />
-  {:else if app.view.currentPage === "index"}
+  {#if app.view.currentPage === "index"}
     <LabIndex
       labGroups={app.labGroups}
       groupcompletionlabel={app.callbacks.groupCompletionLabel}

@@ -60,6 +60,7 @@ export function createAppPresentation({
   const scenarioNavigation = createScenarioNavigation({
     appShell,
     scenario,
+    scenarioIds: Object.keys(scenarios),
     labMenuFilters,
     labProgress,
     networkSession,
@@ -68,6 +69,7 @@ export function createAppPresentation({
     tipsSession,
     savedSession,
     incidentMode: () => view.incidentMode,
+    completedScenarioIds: () => view.completedScenarioIds,
     isSolved,
     onFlushPending: persistenceSession.flushPending,
     onSave,

@@ -2,10 +2,14 @@ import type { CommandHandlers } from "./commands";
 import { checkScenario as checkScenarioCompletion } from "./completion";
 import {
   dependencyCheck as runDependencyCheck,
+  dockerHistory as runDockerHistory,
   gitleaksDetect as runGitleaksDetect,
+  githubRunView as runAppsecGithubRunView,
   mvnTest as runMvnTest,
+  npmAuditProduction as runNpmAuditProduction,
   semgrepScan as runSemgrepScan,
   trivyConfig as runTrivyConfig,
+  trivyImage as runTrivyImage,
 } from "./simulators/appsec";
 import {
   githubRunRerun as runGithubRunRerun,
@@ -26,6 +30,9 @@ import {
 import { argocdAppGet as runArgocdAppGet, fluxReconcileKustomization as runFluxReconcileKustomization } from "./simulators/gitops";
 import {
   runKubectlDescribePod,
+  runKubectlDescribeDeployment,
+  runEksIamGetRole,
+  runEksIamListRoles,
   runEksAssumeRoleWithWebIdentity,
   runKubectlAuthCanI,
   runKubectlGetEvents,
@@ -137,7 +144,7 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     azureRoleAssignmentList: () => withRuntimeRefresh(() => runAzureRoleAssignmentList(runtime(), scenarioId())),
     organizationsDescribePolicy: () => runOrganizationsDescribePolicy(runtime(), scenarioId()),
     scpSimulatePrincipalPolicy: () => withRuntimeRefresh(() => runScpSimulatePrincipalPolicy(runtime(), scenarioId())),
-    githubRunView: () => runGithubRunView(runtime(), scenarioId()),
+    githubRunView: () => withRuntimeRefresh(() => scenarioId() === "containerImageCveGate" ? runAppsecGithubRunView(runtime(), scenarioId()) : runGithubRunView(runtime(), scenarioId())),
     githubRunRerun: () => withRuntimeRefresh(() => runGithubRunRerun(runtime(), scenarioId(), activeFileName())),
     githubSecretList: () => runGithubSecretList(runtime()),
     githubSecretSet: (name?: string) => withRuntimeRefresh(() => runGithubSecretSet(runtime(), name)),
@@ -179,10 +186,13 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     linuxSystemctlStatus: () => withRuntimeRefresh(() => runLinuxSystemctlStatus(runtime())),
     linuxSystemctlRestart: () => withRuntimeRefresh(() => runLinuxSystemctlRestart(runtime())),
     kubectlGetPods: () => withRuntimeRefresh(() => runKubectlGetPods(runtime(), scenarioId())),
+    kubectlDescribeDeployment: () => withRuntimeRefresh(() => runKubectlDescribeDeployment(runtime(), scenarioId())),
     kubectlDescribePod: () => withRuntimeRefresh(() => runKubectlDescribePod(runtime(), scenarioId())),
     kubectlGetEvents: () => withRuntimeRefresh(() => runKubectlGetEvents(runtime(), scenarioId())),
     kubectlLogs: () => withRuntimeRefresh(() => runKubectlLogs(runtime(), scenarioId())),
     kubectlAuthCanI: () => withRuntimeRefresh(() => runKubectlAuthCanI(runtime(), scenarioId())),
+    eksIamListRoles: () => withRuntimeRefresh(() => runEksIamListRoles(runtime(), scenarioId())),
+    eksIamGetRole: (roleName?: string) => withRuntimeRefresh(() => runEksIamGetRole(runtime(), scenarioId(), roleName)),
     eksAssumeRoleWithWebIdentity: () => withRuntimeRefresh(() => runEksAssumeRoleWithWebIdentity(runtime(), scenarioId())),
     kubectlRolloutRestart: () => withRuntimeRefresh(() => runKubectlRolloutRestart(runtime(), scenarioId())),
     kubectlRolloutStatus: () => withRuntimeRefresh(() => runKubectlRolloutStatus(runtime(), scenarioId())),
@@ -195,6 +205,9 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     semgrepScan: () => withRuntimeRefresh(() => runSemgrepScan(runtime(), scenarioId())),
     gitleaksDetect: () => withRuntimeRefresh(() => runGitleaksDetect(runtime(), scenarioId())),
     trivyConfig: () => withRuntimeRefresh(() => runTrivyConfig(runtime(), scenarioId())),
+    trivyImage: () => withRuntimeRefresh(() => runTrivyImage(runtime(), scenarioId())),
+    dockerHistory: () => withRuntimeRefresh(() => runDockerHistory(runtime(), scenarioId())),
+    npmAuditProduction: () => withRuntimeRefresh(() => runNpmAuditProduction(runtime(), scenarioId())),
     threatModelReview: () => withRuntimeRefresh(() => runThreatModelReview(runtime(), scenarioId())),
     guardDutyListFindings: () => withRuntimeRefresh(() => runGuardDutyListFindings(runtime(), scenarioId())),
     guardDutyGetFindings: () => withRuntimeRefresh(() => runGuardDutyGetFindings(runtime(), scenarioId())),

@@ -1,16 +1,12 @@
 <script lang="ts">
-  import Chemistry from "carbon-icons-svelte/lib/Chemistry.svelte";
-  import Document from "carbon-icons-svelte/lib/Document.svelte";
-  import Launch from "carbon-icons-svelte/lib/Launch.svelte";
+  import Shuffle from "carbon-icons-svelte/lib/Shuffle.svelte";
   import { scenarioDifficultyClass, type LabGroup, type MenuGroupId } from "./labCatalog";
 
-  type PageName = "index" | "labs" | "docs";
   type ThemeName = "latte" | "mocha" | "dracula" | "cyberpunk";
 
   interface Props {
     open: boolean;
     theme: ThemeName;
-    currentPage: PageName;
     incidentMode: boolean;
     menuSearchQuery: string;
     labGroups: LabGroup[];
@@ -20,8 +16,7 @@
     completedScenarioIds: string[];
     onclose: () => void;
     onthemechange: (theme: ThemeName) => void;
-    onopenlabs: () => void;
-    onopendocs: () => void;
+    onrandomscenario: () => void;
     onincidentmodechange: (enabled: boolean) => void;
     onsearchchange: (query: string) => void;
     ontogglegroup: (group: MenuGroupId) => void;
@@ -39,7 +34,6 @@
   let {
     open,
     theme,
-    currentPage,
     incidentMode,
     menuSearchQuery,
     labGroups,
@@ -49,8 +43,7 @@
     completedScenarioIds,
     onclose,
     onthemechange,
-    onopenlabs,
-    onopendocs,
+    onrandomscenario,
     onincidentmodechange,
     onsearchchange,
     ontogglegroup,
@@ -111,16 +104,6 @@
   </div>
 
   <section class="menu-section">
-    <div class="menu-actions menu-page-actions">
-      <button type="button" class:active={currentPage !== "docs"} onclick={onopenlabs}>
-        <Chemistry size={16} aria-hidden="true" />
-        <span>Labs</span>
-      </button>
-      <button type="button" class:active={currentPage === "docs"} onclick={onopendocs}>
-        <Document size={16} aria-hidden="true" />
-        <span>Documentation</span>
-      </button>
-    </div>
     <div
       class="menu-global-progress"
       aria-label={`Overall lab progress ${completedTotal} of ${totalScenarioIds.length}`}
@@ -138,13 +121,21 @@
 
   <section class="menu-section">
     <div class="menu-actions">
-      <label class="menu-toggle">
+      <label class="menu-toggle" title="Hide lab names and direct requirements for unsolved labs.">
         <span>
           <strong>Incident Mode</strong>
-          <small>Hide lab names and direct requirements for unsolved labs.</small>
         </span>
-        <input type="checkbox" checked={incidentMode} onchange={(event) => onincidentmodechange(event.currentTarget.checked)}>
+        <input
+          type="checkbox"
+          checked={incidentMode}
+          aria-label="Incident Mode. Hide lab names and direct requirements for unsolved labs."
+          onchange={(event) => onincidentmodechange(event.currentTarget.checked)}
+        >
       </label>
+      <button type="button" class="random-scenario-button" onclick={onrandomscenario}>
+        <Shuffle size={16} aria-hidden="true" />
+        <span>Random Incident</span>
+      </button>
     </div>
   </section>
 
@@ -153,88 +144,91 @@
       <span class="menu-search-control">
         <input
           value={menuSearchQuery}
-          placeholder="Filter by name, category, or description"
+          placeholder="Search labs"
           autocomplete="off"
           spellcheck="false"
           oninput={(event) => onsearchchange(event.currentTarget.value)}
         >
       </span>
     </label>
-    {#each labGroups as group}
-      {#if menugroupvisible(group.ids, menuSearchQuery)}
-        {@const visibleIds = filteredscenarioids(group.ids, menuSearchQuery)}
-        {@const groupState = groupcompletionstate(group.ids)}
-        {@const groupPercent = groupcompletionpercent(group.ids)}
-        <div class="menu-lab-group" class:selected-section={isSelectedLabGroup(group.id)}>
-          <div class="menu-group-header">
-            <span
-              class:scenario-check-empty={groupState !== "complete"}
-              class:group-check-progress={groupState === "partial"}
-              class="scenario-check group-check"
-              role="checkbox"
-              tabindex="0"
-              style={`--group-completion-percent: ${groupPercent}%`}
-              aria-label={groupState === "complete" ? `Mark ${group.title} incomplete` : `Mark ${group.title} complete`}
-              aria-checked={groupState === "partial" ? "mixed" : groupState === "complete" ? "true" : "false"}
-              onclick={(event) => ontogglegroupcompletion(group.ids, event)}
-              onkeydown={(event) => toggleGroupCompletionWithKeyboard(group.ids, event)}
-            >{groupState === "complete" ? "✓" : ""}</span>
-            <button
-              type="button"
-              class="menu-group-button"
-              aria-expanded={openMenuGroups.includes(group.id) || Boolean(menuSearchQuery.trim())}
-              onclick={() => ontogglegroup(group.id)}
-            >
-              <span>
-                <strong>{group.title}</strong>
-              </span>
-              <small>{groupcompletionlabel(group.ids)}</small>
-            </button>
+    <div class="menu-lab-list">
+      {#each labGroups as group}
+        {#if menugroupvisible(group.ids, menuSearchQuery)}
+          {@const visibleIds = filteredscenarioids(group.ids, menuSearchQuery)}
+          {@const groupState = groupcompletionstate(group.ids)}
+          {@const groupPercent = groupcompletionpercent(group.ids)}
+          <div class="menu-lab-group" class:selected-section={isSelectedLabGroup(group.id)}>
+            <div class="menu-group-header">
+              <span
+                class:scenario-check-empty={groupState !== "complete"}
+                class:group-check-progress={groupState === "partial"}
+                class="scenario-check group-check"
+                role="checkbox"
+                tabindex="0"
+                style={`--group-completion-percent: ${groupPercent}%`}
+                aria-label={groupState === "complete" ? `Mark ${group.title} incomplete` : `Mark ${group.title} complete`}
+                aria-checked={groupState === "partial" ? "mixed" : groupState === "complete" ? "true" : "false"}
+                onclick={(event) => ontogglegroupcompletion(group.ids, event)}
+                onkeydown={(event) => toggleGroupCompletionWithKeyboard(group.ids, event)}
+              >{groupState === "complete" ? "✓" : ""}</span>
+              <button
+                type="button"
+                class="menu-group-button"
+                aria-expanded={openMenuGroups.includes(group.id) || Boolean(menuSearchQuery.trim())}
+                onclick={() => ontogglegroup(group.id)}
+              >
+                <span>
+                  <strong>{group.title}</strong>
+                </span>
+                <small>{groupcompletionlabel(group.ids)}</small>
+              </button>
+            </div>
+            {#if openMenuGroups.includes(group.id) || menuSearchQuery.trim()}
+              {#key incidentMode}
+                <div class="scenario-list">
+                  {#each visibleIds as id}
+                    <button
+                      type="button"
+                      class={`scenario-difficulty ${scenarioDifficultyClass(id)}`}
+                      class:active={id === currentScenarioId}
+                      class:completed={completedScenarioIds.includes(id)}
+                      aria-current={id === currentScenarioId ? "page" : undefined}
+                      onclick={() => onselectscenario(id)}
+                    >
+                      <span class="scenario-title">{labmenutitle(id)}</span>
+                      {#if completedScenarioIds.includes(id)}
+                        <span
+                          class="scenario-check"
+                          role="button"
+                          tabindex="0"
+                          aria-label="Mark incomplete"
+                          onclick={(event) => ontogglecompletion(id, event)}
+                          onkeydown={(event) => toggleCompletionWithKeyboard(id, event)}
+                        >✓</span>
+                      {:else}
+                        <span
+                          class="scenario-check scenario-check-empty"
+                          role="button"
+                          tabindex="0"
+                          aria-label="Mark complete"
+                          onclick={(event) => ontogglecompletion(id, event)}
+                          onkeydown={(event) => toggleCompletionWithKeyboard(id, event)}
+                        ></span>
+                      {/if}
+                    </button>
+                  {/each}
+                </div>
+              {/key}
+            {/if}
           </div>
-          {#if openMenuGroups.includes(group.id) || menuSearchQuery.trim()}
-            {#key incidentMode}
-              <div class="scenario-list">
-                {#each visibleIds as id}
-                  <button
-                    type="button"
-                    class={`scenario-difficulty ${scenarioDifficultyClass(id)}`}
-                    class:active={id === currentScenarioId}
-                    class:completed={completedScenarioIds.includes(id)}
-                    aria-current={id === currentScenarioId ? "page" : undefined}
-                    onclick={() => onselectscenario(id)}
-                  >
-                    <span class="scenario-title">{labmenutitle(id)}</span>
-                    {#if completedScenarioIds.includes(id)}
-                      <span
-                        class="scenario-check"
-                        role="button"
-                        tabindex="0"
-                        aria-label="Mark incomplete"
-                        onclick={(event) => ontogglecompletion(id, event)}
-                        onkeydown={(event) => toggleCompletionWithKeyboard(id, event)}
-                      >✓</span>
-                    {:else}
-                      <span
-                        class="scenario-check scenario-check-empty"
-                        role="button"
-                        tabindex="0"
-                        aria-label="Mark complete"
-                        onclick={(event) => ontogglecompletion(id, event)}
-                        onkeydown={(event) => toggleCompletionWithKeyboard(id, event)}
-                      ></span>
-                    {/if}
-                  </button>
-                {/each}
-              </div>
-            {/key}
-          {/if}
-        </div>
-      {/if}
-    {/each}
+        {/if}
+      {/each}
+    </div>
   </section>
 
-  <a class="menu-repo-link" href="https://github.com/krovs/devopslabs" target="_blank" rel="noreferrer">
-    <span>🌵 krovs@2026</span>
-    <Launch size={16} aria-hidden="true" />
-  </a>
+  <footer class="menu-footer">
+    <a class="menu-repo-link" href="https://github.com/krovs/devopslabs" target="_blank" rel="noreferrer">
+      <span>🌵 krovs@2026</span>
+    </a>
+  </footer>
 </aside>

@@ -9,7 +9,7 @@ tips:
   - Use kubectl auth can-i to test the service account inside the payments namespace.
   - The deployment uses serviceAccountName checkout-api.
   - The RoleBinding currently points at checkout-worker instead of checkout-api.
-  - The ServiceAccount annotation must use the payments IRSA role.
+  - Inspect IAM role trust policies and choose the role whose subject matches the workload service account.
 files:
   "serviceaccount.yaml": |
     apiVersion: v1
@@ -74,15 +74,18 @@ files:
     - Keep the deployment on serviceAccountName checkout-api.
     - Do not grant cluster-admin or bind the default service account.
     - Bind the existing namespace Role to the workload service account.
-    - Annotate the ServiceAccount with the approved payments IRSA role.
+    - Annotate the ServiceAccount with the IRSA role whose trust policy matches the workload service account.
     - Verify Kubernetes RBAC and web identity trust before restarting the rollout.
 solution:
   summary: |
     checkout-api runs as the checkout-api service account, but the RoleBinding grants permissions to checkout-worker and the ServiceAccount is annotated with the default read-only IAM role instead of the payments IRSA role.
   steps:
     - Run kubectl get pods to see checkout-api is running but failing authorization checks.
+    - Run kubectl describe deployment checkout-api to identify the ServiceAccount used by the pod template.
     - Run kubectl logs checkout-api to confirm Kubernetes RBAC and AWS AccessDenied errors.
     - Run kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments to test namespace RBAC.
+    - Run aws iam list-roles to find candidate EKS IRSA roles for the payments namespace.
+    - Run aws iam get-role --role-name eks-checkout-api-payments and match the trust policy subject to system:serviceaccount:payments:checkout-api.
     - Change the RoleBinding subject name from checkout-worker to checkout-api.
     - Change the ServiceAccount annotation to arn:aws:iam::111122223333:role/eks-checkout-api-payments.
     - Run aws sts assume-role-with-web-identity to verify the IRSA trust path.
@@ -105,8 +108,11 @@ solution:
         name: checkout-api
   commands:
     - kubectl get pods
+    - kubectl describe deployment checkout-api
     - kubectl logs checkout-api
     - kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments
+    - aws iam list-roles
+    - aws iam get-role --role-name eks-checkout-api-payments
     - aws sts assume-role-with-web-identity
     - kubectl rollout restart deployment checkout-api
     - kubectl rollout status deployment checkout-api

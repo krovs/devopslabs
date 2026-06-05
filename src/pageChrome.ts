@@ -18,7 +18,6 @@ export function pageHeading({
   scenarioTitle,
   incidentTitle,
 }: PageChromeOptions): string {
-  if (page === "docs") return "Documentation";
   if (page === "index") return "DevOpsLabs";
   if (incidentMode && !solved) return incidentTitle;
   return runtime?.title ?? scenarioTitle;

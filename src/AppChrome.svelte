@@ -1,6 +1,7 @@
 <script lang="ts">
   import AppMenu from "./AppMenu.svelte";
   import ConfettiOverlay from "./ConfettiOverlay.svelte";
+  import Documentation from "./Documentation.svelte";
   import LabModal from "./LabModal.svelte";
   import type { AppController } from "./appController.svelte";
 
@@ -27,10 +28,13 @@
   />
 {/if}
 
+{#if app.appShell.isDocsOpen}
+  <Documentation kind={app.view.runtime?.kind} onclose={app.appShell.closeDocs} />
+{/if}
+
 <AppMenu
   open={app.appShell.isMenuOpen}
   theme={app.appShell.theme}
-  currentPage={app.view.currentPage}
   incidentMode={app.view.incidentMode}
   menuSearchQuery={app.appShell.menuSearchQuery}
   labGroups={app.labGroups}
@@ -40,8 +44,7 @@
   completedScenarioIds={app.view.completedScenarioIds}
   onclose={app.appShell.closeMenu}
   onthemechange={app.appShell.setTheme}
-  onopenlabs={app.scenarioNavigation.openLabs}
-  onopendocs={app.scenarioNavigation.openDocs}
+  onrandomscenario={app.scenarioNavigation.selectRandomScenario}
   onincidentmodechange={app.appShell.setIncidentMode}
   onsearchchange={app.appShell.setMenuSearchQuery}
   ontogglegroup={app.callbacks.toggleMenuGroup}

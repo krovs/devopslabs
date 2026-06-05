@@ -17,8 +17,10 @@ export function createLabMenuSession(options: LabMenuSessionOptions) {
   }
 
   function markCompleted(id: string): void {
+    const changed = !isCompleted(id) || isManuallyUnchecked(id);
     if (!isCompleted(id)) completedScenarioIds = [...completedScenarioIds, id];
     manuallyUncheckedScenarioIds = manuallyUncheckedScenarioIds.filter((scenarioId) => scenarioId !== id);
+    if (changed) options.onChange();
   }
 
   return {
@@ -50,10 +52,10 @@ export function createLabMenuSession(options: LabMenuSessionOptions) {
       if (isCompleted(id)) {
         completedScenarioIds = completedScenarioIds.filter((scenarioId) => scenarioId !== id);
         if (!isManuallyUnchecked(id)) manuallyUncheckedScenarioIds = [...manuallyUncheckedScenarioIds, id];
+        options.onChange();
       } else {
         markCompleted(id);
       }
-      options.onChange();
     },
     toggleGroupCompletion(ids: string[], event: Event): void {
       event.stopPropagation();
@@ -71,9 +73,8 @@ export function createLabMenuSession(options: LabMenuSessionOptions) {
       options.onChange();
     },
     markSolved(id: string): void {
-      if (isCompleted(id) || isManuallyUnchecked(id)) return;
-      completedScenarioIds = [...completedScenarioIds, id];
-      options.onChange();
+      if (isCompleted(id)) return;
+      markCompleted(id);
     },
     markCompleted,
   };

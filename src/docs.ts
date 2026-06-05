@@ -1,3 +1,5 @@
+import type { Scenario } from "./types";
+
 export type DocInline = string | { code: string };
 
 export type DocBlock =
@@ -18,69 +20,41 @@ export type DocSection = {
 
 export const documentationSections: DocSection[] = [
   {
-    id: "wiki-workflow",
-    navTitle: "Workflow",
-    title: "Lab Workflow",
-    blocks: [
-      {
-        type: "paragraph",
-        content: [
-          "Start every lab by reproducing the failure. The terminal output tells you which system is unhealthy: Terraform state, AWS resources, Terragrunt stack wiring, or a GitHub Actions job.",
-        ],
-      },
-      {
-        type: "orderedList",
-        items: [
-          ["Run the obvious inspection command, such as ", { code: "terraform plan" }, " or ", { code: "gh run view" }, "."],
-          ["Open the file tab mentioned by the error."],
-          ["Fix the smallest thing that explains the failure."],
-          ["Run the validation or plan command again."],
-          ["Use ", { code: "check" }, " only after the run is clean."],
-        ],
-      },
-      {
-        type: "paragraph",
-        content: [
-          "Incident Mode hides unsolved lab names and direct scenario descriptions. Use it when you want symptoms first and clues only when needed.",
-        ],
-      },
-    ],
-  },
-  {
     id: "wiki-terraform",
-    navTitle: "IaC",
-    title: "IaC",
+    navTitle: "Terraform",
+    title: "Terraform",
     blocks: [
       {
         type: "paragraph",
         content: [
-          "Terraform labs focus on the relationship between configuration, remote infrastructure, and state. A clean fix usually makes the state address, the code address, and the real AWS object agree.",
+          "Terraform is an infrastructure-as-code tool. It reads declarative configuration, compares it with state and provider APIs, then creates an execution plan for infrastructure changes.",
         ],
       },
+      { type: "heading", text: "Core Concepts" },
       {
-        type: "diagram",
-        ariaLabel: "Terraform troubleshooting relationship diagram",
-        nodes: [
-          { title: "Configuration", detail: "main.tf / modules" },
-          { title: "State", detail: "tracked addresses" },
-          { title: "AWS", detail: "real resources" },
+        type: "unorderedList",
+        items: [
+          [{ code: "main.tf" }, " defines resources, data sources, providers, modules, variables, and outputs."],
+          ["State maps Terraform resource addresses to real infrastructure objects."],
+          ["A plan shows create, update, replace, and destroy actions before apply."],
+          ["Modules package reusable infrastructure behind inputs and outputs."],
+          ["Imports attach existing infrastructure to Terraform state."],
         ],
       },
+      { type: "heading", text: "Common Commands" },
       {
         type: "code",
-        text: "terraform init\nterraform validate\nterraform plan\nterraform apply\nterraform state list\nterraform import <address> <id>\nterraform state mv <old-address> <new-address>\nterraform force-unlock <lock-id>",
+        text: "terraform init\nterraform fmt\nterraform validate\nterraform plan\nterraform apply\nterraform state list\nterraform state show <address>\nterraform import <address> <id>\nterraform state mv <old-address> <new-address>\nterraform force-unlock <lock-id>",
       },
-      { type: "heading", text: "State And Drift" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "Import is for a real object that exists but is not tracked in state. State move is for a tracked object whose Terraform address changed after a folder, module, or resource rename migration.",
-        ],
-      },
-      {
-        type: "paragraph",
-        content: [
-          "Force unlock is a recovery action. Use it only when you know the apply that created the lock is no longer running.",
+        type: "unorderedList",
+        items: [
+          ["Missing variable or output: a module call expects a value that is not declared."],
+          ["Wrong resource address: configuration references a name that does not exist."],
+          ["Drift: real infrastructure changed outside Terraform."],
+          ["State mismatch: an object exists, but Terraform does not track it."],
+          ["Replacement risk: a name, immutable field, or resource address changed."],
         ],
       },
     ],
@@ -88,28 +62,35 @@ export const documentationSections: DocSection[] = [
   {
     id: "wiki-iac-security-baselines",
     navTitle: "IaC Security",
-    title: "IaC Security Baselines",
+    title: "IaC Security",
     blocks: [
       {
         type: "paragraph",
         content: [
-          "IaC Security Baselines labs are Terraform exercises focused on spotting missing cloud guardrails before deployment. The goal is to identify bad or incomplete service configuration, fix the Terraform, then pass the simulated Checkov gate.",
+          "IaC security is the practice of checking infrastructure definitions before deployment. It catches insecure defaults, missing encryption, public exposure, and weak logging controls early in review.",
         ],
       },
+      { type: "heading", text: "Common Controls" },
       {
-        type: "diagram",
-        ariaLabel: "IaC security baseline review flow",
-        nodes: [
-          { title: "Terraform", detail: "AWS service config" },
-          { title: "Policy Scan", detail: "checkov -f main.tf" },
-          { title: "Guardrails", detail: "encryption, backup, audit" },
+        type: "unorderedList",
+        items: [
+          ["S3: block public access, enable encryption, versioning, and access logging where needed."],
+          ["RDS: disable public access, require encryption, backups, deletion protection, and private subnets."],
+          ["CloudTrail: enable multi-region trails, log validation, encrypted storage, and restricted buckets."],
+          ["CloudWatch Logs: set retention instead of keeping logs forever by accident."],
+          ["Security groups: avoid broad ingress such as ", { code: "0.0.0.0/0" }, " on administrative ports."],
         ],
       },
-      { type: "code", text: "terraform init\ncheckov -f main.tf\nterraform plan\ncheck" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "terraform validate\nterraform plan\ncheckov -f main.tf\ncheckov -d ." },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "Common fixes include S3 public access blocks, bucket encryption and versioning, RDS private access, backup retention, deletion protection, CloudWatch log retention, and multi-region CloudTrail with log file validation.",
+        type: "unorderedList",
+        items: [
+          ["Provider defaults are often operational, not secure."],
+          ["Encryption may require both an enabled flag and a KMS key reference."],
+          ["A resource can be private but still weakly recoverable without backups or retention."],
+          ["Static scanners report the configuration, not the deployed runtime state."],
         ],
       },
     ],
@@ -122,35 +103,31 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "Terragrunt labs add stack composition on top of Terraform. Most failures come from a wrong module source, a missing root include, unformatted HCL, or a dependency output name mismatch.",
+          "Terragrunt is a thin wrapper around Terraform for composing many stacks. It centralizes backend configuration, shared inputs, provider settings, and dependencies across environments.",
         ],
       },
+      { type: "heading", text: "Typical Structure" },
       {
         type: "tree",
-        ariaLabel: "Terragrunt file structure diagram",
+        ariaLabel: "Terragrunt structure",
         rows: [
-          { kind: "root", code: "terragrunt.hcl", text: "root config, remote_state, shared inputs" },
-          { kind: "branch", code: "live/dev/network/terragrunt.hcl", text: "network stack" },
-          { kind: "branch", code: "live/dev/app/terragrunt.hcl", text: "app stack, depends on network" },
-          { kind: "leaf", code: "modules/network/main.tf", text: "Terraform network module" },
-          { kind: "leaf", code: "modules/app/main.tf", text: "Terraform app module" },
+          { kind: "root", code: "terragrunt.hcl", text: "shared remote state, provider, inputs" },
+          { kind: "branch", code: "live/dev/network/terragrunt.hcl", text: "environment stack" },
+          { kind: "branch", code: "live/dev/app/terragrunt.hcl", text: "dependent stack" },
+          { kind: "leaf", code: "modules/network/main.tf", text: "Terraform module source" },
+          { kind: "leaf", code: "modules/app/main.tf", text: "Terraform module source" },
         ],
       },
-      { type: "code", text: "terragrunt init\nterragrunt validate\nterragrunt plan\nterragrunt run-all plan\nterragrunt hclfmt" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "terragrunt init\nterragrunt validate\nterragrunt plan\nterragrunt apply\nterragrunt hclfmt\nterragrunt run-all plan" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "Check ",
-          { code: "include" },
-          " blocks before debugging Terraform variables. If a child stack does not include the root config, it may miss shared inputs and remote state settings.",
-        ],
-      },
-      {
-        type: "paragraph",
-        content: [
-          "For dependency labs, compare what the consumer reads, for example ",
-          { code: "dependency.network.outputs.vpc_id" },
-          ", with what the producer exposes.",
+        type: "unorderedList",
+        items: [
+          ["Missing ", { code: "include" }, " block means shared root config is not loaded."],
+          ["Wrong ", { code: "source" }, " path points at the wrong module or version."],
+          ["Dependency output names must match the producing stack's Terraform outputs."],
+          ["Run-all ordering depends on declared ", { code: "dependency" }, " blocks."],
         ],
       },
     ],
@@ -163,25 +140,32 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "CI/CD labs are solved by reading the failed job, fixing the workflow or repo settings, and rerunning the pipeline. Avoid guessing from the workflow file alone; the failing step usually gives the shortest path.",
+          "GitHub Actions runs workflows from YAML files in ", { code: ".github/workflows" }, ". A workflow contains triggers, jobs, permissions, steps, secrets, and optional environments.",
         ],
       },
+      { type: "heading", text: "Core Concepts" },
       {
-        type: "diagram",
-        ariaLabel: "GitHub Actions troubleshooting flow",
-        nodes: [
-          { title: "Run Fails", detail: "gh run view" },
-          { title: "Fix Cause", detail: "secret, path, OIDC, permissions" },
-          { title: "Rerun", detail: "gh run rerun" },
+        type: "unorderedList",
+        items: [
+          ["Workflow: event-driven automation file."],
+          ["Job: isolated runner execution unit."],
+          ["Step: shell command or reusable action."],
+          ["Secrets: encrypted repository or environment values."],
+          ["Permissions: scoped token capabilities for ", { code: "GITHUB_TOKEN" }, "."],
+          ["OIDC: short-lived cloud federation without static cloud keys."],
         ],
       },
-      { type: "code", text: "gh run view\ngh run rerun\ngh secret list\ngh secret set AWS_ROLE_ARN" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "gh run list\ngh run view\ngh run view --log\ngh run rerun\ngh secret list\ngh secret set NAME" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "For AWS deployments, prefer OIDC over long-lived access keys. The workflow needs ",
-          { code: "id-token: write" },
-          ", the role ARN must be available, and the IAM trust policy subject must match the branch or environment that is running.",
+        type: "unorderedList",
+        items: [
+          ["Wrong working directory for build or deploy commands."],
+          ["Missing secret or environment approval."],
+          ["Overbroad or insufficient workflow permissions."],
+          ["OIDC trust policy does not match repository, branch, tag, or environment."],
+          ["Cache key or path does not match the package manager layout."],
         ],
       },
     ],
@@ -194,23 +178,30 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "GitOps labs focus on reconciliation controllers such as Argo CD and Flux. The failure is usually that the controller is watching the wrong Git target, applying the wrong path, or not reconciling drift.",
+          "GitOps uses Git as the desired-state source for deployed systems. Controllers such as Argo CD and Flux compare Git state with cluster state and reconcile drift.",
         ],
       },
+      { type: "heading", text: "Core Concepts" },
       {
-        type: "diagram",
-        ariaLabel: "GitOps reconciliation flow",
-        nodes: [
-          { title: "Git", detail: "branch and path" },
-          { title: "Controller", detail: "Argo CD or Flux" },
-          { title: "Cluster", detail: "live resources" },
+        type: "unorderedList",
+        items: [
+          ["Source: Git repository, branch, tag, or revision."],
+          ["Path: directory containing Kubernetes manifests, Helm charts, or Kustomize overlays."],
+          ["Sync: applying desired state to the cluster."],
+          ["Prune: deleting live resources removed from Git."],
+          ["Self-heal: reverting manual changes in the cluster."],
         ],
       },
-      { type: "code", text: "argocd app get checkout\nflux reconcile kustomization platform --with-source" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "argocd app list\nargocd app get <app>\nargocd app sync <app>\nflux get kustomizations\nflux reconcile kustomization <name> --with-source" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "Check target revisions, source paths, prune settings, self-heal behavior, and suspended reconciliation before editing workload manifests.",
+        type: "unorderedList",
+        items: [
+          ["Controller watches the wrong branch, tag, or path."],
+          ["Prune is disabled, so deleted Git resources stay live."],
+          ["Self-heal is disabled, so manual cluster drift remains."],
+          ["Flux source or kustomization is suspended."],
         ],
       },
     ],
@@ -223,40 +214,66 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "Kubernetes labs focus on workload health, rendered manifests, namespace access, and rollout convergence. Start from symptoms in pods and events, then inspect the source that owns the workload: a Deployment manifest, ServiceAccount, RBAC binding, or Helm values.",
+          "Kubernetes is a container orchestration platform. It schedules workloads onto nodes, keeps desired replica counts, exposes services, manages configuration, and reports workload health through status, events, and logs.",
         ],
       },
+      { type: "heading", text: "Core Objects" },
       {
-        type: "diagram",
-        ariaLabel: "Kubernetes troubleshooting flow",
-        nodes: [
-          { title: "Cluster", detail: "pods, events, logs" },
-          { title: "Source", detail: "manifest, RBAC, or Helm chart" },
-          { title: "Rollout", detail: "restart, upgrade, status" },
+        type: "unorderedList",
+        items: [
+          ["Pod: one or more containers scheduled together."],
+          ["Deployment: manages replica sets and rolling updates."],
+          ["Service: stable network endpoint for pods."],
+          ["ConfigMap and Secret: runtime configuration data."],
+          ["ServiceAccount, Role, RoleBinding: workload identity and Kubernetes RBAC."],
+          ["Ingress: HTTP routing from outside the cluster."],
         ],
       },
+      { type: "heading", text: "Common Commands" },
       {
         type: "code",
-        text: "kubectl get pods\nkubectl get events\nkubectl describe pod checkout-api\nkubectl logs checkout-api\nkubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments\naws sts assume-role-with-web-identity\nkubectl rollout restart deployment checkout-api\nkubectl rollout status deployment checkout-api\nkubectl scale deployment checkout-api --replicas=2\nhelm lint checkout ./chart\nhelm template checkout ./chart\nhelm upgrade checkout ./chart",
+        text: "kubectl get pods\nkubectl get events --sort-by=.lastTimestamp\nkubectl describe pod <pod>\nkubectl logs <pod>\nkubectl logs deploy/<deployment>\nkubectl get deploy,svc,ingress\nkubectl rollout status deploy/<deployment>\nkubectl rollout restart deploy/<deployment>\nkubectl auth can-i <verb> <resource> --as <subject>\nhelm lint <chart>\nhelm template <release> <chart>\nhelm upgrade <release> <chart>",
       },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "For EKS service account labs, check both identities. ",
-          { code: "kubectl auth can-i" },
-          " validates Kubernetes RBAC for the service account subject, while ",
-          { code: "aws sts assume-role-with-web-identity" },
-          " validates the IAM role trust path exposed by the ServiceAccount annotation.",
+        type: "unorderedList",
+        items: [
+          [{ code: "ImagePullBackOff" }, ": image name, tag, registry auth, or pull secret is wrong."],
+          [{ code: "CrashLoopBackOff" }, ": process starts and exits repeatedly."],
+          ["Readiness probe failure: pod runs but is not receiving traffic."],
+          ["Service targetPort mismatch: Service points to the wrong container port."],
+          ["RBAC denied: ServiceAccount lacks permission for a Kubernetes API action."],
+          ["Helm value mismatch: rendered manifest differs from the intended chart setting."],
         ],
       },
+      { type: "heading", text: "Related Issues" },
       {
-        type: "paragraph",
-        content: [
-          "For Helm labs, render before upgrading. ",
-          { code: "helm template checkout ./chart" },
-          " shows the Deployment and Service Kubernetes will receive, while ",
-          { code: "values.yaml" },
-          " is usually the smallest safe place to fix a bad port, image tag, replica count, or probe setting.",
+        type: "unorderedList",
+        items: [
+          [
+            { code: "IRSA" },
+            " means IAM Roles for Service Accounts. In EKS, a Kubernetes ServiceAccount can be annotated with an IAM role ARN so pods using that ServiceAccount receive AWS permissions through web identity federation instead of node-wide credentials.",
+          ],
+          [
+            "Kubernetes RBAC and AWS IAM are separate. ",
+            { code: "kubectl auth can-i" },
+            " checks Kubernetes API permissions, while AWS IAM controls actions such as reading S3, DynamoDB, KMS, or Secrets Manager.",
+          ],
+          [
+            "A Service routes traffic to pods by label selector and port mapping. ",
+            { code: "port" },
+            " is the Service port, while ",
+            { code: "targetPort" },
+            " is the container port receiving traffic.",
+          ],
+          [
+            "Readiness probes decide whether a pod should receive traffic. Liveness probes decide whether Kubernetes should restart the container.",
+          ],
+          [
+            "Helm values are inputs, not the final Kubernetes manifest. Use ",
+            { code: "helm template" },
+            " to inspect the rendered Deployment, Service, probes, labels, and ports.",
+          ],
         ],
       },
     ],
@@ -269,26 +286,30 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "IAM labs focus on whether a principal can perform a specific action on a specific resource, and whether the policy also blocks nearby access that should remain denied.",
+          "IAM controls who can perform which actions on which resources. AWS policy evaluation combines identity policies, resource policies, permissions boundaries, SCPs, session policies, and explicit denies.",
         ],
       },
+      { type: "heading", text: "Policy Basics" },
       {
-        type: "diagram",
-        ariaLabel: "IAM evaluation flow",
-        nodes: [
-          { title: "Principal", detail: "role or OIDC subject" },
-          { title: "Policy", detail: "action, resource, condition" },
-          { title: "Decision", detail: "allow or deny" },
+        type: "unorderedList",
+        items: [
+          [{ code: "Action" }, ": API operation, such as ", { code: "s3:GetObject" }, "."],
+          [{ code: "Resource" }, ": ARN scope the action applies to."],
+          [{ code: "Condition" }, ": context requirement such as prefix, tag, branch, or encryption context."],
+          ["Explicit deny always overrides allow."],
+          ["Least privilege means narrow action, resource, and condition."],
         ],
       },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "aws iam simulate-principal-policy\naws iam get-policy-version\naws sts get-caller-identity\naws sts assume-role-with-web-identity\naws s3 cp\naws kms decrypt\naz role assignment list" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "code",
-        text: "aws iam simulate-principal-policy\naws sts assume-role-with-web-identity\naws s3 cp\naws kms decrypt\naz role assignment list",
-      },
-      {
-        type: "paragraph",
-        content: [
-          "For least privilege, check all three dimensions: action, resource, and condition or scope. A policy that allows the happy path can still be wrong if it also allows another prefix, another branch, decrypt without the required encryption context, or a subscription-wide Azure role assignment where a container scope is enough.",
+        type: "unorderedList",
+        items: [
+          ["Wildcard action or resource grants more access than intended."],
+          ["Missing KMS permissions or missing encryption context condition."],
+          ["OIDC trust policy subject does not match the caller."],
+          ["Azure role assignment is scoped too broadly."],
         ],
       },
     ],
@@ -301,23 +322,30 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "Policy as Code labs model platform and workload guardrails. These are separate from organization policy: they run close to Kubernetes admission, service mesh authorization, or runtime network enforcement.",
+          "Policy as Code expresses guardrails as versioned, testable rules. In Kubernetes, these rules often validate admission requests or control service-to-service traffic.",
         ],
       },
+      { type: "heading", text: "Common Tools" },
       {
-        type: "diagram",
-        ariaLabel: "Policy as code validation flow",
-        nodes: [
-          { title: "Policy", detail: "Kyverno, Istio, Cilium" },
-          { title: "Validation", detail: "test or dry-run" },
-          { title: "Guardrail", detail: "admission or traffic control" },
+        type: "unorderedList",
+        items: [
+          ["Kyverno: Kubernetes admission policies written as Kubernetes resources."],
+          ["OPA/Gatekeeper: admission control using Rego policies and constraints."],
+          ["Istio AuthorizationPolicy: service mesh request authorization."],
+          ["CiliumNetworkPolicy: L3/L4/L7 network policy with Cilium features."],
+          ["Kubernetes NetworkPolicy: namespace and pod traffic rules."],
         ],
       },
-      { type: "code", text: "kyverno test .\nkubectl apply --dry-run=server -f policy.yaml" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "kyverno test .\nkubectl apply --dry-run=server -f policy.yaml\nkubectl get networkpolicy\nkubectl describe authorizationpolicy" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "Use these labs for Kubernetes NetworkPolicy, Kyverno admission policy, Istio AuthorizationPolicy, and CiliumNetworkPolicy patterns. Organization-wide cloud guardrails still belong in Organization Policy.",
+        type: "unorderedList",
+        items: [
+          ["Selector does not match the intended pods or namespace."],
+          ["Default-deny policy is missing, so allow rules are not meaningful."],
+          ["Admission rule validates the wrong field path."],
+          ["Mesh policy misses principal, namespace, or method constraints."],
         ],
       },
     ],
@@ -330,23 +358,30 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "Secrets labs focus on safe lookup paths, customer managed KMS keys, rotation, and environment separation. The common failure is not only that a secret cannot be read; it may be readable from the wrong environment or protected by a weak default.",
+          "Secrets management stores and controls sensitive values such as API keys, passwords, certificates, and tokens. Good secret systems separate environments, encrypt values, rotate credentials, and restrict read paths.",
         ],
       },
+      { type: "heading", text: "Core Concepts" },
       {
-        type: "diagram",
-        ariaLabel: "Secrets lookup flow",
-        nodes: [
-          { title: "Service", detail: "environment" },
-          { title: "Secret Path", detail: "SSM or Secrets Manager" },
-          { title: "Protection", detail: "KMS and rotation" },
+        type: "unorderedList",
+        items: [
+          ["Secret path: naming convention that separates app, environment, and purpose."],
+          ["KMS key: encryption key controlling decrypt permissions."],
+          ["Rotation: scheduled credential replacement."],
+          ["Resource policy: cross-account or service access rule."],
+          ["Versioning: ability to stage and roll back secret values."],
         ],
       },
-      { type: "code", text: "aws secretsmanager describe-secret\naws ssm get-parameter" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "aws secretsmanager describe-secret\naws secretsmanager get-secret-value\naws secretsmanager rotate-secret\naws ssm get-parameter --with-decryption\naws kms describe-key" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "Check whether the app is using the correct environment prefix before changing permissions. For Secrets Manager, verify rotation and KMS key choice together; enabling one without the other can still leave the operational control incomplete.",
+        type: "unorderedList",
+        items: [
+          ["Application reads the wrong environment path."],
+          ["Default AWS-managed key is used when a customer-managed key is required."],
+          ["Rotation is disabled or missing a rotation function."],
+          ["Resource policy allows broad cross-account access."],
         ],
       },
     ],
@@ -359,27 +394,30 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "DNS/TLS labs model Route 53, ACM, ALB aliases, and CloudFront certificate problems. The fix is usually a precise record or region change, not a broad infrastructure rewrite.",
+          "DNS maps names to endpoints. TLS certificates prove endpoint identity and enable encrypted HTTPS. In AWS, Route 53, ACM, ALB, and CloudFront are commonly involved.",
         ],
       },
+      { type: "heading", text: "Core Concepts" },
       {
-        type: "diagram",
-        ariaLabel: "DNS TLS resolution and certificate flow",
-        nodes: [
-          { title: "Hostname", detail: "Route 53 record" },
-          { title: "Endpoint", detail: "ALB or CloudFront" },
-          { title: "Certificate", detail: "ACM validation" },
+        type: "unorderedList",
+        items: [
+          [{ code: "A" }, " record: maps a name to IPv4 address or AWS alias target."],
+          [{ code: "CNAME" }, " record: aliases one name to another name."],
+          ["Alias record: Route 53-specific pointer to AWS resources like ALB or CloudFront."],
+          ["ACM validation: DNS record proving domain ownership."],
+          ["CloudFront certificate region: viewer certificates must be in ", { code: "us-east-1" }, "."],
         ],
       },
-      { type: "code", text: "aws acm describe-certificate\ndig app.example.com" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "dig example.com\ndig +short app.example.com\naws route53 list-resource-record-sets --hosted-zone-id <zone>\naws acm describe-certificate --certificate-arn <arn>" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "CloudFront viewer certificates must be issued in ",
-          { code: "us-east-1" },
-          ". ALB aliases need the current load balancer DNS name and hosted zone ID, and should normally use an alias ",
-          { code: "A" },
-          " record rather than a stale CNAME to an old load balancer.",
+        type: "unorderedList",
+        items: [
+          ["Validation CNAME name or value is copied incorrectly."],
+          ["Certificate exists in the wrong region for CloudFront."],
+          ["Alias points at an old load balancer or wrong hosted zone ID."],
+          ["TTL delays make old answers appear after a record change."],
         ],
       },
     ],
@@ -392,22 +430,31 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "Networking labs use a diagram instead of a terminal. Select components to inspect editable settings, run packet traces to see where traffic fails, and use the design check only when the path matches the requirement.",
+          "Cloud networking connects resources while controlling reachability. In AWS VPCs, packet flow is shaped by subnets, route tables, gateways, security groups, NACLs, load balancers, and DNS.",
         ],
       },
+      { type: "heading", text: "Core Concepts" },
       {
-        type: "diagram",
-        ariaLabel: "Networking troubleshooting flow",
-        nodes: [
-          { title: "Symptoms", detail: "failed path" },
-          { title: "Diagram", detail: "routes and controls" },
-          { title: "Trace", detail: "component failure" },
+        type: "unorderedList",
+        items: [
+          ["Subnet: IP range inside a VPC, usually tied to one availability zone."],
+          ["Route table: decides the next hop for packets."],
+          ["Internet gateway: VPC path to the public internet."],
+          ["NAT gateway: outbound internet path for private subnets."],
+          ["Security group: stateful instance or ENI firewall."],
+          ["NACL: stateless subnet-level firewall."],
+          ["ALB/WAF: HTTP entry point and application-layer filtering."],
         ],
       },
+      { type: "heading", text: "Common Checks" },
       {
-        type: "paragraph",
-        content: [
-          "Treat VPCs and subnets as containment boundaries. Routes decide where packets go, security groups and NACLs decide whether traffic is allowed, and WAF/ALB controls decide how public requests enter the app.",
+        type: "unorderedList",
+        items: [
+          ["Does the source subnet have a route to the destination?"],
+          ["Does the destination security group allow the source and port?"],
+          ["Do NACL inbound and outbound rules allow ephemeral return traffic?"],
+          ["Does public traffic terminate at the intended load balancer?"],
+          ["Are private databases isolated from public subnets?"],
         ],
       },
     ],
@@ -415,27 +462,33 @@ export const documentationSections: DocSection[] = [
   {
     id: "wiki-pr",
     navTitle: "PR Review",
-    title: "PR Review",
+    title: "Pull Request Review",
     blocks: [
       {
         type: "paragraph",
         content: [
-          "PR review labs are solved by reading the diff, choosing the right review decision, and selecting the findings that should be left on the review. The goal is to catch risky changes before they merge.",
+          "Pull request review is a quality and risk control before code merges. Reviewers inspect changed lines, intended behavior, security impact, operational blast radius, and test evidence.",
         ],
       },
+      { type: "heading", text: "Review Signals" },
       {
-        type: "diagram",
-        ariaLabel: "PR review flow",
-        nodes: [
-          { title: "Diff", detail: "changed lines" },
-          { title: "Risk", detail: "required findings" },
-          { title: "Decision", detail: "approve or changes" },
+        type: "unorderedList",
+        items: [
+          ["What changed: source, config, permissions, dependencies, or infrastructure."],
+          ["Who is affected: users, services, environments, accounts, or clusters."],
+          ["Failure mode: data loss, exposure, outage, cost spike, or privilege escalation."],
+          ["Test evidence: unit, integration, plan, scan, or dry-run output."],
         ],
       },
+      { type: "heading", text: "Common Risk Patterns" },
       {
-        type: "paragraph",
-        content: [
-          "Request changes when the diff introduces public access, broad IAM, overbroad GitHub token permissions, or skips a required guardrail. Do not select harmless context lines as findings.",
+        type: "unorderedList",
+        items: [
+          ["Public cloud storage or broad network ingress."],
+          ["Wildcard IAM actions, resources, or principals."],
+          ["CI token permissions broader than the workflow needs."],
+          ["Removed approval, scan, test, or policy gate."],
+          ["Infrastructure replacement hidden inside a large diff."],
         ],
       },
     ],
@@ -443,25 +496,34 @@ export const documentationSections: DocSection[] = [
   {
     id: "wiki-security",
     navTitle: "Security",
-    title: "Security Checks",
+    title: "Security Guardrails",
     blocks: [
       {
         type: "paragraph",
         content: [
-          "Security exercises model checks that should fail before deployment. Treat them as release gates, not warnings to ignore.",
+          "Security guardrails constrain what accounts, workloads, and pipelines can do. They reduce blast radius by applying defaults, explicit denies, validation rules, and detective controls.",
         ],
       },
-      { type: "code", text: "checkov -f main.tf" },
+      { type: "heading", text: "Common Guardrails" },
       {
         type: "unorderedList",
         items: [
-          ["Block public S3 access unless the lab explicitly requires public access."],
-          ["Avoid module defaults that expose ", { code: "0.0.0.0/0" }, "."],
-          ["Use scoped GitHub Actions permissions instead of ", { code: "write-all" }, "."],
-          ["Keep AWS OIDC trust policies narrow to the intended repository, branch, or environment."],
-          ["Scope secret access to the correct environment path and customer managed KMS key where required."],
-          ["Validate DNS and certificate changes before routing production traffic to a new endpoint."],
-          ["Review AWS managed service defaults; many secure settings are opt-in in Terraform."],
+          ["Deny root user activity except tightly controlled break-glass flows."],
+          ["Restrict regions where workloads may run."],
+          ["Require IMDSv2 for EC2 metadata access."],
+          ["Block public S3 access by default."],
+          ["Require encryption, logging, and backup controls for managed services."],
+        ],
+      },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "aws organizations describe-policy\naws iam simulate-principal-policy\naws cloudtrail lookup-events\naws configservice get-resource-config-history" },
+      { type: "heading", text: "Common Problems" },
+      {
+        type: "unorderedList",
+        items: [
+          ["Explicit deny applies even when another policy allows the action."],
+          ["Break-glass exceptions need narrow principals and conditions."],
+          ["A guardrail can block deployment tools if service roles are not accounted for."],
         ],
       },
     ],
@@ -474,28 +536,33 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "Application Security labs model DevSecOps review of Java services. Treat package risk, source-code findings, committed secrets, and container hardening as separate signals that all need clean validation before release.",
+          "Application security focuses on code, dependencies, secrets, containers, and authorization paths. It reduces vulnerabilities before an application reaches production.",
         ],
       },
+      { type: "heading", text: "Common Tools" },
       {
-        type: "diagram",
-        ariaLabel: "Java application security audit flow",
-        nodes: [
-          { title: "Dependencies", detail: "dependency-check" },
-          { title: "Code", detail: "semgrep" },
-          { title: "Release", detail: "gitleaks, trivy, tests" },
+        type: "unorderedList",
+        items: [
+          ["OWASP Dependency-Check: known vulnerable dependencies."],
+          ["Semgrep: source-code security patterns."],
+          ["Gitleaks: committed secrets."],
+          ["Trivy: container image CVEs, OS package findings, language dependency findings, and configuration scanning."],
+          ["Unit tests: behavior and regression checks."],
         ],
       },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "mvn test\nmvn org.owasp:dependency-check-maven:check\nsemgrep scan\ngitleaks detect\ntrivy config .\ntrivy image <image>\ndocker history <image>\nnpm audit --production" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "code",
-        text: "mvn test\nmvn org.owasp:dependency-check-maven:check\nsemgrep scan\ngitleaks detect\ntrivy config .",
-      },
-      {
-        type: "paragraph",
-        content: [
-          "For Java code review, verify that authorization decisions come from trusted security context and that user input does not change SQL structure. ",
-          { code: "@PreAuthorize" },
-          " and parameterized queries are common safe patterns in Spring applications.",
+        type: "unorderedList",
+        items: [
+          ["Authorization depends on user-controlled request data."],
+          ["SQL strings are built with concatenated input."],
+          ["A vulnerable dependency remains because the transitive path is unclear."],
+          ["Secrets are committed in code, config, or CI files."],
+          ["Container image findings come from both the base operating system and application dependencies."],
+          ["Installing dev dependencies in a runtime image expands the attack surface and can add scanner findings that production code does not need."],
+          ["Scanner exceptions should be narrow: one CVE, a reason, an owner, and an expiry date. Broad ignores or disabled gates remove the control."],
         ],
       },
     ],
@@ -508,26 +575,30 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "Threat Modeling labs model design review before implementation or release. Ground each STRIDE category in a real data flow, trust boundary, sensitive asset, identity path, and mitigation that a team can verify.",
+          "Threat modeling identifies how a system can be abused before it is built or changed. It connects assets, actors, trust boundaries, data flows, threats, and mitigations.",
         ],
       },
+      { type: "heading", text: "STRIDE Categories" },
       {
-        type: "diagram",
-        ariaLabel: "Threat modeling review flow",
-        nodes: [
-          { title: "Data Flow", detail: "components, trust boundaries" },
-          { title: "STRIDE", detail: "threats by area" },
-          { title: "Controls", detail: "mitigations, review" },
+        type: "unorderedList",
+        items: [
+          ["Spoofing: pretending to be another identity."],
+          ["Tampering: modifying data or code without authorization."],
+          ["Repudiation: denying an action because audit evidence is weak."],
+          ["Information disclosure: exposing sensitive data."],
+          ["Denial of service: reducing availability."],
+          ["Elevation of privilege: gaining capabilities beyond authorization."],
         ],
       },
+      { type: "heading", text: "Useful Inputs" },
       {
-        type: "code",
-        text: "threatmodel review",
-      },
-      {
-        type: "paragraph",
-        content: [
-          "Avoid generic category definitions. A useful model names who can abuse the flow, what asset is affected, and which concrete control reduces the risk.",
+        type: "unorderedList",
+        items: [
+          ["Data flow diagram with trust boundaries."],
+          ["Sensitive assets and regulated data types."],
+          ["Authentication and authorization paths."],
+          ["External dependencies and public entry points."],
+          ["Mitigations that can be verified in code, config, logs, or tests."],
         ],
       },
     ],
@@ -540,32 +611,30 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "Cloud Security Audit labs model AWS security investigations. Start from a detection signal, correlate it with activity logs and configuration history, then prove the effective permission path before changing IAM.",
+          "Cloud security audit correlates detections, logs, configuration history, and effective permissions. The goal is to understand what happened, what was exposed, and which control failed.",
         ],
       },
+      { type: "heading", text: "Common AWS Signals" },
       {
-        type: "diagram",
-        ariaLabel: "AWS cloud security audit flow",
-        nodes: [
-          { title: "Detection", detail: "GuardDuty finding" },
-          { title: "Evidence", detail: "CloudTrail, Logs, Config" },
-          { title: "Access", detail: "IAM simulation" },
+        type: "unorderedList",
+        items: [
+          ["GuardDuty: threat detections from logs and telemetry."],
+          ["CloudTrail: API activity history."],
+          ["CloudWatch Logs: application and service logs."],
+          ["AWS Config: resource configuration history."],
+          ["IAM simulation: effective permission checks."],
         ],
       },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "aws guardduty list-findings\naws guardduty get-findings\naws cloudtrail lookup-events\naws logs filter-log-events\naws configservice get-resource-config-history\naws iam simulate-principal-policy" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "code",
-        text: "aws guardduty list-findings\naws guardduty get-findings\naws cloudtrail lookup-events\naws logs filter-log-events\naws configservice get-resource-config-history\naws iam simulate-principal-policy",
-      },
-      {
-        type: "paragraph",
-        content: [
-          "Use ",
-          { code: "aws configservice get-resource-config-history" },
-          " for AWS Config resource history. The CLI namespace is ",
-          { code: "configservice" },
-          ", not ",
-          { code: "config" },
-          ".",
+        type: "unorderedList",
+        items: [
+          ["Finding exists but the responsible principal is unclear."],
+          ["CloudTrail event name does not map obviously to a console action."],
+          ["Resource history shows a risky change after deployment."],
+          ["IAM policy simulation allows more than the intended action."],
         ],
       },
     ],
@@ -578,67 +647,88 @@ export const documentationSections: DocSection[] = [
       {
         type: "paragraph",
         content: [
-          "MLOps labs model deterministic ML delivery checks. Treat dataset versions, training runs, evaluation metrics, model registry metadata, and promotion gates as release controls.",
+          "MLOps manages machine learning delivery as a repeatable lifecycle. It tracks datasets, training code, artifacts, metrics, model registry state, approvals, and promotion to serving environments.",
         ],
       },
+      { type: "heading", text: "Core Concepts" },
       {
-        type: "diagram",
-        ariaLabel: "MLOps delivery flow",
-        nodes: [
-          { title: "Artifacts", detail: "datasets, models" },
-          { title: "Pipeline", detail: "train, evaluate" },
-          { title: "Registry", detail: "approve, promote" },
+        type: "unorderedList",
+        items: [
+          ["Dataset version: immutable input data snapshot."],
+          ["Training run: code, parameters, data, metrics, and produced model."],
+          ["Model registry: controlled catalog of model versions and stages."],
+          ["Promotion gate: criteria for moving a model toward production."],
+          ["Lineage: relationship between data, code, metrics, and deployed model."],
         ],
       },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "ml pipeline status\nml artifacts list\nml pipeline run\nml model describe\nml model promote" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "code",
-        text: "ml pipeline status\nml artifacts list\nml pipeline run\nml model describe\nml model promote",
-      },
-      {
-        type: "paragraph",
-        content: [
-          "A good MLOps fix preserves traceability. Prefer immutable dataset versions, passing metric evidence, and explicit approval metadata over bypassing promotion policy.",
+        type: "unorderedList",
+        items: [
+          ["Training uses an unapproved or mutable dataset."],
+          ["Metrics do not meet the promotion threshold."],
+          ["Registry metadata does not identify approval or owner."],
+          ["Artifact lineage cannot prove which data produced the model."],
         ],
       },
     ],
   },
   {
-    id: "wiki-troubleshooting",
-    navTitle: "Troubleshooting",
-    title: "Troubleshooting Patterns",
+    id: "wiki-operations",
+    navTitle: "Operations",
+    title: "Operations",
     blocks: [
       {
         type: "paragraph",
         content: [
-          "When a plan wants to create something that already exists, check whether the object should be imported. When a plan wants to destroy and recreate the same object after a refactor, check whether the state address should be moved.",
+          "Operations work focuses on system health, observability, capacity, reliability, and cost. Most investigations start by checking whether the service is running, reachable, logging, and meeting expected signals.",
         ],
       },
+      { type: "heading", text: "Linux Commands" },
+      { type: "code", text: "systemctl status <service>\njournalctl -u <service> -n 50\ndf -h\nfree -m\nps aux\nss -tulpn\ntop -b -n1" },
+      { type: "heading", text: "Observability Commands" },
+      { type: "code", text: "aws cloudwatch describe-alarms\naws logs describe-log-groups\naws logs filter-log-events\naws ce get-cost-and-usage\naws ec2 describe-volumes" },
+      { type: "heading", text: "Common Problems" },
       {
-        type: "paragraph",
-        content: [
-          "When a GitHub Actions job fails, fix the first failing step. Later failures often disappear after the first broken permission, secret, path, or version is corrected.",
-        ],
-      },
-      {
-        type: "paragraph",
-        content: [
-          "When a Kubernetes rollout is unhealthy, compare pod events, logs, and the rendered manifest. For Helm-managed workloads, fix the value that renders the bad manifest before running ",
-          { code: "helm upgrade" },
-          ".",
-        ],
-      },
-      {
-        type: "paragraph",
-        content: [
-          "When DNS or certificate validation fails, compare the exact record name, record value, region, and alias target. Small string mismatches are more common than missing infrastructure.",
-        ],
-      },
-      {
-        type: "paragraph",
-        content: [
-          "When reviewing a PR, separate required findings from harmless context. A good review blocks the risky change and explains the smallest safer alternative.",
+        type: "unorderedList",
+        items: [
+          ["Service is stopped, crash-looping, or listening on the wrong port."],
+          ["Disk, memory, or process pressure affects availability."],
+          ["Alarm dimensions do not match the metric being emitted."],
+          ["Log retention is missing or too long for cost/compliance goals."],
+          ["Unattached volumes, NAT gateways, or stale resources drive cost drift."],
         ],
       },
     ],
   },
 ];
+
+const referenceSectionByKind: Record<NonNullable<Scenario["kind"]>, string> = {
+  terraform: "wiki-terraform",
+  awsconfig: "wiki-iac-security-baselines",
+  terragrunt: "wiki-terragrunt",
+  cicd: "wiki-github",
+  gitops: "wiki-gitops",
+  linux: "wiki-operations",
+  kubernetes: "wiki-kubernetes",
+  appsec: "wiki-appsec",
+  threatmodel: "wiki-threatmodel",
+  cloudsec: "wiki-cloudsec",
+  mlops: "wiki-mlops",
+  iam: "wiki-iam",
+  scp: "wiki-security",
+  policy: "wiki-policy",
+  secrets: "wiki-secrets",
+  dns: "wiki-dns",
+  observability: "wiki-operations",
+  finops: "wiki-operations",
+  pr: "wiki-pr",
+  networking: "wiki-networking",
+};
+
+export function contextualDocumentationSections(kind: Scenario["kind"]): DocSection[] {
+  const sectionId = referenceSectionByKind[kind ?? "terraform"];
+  return documentationSections.filter((section) => section.id === sectionId);
+}

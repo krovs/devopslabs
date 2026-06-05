@@ -86,14 +86,12 @@ export function createLabProgress(options: LabProgressOptions) {
       scenarioId,
       solved,
       isCompleted,
-      isManuallyUnchecked,
     }: {
       scenarioId: string;
       solved: boolean;
       isCompleted: boolean;
-      isManuallyUnchecked: boolean;
     }): SolvedTransition {
-      const shouldMarkCompleted = solved && !isCompleted && !isManuallyUnchecked;
+      const shouldMarkCompleted = solved && !isCompleted;
       let openedCompletion = false;
 
       if (solved && !wasSolved) {

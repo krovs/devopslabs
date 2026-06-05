@@ -113,17 +113,40 @@ export function runKubectlGetPods(runtime: Scenario, scenarioId: string): string
   return ["NAME                            READY   STATUS             RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   0/1     ImagePullBackOff   4"];
 }
 
-export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): string[] {
+export function runKubectlDescribeDeployment(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.validationPassed = true;
   if (isEksRbacIrsaScenario(scenarioId)) {
     return [
+      "Name: checkout-api",
+      "Namespace: payments",
+      "Selector: app=checkout-api",
+      "Pod Template:",
+      "  Service Account: checkout-api",
+      "  Containers:",
+      "   checkout-api:",
+      "    Image: ghcr.io/acme/checkout-api:1.4.2",
+      "Condition: Progressing=True Reason=NewReplicaSetAvailable",
+    ];
+  }
+
+  return runKubectlDescribePod(runtime, scenarioId);
+}
+
+export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): string[] {
+  runtime.flags.validationPassed = true;
+  if (isEksRbacIrsaScenario(scenarioId)) {
+    const rbac = runtime.files["rbac.yaml"] ?? "";
+    const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
+    const output = [
       "Name: checkout-api-5d9f6bbd76-zm9kq",
       "Namespace: payments",
       "Service Account: checkout-api",
       "Status: Running",
-      "Warning  FailedAuthorization  serviceaccount payments/checkout-api cannot get resource configmaps",
-      "Warning  AccessDenied          IRSA role eks-default-readonly cannot send messages to orders queue",
     ];
+    if (!eksRbacBindsCheckoutApi(rbac)) output.push("Warning  FailedAuthorization  serviceaccount payments/checkout-api cannot get resource configmaps");
+    if (!eksServiceAccountUsesPaymentsRole(serviceAccount)) output.push("Warning  AccessDenied          IRSA role eks-default-readonly cannot send messages to orders queue");
+    if (output.length === 4) output.push("Authorization checks are clear; restart rollout to refresh pods.");
+    return output;
   }
 
   if (isHelmValuesScenario(scenarioId)) {
@@ -158,11 +181,15 @@ export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): st
 export function runKubectlGetEvents(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.kubernetesEventsChecked = true;
   if (isEksRbacIrsaScenario(scenarioId)) {
-    return [
+    const rbac = runtime.files["rbac.yaml"] ?? "";
+    const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
+    const output = [
       "LAST SEEN   TYPE      REASON                OBJECT                              MESSAGE",
-      "3m          Warning   FailedAuthorization   pod/checkout-api-5d9f6bbd76-zm9kq   RBAC denied configmaps get for system:serviceaccount:payments:checkout-api",
-      "2m          Warning   AccessDenied          pod/checkout-api-5d9f6bbd76-zm9kq   AWS role eks-default-readonly cannot access orders queue",
     ];
+    if (!eksRbacBindsCheckoutApi(rbac)) output.push("3m          Warning   FailedAuthorization   pod/checkout-api-5d9f6bbd76-zm9kq   RBAC denied configmaps get for system:serviceaccount:payments:checkout-api");
+    if (!eksServiceAccountUsesPaymentsRole(serviceAccount)) output.push("2m          Warning   AccessDenied          pod/checkout-api-5d9f6bbd76-zm9kq   AWS role eks-default-readonly cannot access orders queue");
+    if (output.length === 1) output.push("1m          Normal    Pulled                pod/checkout-api-5d9f6bbd76-zm9kq   Container image ghcr.io/acme/checkout-api:1.4.2 already present");
+    return output;
   }
 
   if (isHelmValuesScenario(scenarioId)) {
@@ -192,10 +219,20 @@ export function runKubectlGetEvents(runtime: Scenario, scenarioId: string): stri
 export function runKubectlLogs(runtime: Scenario, scenarioId: string): string[] {
   if (isEksRbacIrsaScenario(scenarioId)) {
     if (runtime.flags.kubernetesValidated) return ["loaded checkout-config from namespace payments", "sent order message to SQS queue orders"];
-    return [
-      "ERROR kubernetes client: configmaps \"checkout-config\" is forbidden: User \"system:serviceaccount:payments:checkout-api\" cannot get resource \"configmaps\" in namespace \"payments\"",
-      "ERROR aws sdk: AccessDenied for sqs:SendMessage using role arn:aws:iam::111122223333:role/eks-default-readonly",
-    ];
+    const rbac = runtime.files["rbac.yaml"] ?? "";
+    const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
+    const output = [];
+    if (!eksRbacBindsCheckoutApi(rbac)) {
+      output.push("ERROR kubernetes client: configmaps \"checkout-config\" is forbidden: User \"system:serviceaccount:payments:checkout-api\" cannot get resource \"configmaps\" in namespace \"payments\"");
+    } else {
+      output.push("loaded checkout-config from namespace payments");
+    }
+    if (!eksServiceAccountUsesPaymentsRole(serviceAccount)) {
+      output.push("ERROR aws sdk: AccessDenied for sqs:SendMessage using role arn:aws:iam::111122223333:role/eks-default-readonly");
+    } else {
+      output.push("sent order message to SQS queue orders");
+    }
+    return output;
   }
 
   if (isHelmValuesScenario(scenarioId)) return ["checkout-api listening on :8080", "GET /healthz 200 OK"];
@@ -215,6 +252,87 @@ export function runKubectlAuthCanI(runtime: Scenario, scenarioId: string): strin
   }
 
   return ["no", "RoleBinding checkout-api-reader grants checkout-worker, not checkout-api"];
+}
+
+export function runEksIamListRoles(runtime: Scenario, scenarioId: string): string[] {
+  if (!isEksRbacIrsaScenario(scenarioId)) return ["Roles: []"];
+
+  runtime.flags.validationPassed = true;
+  return [
+    "Roles:",
+    "- RoleName: eks-default-readonly",
+    "  Arn: arn:aws:iam::111122223333:role/eks-default-readonly",
+    "  Path: /eks/shared/",
+    "  Tags: namespace=default, app=shared, access=readonly",
+    "- RoleName: eks-checkout-api-payments",
+    "  Arn: arn:aws:iam::111122223333:role/eks-checkout-api-payments",
+    "  Path: /eks/payments/",
+    "  Tags: namespace=payments, app=checkout-api, access=orders-sqs",
+    "- RoleName: eks-reports-batch",
+    "  Arn: arn:aws:iam::111122223333:role/eks-reports-batch",
+    "  Path: /eks/reports/",
+    "  Tags: namespace=reports, app=reports, access=analytics-read",
+  ];
+}
+
+export function runEksIamGetRole(runtime: Scenario, scenarioId: string, roleName?: string): string[] {
+  if (!isEksRbacIrsaScenario(scenarioId)) return ["NoSuchEntity: this Kubernetes lab does not define EKS IRSA roles."];
+  if (!roleName) return ["usage: aws iam get-role --role-name <name>"];
+
+  runtime.flags.validationPassed = true;
+
+  if (roleName === "eks-checkout-api-payments") {
+    return [
+      "Role:",
+      "  RoleName: eks-checkout-api-payments",
+      "  Arn: arn:aws:iam::111122223333:role/eks-checkout-api-payments",
+      "  Path: /eks/payments/",
+      "AssumeRolePolicyDocument:",
+      "  Principal:",
+      "    Federated: arn:aws:iam::111122223333:oidc-provider/oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B716D3041E",
+      "  Action: sts:AssumeRoleWithWebIdentity",
+      "  Condition:",
+      "    StringEquals:",
+      "      oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B716D3041E:aud: sts.amazonaws.com",
+      "      oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B716D3041E:sub: system:serviceaccount:payments:checkout-api",
+      "AttachedPolicies:",
+      "  - checkout-orders-producer",
+      "PermissionsSummary:",
+      "  Allow sqs:GetQueueUrl, sqs:SendMessage on arn:aws:sqs:eu-west-1:111122223333:orders",
+    ];
+  }
+
+  if (roleName === "eks-default-readonly") {
+    return [
+      "Role:",
+      "  RoleName: eks-default-readonly",
+      "  Arn: arn:aws:iam::111122223333:role/eks-default-readonly",
+      "  Path: /eks/shared/",
+      "AssumeRolePolicyDocument:",
+      "  Condition:",
+      "    StringEquals:",
+      "      oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B716D3041E:sub: system:serviceaccount:default:readonly",
+      "PermissionsSummary:",
+      "  Shared read-only AWS API access; no sqs:SendMessage permission for the orders queue.",
+    ];
+  }
+
+  if (roleName === "eks-reports-batch") {
+    return [
+      "Role:",
+      "  RoleName: eks-reports-batch",
+      "  Arn: arn:aws:iam::111122223333:role/eks-reports-batch",
+      "  Path: /eks/reports/",
+      "AssumeRolePolicyDocument:",
+      "  Condition:",
+      "    StringEquals:",
+      "      oidc.eks.eu-west-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B716D3041E:sub: system:serviceaccount:reports:reports-batch",
+      "PermissionsSummary:",
+      "  Analytics read access only.",
+    ];
+  }
+
+  return [`NoSuchEntity: The role with name ${roleName} cannot be found.`];
 }
 
 export function runEksAssumeRoleWithWebIdentity(runtime: Scenario, scenarioId: string): string[] {

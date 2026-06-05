@@ -61,9 +61,9 @@
   <div class="panel-header">
     <h2>Design</h2>
     <div class="network-design-actions">
-      {#if scenarioTips.length}
+      {#if !incidentMode && scenarioTips.length}
         <button type="button" disabled={revealedTipCount >= scenarioTips.length} onclick={onrevealtip}>
-          {revealedTipCount >= scenarioTips.length ? "No more clues" : incidentMode ? "Reveal clue" : "Tip"}
+          {revealedTipCount >= scenarioTips.length ? "No more tips" : "Tip"}
         </button>
       {/if}
       <button type="button" onclick={oncheckdesign}>Check design</button>
@@ -96,9 +96,9 @@
       </section>
     {/if}
   </div>
-  {#if visibleTips.length}
+  {#if !incidentMode && visibleTips.length}
     <aside class="tips-panel network-design-tips" aria-label="Scenario tips">
-      <h3>{incidentMode ? "Clues" : "Tips"}</h3>
+      <h3>Tips</h3>
       <ol>
         {#each visibleTips as tip}
           <li>{tip}</li>

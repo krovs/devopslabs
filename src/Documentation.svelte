@@ -1,5 +1,14 @@
 <script lang="ts">
-  import { documentationSections, type DocInline } from "./docs";
+  import { contextualDocumentationSections, type DocInline } from "./docs";
+  import type { Scenario } from "./types";
+
+  interface Props {
+    kind: Scenario["kind"];
+    onclose: () => void;
+  }
+
+  let { kind, onclose }: Props = $props();
+  let referenceSections = $derived(contextualDocumentationSections(kind));
 
   function isCode(part: DocInline): part is { code: string } {
     return typeof part !== "string";
@@ -16,19 +25,20 @@
   {/each}
 {/snippet}
 
-<section class="wiki-layout" aria-label="Documentation">
-  <nav class="wiki-toc" aria-label="Documentation sections">
-    {#each documentationSections as section}
-      <a href={`#${section.id}`}>{section.navTitle}</a>
-    {/each}
-  </nav>
+<button class="docs-backdrop" type="button" aria-label="Close documentation" onclick={onclose}></button>
+<div class="docs-window" role="dialog" aria-modal="true" aria-labelledby="docs-window-title">
+  <header class="docs-window-header">
+    <h2 id="docs-window-title">Reference</h2>
+    <button type="button" class="menu-close-button" aria-label="Close documentation" onclick={onclose}>×</button>
+  </header>
 
-  <article class="wiki-article">
-    {#each documentationSections as section}
-      <section id={section.id}>
-        <h2>{section.title}</h2>
+  <div class="wiki-layout" aria-label="Documentation">
+    <article class="wiki-article">
+      {#each referenceSections as section}
+        <section id={section.id}>
+          <h2>{section.title}</h2>
 
-        {#each section.blocks as block}
+          {#each section.blocks as block}
           {#if block.type === "paragraph"}
             <p>{@render inlineContent(block.content)}</p>
           {:else if block.type === "orderedList"}
@@ -67,4 +77,5 @@
       </section>
     {/each}
   </article>
-</section>
+  </div>
+</div>
