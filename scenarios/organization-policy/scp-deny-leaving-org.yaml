@@ -24,7 +24,7 @@ files:
     Required:
     - Deny organizations:LeaveOrganization for all member accounts
     - Do not deny read-only Organizations actions
-    - Avoid Action "*" and Resource "*"
+    - Avoid Action "*"; SCPs commonly use Resource "*" for account-level guardrails
 solution:
   summary: |
     Member accounts can leave the AWS Organization because the baseline SCP does not deny LeaveOrganization.
@@ -49,7 +49,7 @@ solution:
   focusFileName: scp.json
   files:
     "scp.json": |
-      { "Version": "2012-10-17", "Statement": [{ "Effect": "Deny", "Action": "organizations:LeaveOrganization", "Resource": "arn:aws:organizations::*" }] }
+      { "Version": "2012-10-17", "Statement": [{ "Effect": "Deny", "Action": "organizations:LeaveOrganization", "Resource": "*" }] }
   commands:
     - aws iam simulate-principal-policy
 backend:

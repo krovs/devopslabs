@@ -7,8 +7,18 @@ function markFirstResource(runtime: Scenario, status: string, note: string): voi
 }
 
 function dependencyAuditFixed(runtime: Scenario): boolean {
+  return dependencyVersion(runtime) !== null;
+}
+
+function dependencyVersion(runtime: Scenario): string | null {
   const pom = runtime.files["pom.xml"] ?? "";
-  return pom.includes("<artifactId>logback-classic</artifactId>") && pom.includes("<version>1.4.14</version>");
+  const dependencyMatch = pom.match(/<dependency>[\s\S]*?<artifactId>\s*logback-classic\s*<\/artifactId>[\s\S]*?<version>\s*([^<\s]+)\s*<\/version>[\s\S]*?<\/dependency>/);
+  const version = dependencyMatch?.[1];
+  if (!version) return null;
+
+  const parts = version.split(".").map((part) => Number.parseInt(part, 10));
+  const [major = 0, minor = 0, patch = 0] = parts;
+  return major > 1 || (major === 1 && (minor > 4 || (minor === 4 && patch >= 14))) ? version : null;
 }
 
 function secretAuditFixed(runtime: Scenario): boolean {
@@ -119,12 +129,13 @@ export function mvnTest(runtime: Scenario, scenarioId: string): string[] {
 export function dependencyCheck(runtime: Scenario, scenarioId: string): string[] {
   if (scenarioId !== "javaDependencySecretsContainerAudit") return ["Dependency-Check completed", "No vulnerable dependencies found."];
 
-  if (dependencyAuditFixed(runtime)) {
+  const version = dependencyVersion(runtime);
+  if (version) {
     runtime.flags.securityPassed = true;
     runtime.stateResources = runtime.stateResources.map((resource) =>
-      resource.address === "maven.logback-classic" ? { ...resource, id: "1.4.14" } : resource,
+      resource.address === "maven.logback-classic" ? { ...resource, id: version } : resource,
     );
-    return ["Dependency-Check completed", "No vulnerable dependencies found.", "logback-classic: 1.4.14"];
+    return ["Dependency-Check completed", "No vulnerable dependencies found.", `logback-classic: ${version}`];
   }
 
   markFirstResource(runtime, "failed", "Dependency-check still finds vulnerable logback-classic 1.2.10.");

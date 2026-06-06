@@ -1,139 +1,209 @@
 import type { Scenario } from "../types";
 import { markFirstResourceFailed } from "./shared";
 
+type JsonObject = Record<string, unknown>;
+
+function parseJsonObject(source: string): JsonObject | null {
+  try {
+    const parsed = JSON.parse(source) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as JsonObject : null;
+  } catch {
+    return null;
+  }
+}
+
+function stringValues(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap((item) => stringValues(item));
+  return [];
+}
+
+function statements(policy: JsonObject | null): JsonObject[] {
+  if (!policy) return [];
+  const statement = policy.Statement;
+  if (Array.isArray(statement)) return statement.filter((item): item is JsonObject => !!item && typeof item === "object" && !Array.isArray(item));
+  if (statement && typeof statement === "object" && !Array.isArray(statement)) return [statement as JsonObject];
+  return [];
+}
+
+function actions(statement: JsonObject): string[] {
+  return stringValues(statement.Action);
+}
+
+function notActions(statement: JsonObject): string[] {
+  return stringValues(statement.NotAction);
+}
+
+function resources(statement: JsonObject): string[] {
+  return stringValues(statement.Resource);
+}
+
+function lowerValues(values: string[]): string[] {
+  return values.map((value) => value.toLowerCase());
+}
+
+function hasValue(values: string[], expected: string): boolean {
+  return lowerValues(values).includes(expected.toLowerCase());
+}
+
+function hasAllValues(values: string[], expected: string[]): boolean {
+  return expected.every((item) => hasValue(values, item));
+}
+
+function conditionPairs(statement: JsonObject): Array<[string, string]> {
+  const condition = statement.Condition;
+  if (!condition || typeof condition !== "object" || Array.isArray(condition)) return [];
+
+  return Object.values(condition as JsonObject).flatMap((operator) => {
+    if (!operator || typeof operator !== "object" || Array.isArray(operator)) return [];
+    return Object.entries(operator as JsonObject).flatMap(([key, value]) =>
+      stringValues(value).map((conditionValue) => [key, conditionValue] as [string, string]),
+    );
+  });
+}
+
+function hasCondition(statement: JsonObject, key: string, value: string): boolean {
+  return conditionPairs(statement).some(
+    ([conditionKey, conditionValue]) => conditionKey.toLowerCase() === key.toLowerCase() && conditionValue.toLowerCase() === value.toLowerCase(),
+  );
+}
+
+function hasConditionValue(statement: JsonObject, value: string): boolean {
+  return conditionPairs(statement).some(([, conditionValue]) => conditionValue.toLowerCase() === value.toLowerCase());
+}
+
+function isAllow(statement: JsonObject): boolean {
+  return typeof statement.Effect === "string" && statement.Effect.toLowerCase() === "allow";
+}
+
+function isDeny(statement: JsonObject): boolean {
+  return typeof statement.Effect === "string" && statement.Effect.toLowerCase() === "deny";
+}
+
+function hasBroadAllow(policy: JsonObject | null, servicePrefix: string): boolean {
+  return statements(policy).some((statement) =>
+    isAllow(statement)
+    && (hasValue(actions(statement), `${servicePrefix}:*`) || hasValue(actions(statement), "*") || hasValue(resources(statement), "*")),
+  );
+}
+
+function hasBroadDenyAction(policy: JsonObject | null, action: string): boolean {
+  return statements(policy).some((statement) =>
+    isDeny(statement) && (hasValue(actions(statement), "*") || hasValue(actions(statement), action.split(":")[0] + ":*")),
+  );
+}
+
 export function iamFixApplied(runtime: Scenario, scenarioId: string): boolean {
   if (scenarioId === "iamS3PrefixLeastPrivilege") {
-    const policy = runtime.files["policy.json"] ?? "";
-    return (
-      policy.includes("s3:ListBucket") &&
-      policy.includes("s3:GetObject") &&
-      policy.includes("s3:PutObject") &&
-      policy.includes("arn:aws:s3:::company-artifacts") &&
-      policy.includes("arn:aws:s3:::company-artifacts/team-a/*") &&
-      policy.includes("s3:prefix") &&
-      policy.includes("team-a/*") &&
-      !policy.includes('"s3:*"') &&
-      !policy.includes('"Resource": "*"')
+    const policy = parseJsonObject(runtime.files["policy.json"] ?? "");
+    const policyStatements = statements(policy);
+    const listBucket = policyStatements.some((statement) =>
+      isAllow(statement)
+      && hasValue(actions(statement), "s3:ListBucket")
+      && hasValue(resources(statement), "arn:aws:s3:::company-artifacts")
+      && hasCondition(statement, "s3:prefix", "team-a/*"),
     );
+    const objectAccess = policyStatements.some((statement) =>
+      isAllow(statement)
+      && hasAllValues(actions(statement), ["s3:GetObject", "s3:PutObject"])
+      && hasValue(resources(statement), "arn:aws:s3:::company-artifacts/team-a/*"),
+    );
+    return listBucket && objectAccess && !hasBroadAllow(policy, "s3");
   }
 
   if (scenarioId === "iamGithubOidcEnvironmentTrust") {
-    const trustPolicy = runtime.files["trust-policy.json"] ?? "";
-    return (
-      trustPolicy.includes("token.actions.githubusercontent.com:aud") &&
-      trustPolicy.includes("sts.amazonaws.com") &&
-      trustPolicy.includes("repo:acme/platform:environment:production") &&
-      !trustPolicy.includes("repo:acme/platform:*") &&
-      !trustPolicy.includes("refs/heads/*")
+    const trustPolicy = parseJsonObject(runtime.files["trust-policy.json"] ?? "");
+    return statements(trustPolicy).some((statement) =>
+      isAllow(statement)
+      && hasValue(actions(statement), "sts:AssumeRoleWithWebIdentity")
+      && hasCondition(statement, "token.actions.githubusercontent.com:aud", "sts.amazonaws.com")
+      && hasCondition(statement, "token.actions.githubusercontent.com:sub", "repo:acme/platform:environment:production"),
     );
   }
 
   if (scenarioId === "iamKmsEncryptionContext") {
-    const policy = runtime.files["kms-policy.json"] ?? "";
-    return (
-      policy.includes("kms:Decrypt") &&
-      policy.includes("arn:aws:kms:eu-west-1:123456789012:key/payroll-key") &&
-      policy.includes("kms:EncryptionContext:App") &&
-      policy.includes("payroll") &&
-      !policy.includes('"kms:*"') &&
-      !policy.includes('"Resource": "*"')
-    );
+    const policy = parseJsonObject(runtime.files["kms-policy.json"] ?? "");
+    return statements(policy).some((statement) =>
+      isAllow(statement)
+      && hasValue(actions(statement), "kms:Decrypt")
+      && hasValue(resources(statement), "arn:aws:kms:eu-west-1:123456789012:key/payroll-key")
+      && hasCondition(statement, "kms:EncryptionContext:App", "payroll"),
+    ) && !hasBroadAllow(policy, "kms");
   }
 
   if (scenarioId === "iamDynamoDbLeadingKeys") {
-    const policy = runtime.files["policy.json"] ?? "";
-    return (
-      policy.includes("dynamodb:GetItem") &&
-      policy.includes("dynamodb:PutItem") &&
-      policy.includes("arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders") &&
-      policy.includes("dynamodb:LeadingKeys") &&
-      policy.includes("tenant-a") &&
-      !policy.includes('"dynamodb:*"') &&
-      !policy.includes('"Resource": "*"')
-    );
+    const policy = parseJsonObject(runtime.files["policy.json"] ?? "");
+    return statements(policy).some((statement) =>
+      isAllow(statement)
+      && hasAllValues(actions(statement), ["dynamodb:GetItem", "dynamodb:PutItem"])
+      && hasValue(resources(statement), "arn:aws:dynamodb:eu-west-1:123456789012:table/shared-orders")
+      && hasCondition(statement, "dynamodb:LeadingKeys", "tenant-a"),
+    ) && !hasBroadAllow(policy, "dynamodb");
   }
 
   if (scenarioId === "iamAzureBlobReaderScope") {
-    const assignment = runtime.files["role-assignment.json"] ?? "";
-    return (
-      assignment.includes('"principalName": "reporting-api"') &&
-      assignment.includes('"roleDefinitionName": "Storage Blob Data Reader"') &&
-      assignment.includes('"scope": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports"') &&
-      !assignment.includes('"roleDefinitionName": "Owner"') &&
-      !assignment.includes('"roleDefinitionName": "Contributor"') &&
-      !assignment.includes('"scope": "/subscriptions/00000000-0000-0000-0000-000000000000"')
-    );
+    const assignment = parseJsonObject(runtime.files["role-assignment.json"] ?? "");
+    return assignment?.principalName === "reporting-api"
+      && assignment.roleDefinitionName === "Storage Blob Data Reader"
+      && assignment.scope === "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/proddata/blobServices/default/containers/reports";
   }
 
   if (scenarioId === "iamBlankSecretsReadonly") {
-    const policy = runtime.files["policy.json"] ?? "";
-    return (
-      policy.includes("secretsmanager:GetSecretValue") &&
-      policy.includes("arn:aws:secretsmanager:eu-west-1:123456789012:secret:prod/db/password-abc123") &&
-      !policy.includes("secretsmanager:*") &&
-      !policy.includes("secretsmanager:DeleteSecret") &&
-      !policy.includes('"Resource": "*"')
-    );
+    const policy = parseJsonObject(runtime.files["policy.json"] ?? "");
+    return statements(policy).some((statement) =>
+      isAllow(statement)
+      && hasValue(actions(statement), "secretsmanager:GetSecretValue")
+      && hasValue(resources(statement), "arn:aws:secretsmanager:eu-west-1:123456789012:secret:prod/db/password-abc123"),
+    ) && !hasBroadAllow(policy, "secretsmanager");
   }
 
   if (scenarioId === "iamBlankCloudWatchLogsWrite") {
-    const policy = runtime.files["policy.json"] ?? "";
-    return (
-      policy.includes("logs:CreateLogStream") &&
-      policy.includes("logs:PutLogEvents") &&
-      policy.includes("arn:aws:logs:eu-west-1:123456789012:log-group:/aws/ecs/payments-api:*") &&
-      !policy.includes("logs:*") &&
-      !policy.includes("logs:DeleteLogGroup") &&
-      !policy.includes('"Resource": "*"')
-    );
+    const policy = parseJsonObject(runtime.files["policy.json"] ?? "");
+    return statements(policy).some((statement) =>
+      isAllow(statement)
+      && hasAllValues(actions(statement), ["logs:CreateLogStream", "logs:PutLogEvents"])
+      && hasValue(resources(statement), "arn:aws:logs:eu-west-1:123456789012:log-group:/aws/ecs/payments-api:*"),
+    ) && !hasBroadAllow(policy, "logs");
   }
 
   return false;
 }
 
 export function scpFixApplied(runtime: Scenario, scenarioId: string): boolean {
-  const policy = runtime.files["scp.json"] ?? "";
+  const policy = parseJsonObject(runtime.files["scp.json"] ?? "");
+  const policyStatements = statements(policy);
 
   if (scenarioId === "scpDenyLeavingOrg") {
-    return (
-      policy.includes("organizations:LeaveOrganization") &&
-      policy.includes('"Effect": "Deny"') &&
-      policy.includes('"Action": "organizations:LeaveOrganization"') &&
-      !policy.includes('"Action": "*"') &&
-      !policy.includes('"Resource": "*"')
-    );
+    return policyStatements.some((statement) =>
+      isDeny(statement) && hasValue(actions(statement), "organizations:LeaveOrganization"),
+    ) && !hasBroadDenyAction(policy, "organizations:LeaveOrganization");
   }
 
   if (scenarioId === "scpRegionRestrictionBreakGlass") {
-    return (
-      policy.includes("aws:RequestedRegion") &&
-      policy.includes("eu-west-1") &&
-      policy.includes("eu-central-1") &&
-      policy.includes("ArnNotLike") &&
-      policy.includes("arn:aws:iam::*:role/BreakGlassAdmin") &&
-      !policy.includes("us-east-1")
+    return policyStatements.some((statement) =>
+      isDeny(statement)
+      && hasCondition(statement, "aws:RequestedRegion", "eu-west-1")
+      && hasCondition(statement, "aws:RequestedRegion", "eu-central-1")
+      && hasCondition(statement, "aws:PrincipalArn", "arn:aws:iam::*:role/BreakGlassAdmin")
+      && !hasConditionValue(statement, "us-east-1")
+      && notActions(statement).length > 0,
     );
   }
 
   if (scenarioId === "scpBlankDenyRootUser") {
-    return (
-      policy.includes('"Effect": "Deny"') &&
-      policy.includes("aws:PrincipalArn") &&
-      policy.includes("arn:aws:iam::*:root") &&
-      policy.includes("aws-portal:ViewBilling") &&
-      !policy.includes('"Action": "*"')
-    );
+    return policyStatements.some((statement) =>
+      isDeny(statement)
+      && hasCondition(statement, "aws:PrincipalArn", "arn:aws:iam::*:root")
+      && hasValue(actions(statement), "aws-portal:ViewBilling"),
+    ) && !hasBroadDenyAction(policy, "ec2:TerminateInstances");
   }
 
   if (scenarioId === "scpBlankRequireImdsv2") {
-    return (
-      policy.includes('"Effect": "Deny"') &&
-      policy.includes("ec2:RunInstances") &&
-      policy.includes("ec2:MetadataHttpTokens") &&
-      policy.includes("optional") &&
-      !policy.includes('"Action": "ec2:*"') &&
-      !policy.includes('"Action": "*"')
-    );
+    return policyStatements.some((statement) =>
+      isDeny(statement)
+      && hasValue(actions(statement), "ec2:RunInstances")
+      && hasCondition(statement, "ec2:MetadataHttpTokens", "optional"),
+    ) && !hasBroadDenyAction(policy, "ec2:RunInstances");
   }
 
   return false;

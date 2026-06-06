@@ -32,6 +32,18 @@ describe("AppSec simulator", () => {
     expect(trivyImage(wildcard, "containerImageCveGate")).toContain("Exception issue: wildcard ignores are not allowed.");
   });
 
+  it("accepts newer safe logback versions instead of one exact version", () => {
+    const scenario = javaDependencySecretsContainerAuditScenario();
+    scenario.files["pom.xml"] = scenario.files["pom.xml"].replace("<version>1.4.14</version>", "<version>1.5.6</version>");
+
+    expect(dependencyCheck(scenario, "javaDependencySecretsContainerAudit")).toContain("logback-classic: 1.5.6");
+    expect(gitleaksDetect(scenario, "javaDependencySecretsContainerAudit")).toContain("no leaks found");
+    expect(trivyConfig(scenario, "javaDependencySecretsContainerAudit")).toContain("Dockerfile runs as a non-root user");
+    expect(mvnTest(scenario, "javaDependencySecretsContainerAudit")).toContain("[INFO] BUILD SUCCESS");
+    expect(checkScenario(scenario, "javaDependencySecretsContainerAudit", "pom.xml")).toEqual(["Scenario complete."]);
+    expect(scenario.stateResources.find((resource) => resource.address === "maven.logback-classic")?.id).toBe("1.5.6");
+  });
+
   it("explains when the image tag and Trivy ignore are fixed but dev dependencies remain", () => {
     const scenario = containerImageCveGateScenario("CVE-2024-99999\n");
     scenario.files["Dockerfile"] = scenario.files["Dockerfile"].replace("RUN npm ci --omit=dev", "RUN npm ci");

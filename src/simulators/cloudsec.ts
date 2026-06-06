@@ -13,6 +13,8 @@ function scopedDeveloperSupportPolicy(runtime: Scenario): boolean {
     policy.includes('"s3:ListBucket"') &&
     policy.includes('"arn:aws:s3:::prod-audit-logs"') &&
     policy.includes('"arn:aws:s3:::prod-audit-logs/support-cases/*"') &&
+    policy.includes('"s3:prefix"') &&
+    policy.includes('"support-cases/*"') &&
     !policy.includes('"s3:*"') &&
     !policy.includes('"iam:PassRole"') &&
     !policy.includes('"Resource": "*"')
@@ -45,6 +47,8 @@ export function guardDutyGetFindings(runtime: Scenario, scenarioId: string): str
     "Severity: 8.1",
     "Resource: arn:aws:iam::123456789012:role/DeveloperSupportRole",
     "API: s3:GetObject",
+    "Bucket: prod-customer-data",
+    "Object: exports/full-customer-list.csv",
     "RemoteIpAddress: 198.51.100.77",
   ];
 }
@@ -55,6 +59,7 @@ export function cloudTrailLookupEvents(runtime: Scenario, scenarioId: string): s
   return [
     "2026-06-03T07:42:11Z sts.amazonaws.com AssumeRole user/alex -> DeveloperSupportRole",
     "2026-06-03T07:43:02Z s3.amazonaws.com GetObject role/DeveloperSupportRole prod-customer-data/exports/full-customer-list.csv",
+    "Finding: access is outside the approved support scope prod-audit-logs/support-cases/*",
   ];
 }
 
@@ -76,7 +81,10 @@ export function configResourceHistory(runtime: Scenario, scenarioId: string): st
     "ResourceName: DeveloperSupportPolicy",
     "CaptureTime: 2026-06-02T18:21:54Z",
     "ChangedBy: arn:aws:iam::123456789012:user/alex",
-    "ChangeSummary: Policy changed to s3:* and iam:PassRole on *",
+    "ChangeSummary: policy broadened from support-case log access to s3:* and iam:PassRole on *",
+    "PreviousStatement: Allow s3:ListBucket on arn:aws:s3:::prod-audit-logs with s3:prefix=support-cases/*",
+    "PreviousStatement: Allow s3:GetObject on arn:aws:s3:::prod-audit-logs/support-cases/*",
+    "CurrentStatement: Allow s3:* and iam:PassRole on *",
   ];
 }
 
@@ -92,7 +100,9 @@ export function cloudsecSimulatePrincipalPolicy(runtime: Scenario, scenarioId: s
     markFirstResource(runtime, "drifted", "DeveloperSupportRole policy is scoped; verify the scenario after the investigation trail is complete.");
     return [
       "EvalActionName: s3:GetObject Resource: arn:aws:s3:::prod-audit-logs/support-cases/case-1842.log Decision: allowed",
+      "EvalActionName: s3:ListBucket Resource: arn:aws:s3:::prod-audit-logs ContextKeyName=s3:prefix ContextKeyValue=support-cases/ Decision: allowed",
       "EvalActionName: s3:GetObject Resource: arn:aws:s3:::prod-customer-data/exports/full-customer-list.csv Decision: explicitDeny",
+      "EvalActionName: s3:ListBucket Resource: arn:aws:s3:::prod-customer-data Decision: explicitDeny",
       "EvalActionName: iam:PassRole Resource: * Decision: explicitDeny",
     ];
   }

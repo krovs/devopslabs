@@ -1,13 +1,13 @@
 id: awsGuardDutyCloudTrailIamAudit
 kind: cloudsec
 title: AWS GuardDuty CloudTrail IAM Audit
-description: Investigate a GuardDuty finding with CloudTrail, CloudWatch Logs, AWS Config, and IAM simulation, then narrow an overbroad developer support role.
+description: Investigate a GuardDuty finding where DeveloperSupportRole was broadened from support-log access and then used to read customer data outside its approved scope.
 primaryFile: iam/policy.json
 tips:
   - Start with aws guardduty list-findings.
   - Pull the finding details before changing IAM.
   - Use CloudTrail and CloudWatch Logs to identify the role and actions used.
-  - Use AWS Config resource history to see when the policy changed.
+  - Use AWS Config resource history to compare the previous approved policy with the current broad policy.
   - Simulate the role before and after the policy fix.
   - The support role should read only the prod-audit-logs bucket prefix for support cases.
 files:
@@ -74,52 +74,84 @@ files:
         "resourceType": "AWS::IAM::Policy",
         "resourceName": "DeveloperSupportPolicy",
         "changedBy": "arn:aws:iam::123456789012:user/alex",
-        "changeSummary": "Policy changed from support log read access to s3:* and iam:PassRole on *"
+        "changeSummary": "Policy broadened from support-case log access to s3:* and iam:PassRole on *",
+        "previousPolicy": {
+          "statements": [
+            {
+              "effect": "Allow",
+              "action": "s3:ListBucket",
+              "resource": "arn:aws:s3:::prod-audit-logs",
+              "condition": {
+                "StringLike": {
+                  "s3:prefix": "support-cases/*"
+                }
+              }
+            },
+            {
+              "effect": "Allow",
+              "action": "s3:GetObject",
+              "resource": "arn:aws:s3:::prod-audit-logs/support-cases/*"
+            }
+          ]
+        },
+        "currentPolicy": {
+          "actions": ["s3:*", "iam:PassRole"],
+          "resources": ["*"]
+        }
       }
     ]
   "runbook.md": |
     Goal:
-    - Investigate the GuardDuty finding and remove the risky permission path.
+    - Investigate the GuardDuty finding and mitigate the risky permission path.
 
     Constraints:
     - Do not disable GuardDuty, CloudTrail, AWS Config, or logging.
-    - Confirm the affected role and actions before changing policy.
-    - Keep support read access to prod-audit-logs/support-cases only.
+    - Confirm the affected role, source IP, action, and accessed object before changing policy.
+    - Restore the previous approved support-case log access only.
     - Remove iam:PassRole and broad S3 access from DeveloperSupportRole.
     - Prove the revised policy no longer allows broad S3 or pass-role access.
+    - Treat this as containment only: a full remediation would also review and restrict Alex's ability to modify production IAM policies.
 solution:
   summary: |
-    GuardDuty reported suspicious S3 access using DeveloperSupportRole. CloudTrail and CloudWatch Logs show the role read customer data, AWS Config shows the policy was broadened, and IAM simulation confirms s3:* plus iam:PassRole on all resources.
+    GuardDuty reported suspicious S3 access using DeveloperSupportRole. CloudTrail and CloudWatch Logs show the role read prod-customer-data, which is outside the approved support scope. AWS Config shows Alex broadened DeveloperSupportPolicy from support-case log access to s3:* plus iam:PassRole on all resources.
   steps:
     - Run aws guardduty list-findings to find the active finding.
     - Run aws guardduty get-findings to inspect the role, API, severity, and remote IP.
     - Run aws cloudtrail lookup-events to identify the AssumeRole and GetObject events.
     - Run aws logs filter-log-events to correlate the CloudTrail event context.
-    - Run aws configservice get-resource-config-history to see the IAM policy change.
+    - Run aws configservice get-resource-config-history to compare the previous approved support policy with the current broad policy.
     - Run aws iam simulate-principal-policy to prove the current permissions are too broad.
-    - Replace s3:* and iam:PassRole on * with scoped S3 read access to prod-audit-logs/support-cases.
+    - Replace s3:* and iam:PassRole on * with the previous approved support-case log access.
     - Run aws iam simulate-principal-policy again and check the scenario.
   explanation: |
-    A cloud security audit should connect detection, activity history, configuration drift, and effective permissions. GuardDuty gives the lead, CloudTrail and CloudWatch Logs show what happened, AWS Config shows when policy changed, and IAM simulation proves whether the permission path still exists.
+    A cloud security audit should connect detection, activity history, configuration drift, and effective permissions. GuardDuty gives the lead, CloudTrail and CloudWatch Logs show DeveloperSupportRole read customer data from prod-customer-data, AWS Config shows that the role used to be limited to prod-audit-logs/support-cases, and IAM simulation proves whether the risky permission path still exists.
   outcome: |
     DeveloperSupportRole can read only support-case audit objects, iam:PassRole is removed, broad S3 access is denied, and the investigation trail identifies the risky policy change.
   focusFileName: iam/policy.json
-  replacements:
-    - fileName: iam/policy.json
-      search: |
-                "s3:*",
-                "iam:PassRole"
-      replace: |
-                "s3:GetObject",
-                "s3:ListBucket"
-    - fileName: iam/policy.json
-      search: |
-          "Resource": "*"
-      replace: |
-          "Resource": [
-            "arn:aws:s3:::prod-audit-logs",
-            "arn:aws:s3:::prod-audit-logs/support-cases/*"
-          ]
+  files:
+    "iam/policy.json": |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "ListSupportCases",
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::prod-audit-logs",
+            "Condition": {
+              "StringLike": {
+                "s3:prefix": "support-cases/*"
+              }
+            }
+          },
+          {
+            "Sid": "ReadSupportCaseObjects",
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::prod-audit-logs/support-cases/*"
+          }
+        ]
+      }
   commands:
     - aws guardduty list-findings
     - aws guardduty get-findings

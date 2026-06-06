@@ -44,7 +44,7 @@
     <span></span>
     <span></span>
   </button>
-  <div>
+  <div class="topbar-title">
     <h1>{heading}</h1>
   </div>
   {#if currentPage === "labs"}

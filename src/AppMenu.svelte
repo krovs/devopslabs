@@ -1,5 +1,6 @@
 <script lang="ts">
   import Shuffle from "carbon-icons-svelte/lib/Shuffle.svelte";
+  import UnknownFilled from "carbon-icons-svelte/lib/UnknownFilled.svelte";
   import { scenarioDifficultyClass, type LabGroup, type MenuGroupId } from "./labCatalog";
 
   type ThemeName = "latte" | "mocha" | "dracula" | "cyberpunk";
@@ -90,16 +91,29 @@
 <aside class:open class="app-menu" aria-label="Application menu" aria-hidden={!open}>
   <div class="menu-header">
     <button type="button" class="menu-close-button" aria-label="Close menu" onclick={onclose}>×</button>
-    <div class="theme-dots" aria-label="Theme">
-      {#each themes as option}
-        <button
-          type="button"
-          class={`theme-dot theme-dot-${option.id}`}
-          class:active={theme === option.id}
-          aria-label={option.label}
-          onclick={() => onthemechange(option.id)}
-        ></button>
-      {/each}
+    <div class="menu-header-controls">
+      <button
+        type="button"
+        class="incident-mode-button"
+        class:active={incidentMode}
+        aria-label="Incident Mode. Hide lab names and direct requirements for unsolved labs."
+        aria-pressed={incidentMode}
+        title="Incident Mode: hide lab names until solved."
+        onclick={() => onincidentmodechange(!incidentMode)}
+      >
+        <UnknownFilled size={16} aria-hidden="true" />
+      </button>
+      <div class="theme-dots" aria-label="Theme">
+        {#each themes as option}
+          <button
+            type="button"
+            class={`theme-dot theme-dot-${option.id}`}
+            class:active={theme === option.id}
+            aria-label={option.label}
+            onclick={() => onthemechange(option.id)}
+          ></button>
+        {/each}
+      </div>
     </div>
   </div>
 
@@ -119,26 +133,6 @@
     </div>
   </section>
 
-  <section class="menu-section">
-    <div class="menu-actions">
-      <label class="menu-toggle" title="Hide lab names and direct requirements for unsolved labs.">
-        <span>
-          <strong>Incident Mode</strong>
-        </span>
-        <input
-          type="checkbox"
-          checked={incidentMode}
-          aria-label="Incident Mode. Hide lab names and direct requirements for unsolved labs."
-          onchange={(event) => onincidentmodechange(event.currentTarget.checked)}
-        >
-      </label>
-      <button type="button" class="random-scenario-button" onclick={onrandomscenario}>
-        <Shuffle size={16} aria-hidden="true" />
-        <span>Random Incident</span>
-      </button>
-    </div>
-  </section>
-
   <section class="menu-section lab-menu-section">
     <label class="menu-search">
       <span class="menu-search-control">
@@ -151,6 +145,12 @@
         >
       </span>
     </label>
+    <div class="menu-actions">
+      <button type="button" class="random-scenario-button" onclick={onrandomscenario}>
+        <Shuffle size={16} aria-hidden="true" />
+        <span>Random Incident</span>
+      </button>
+    </div>
     <div class="menu-lab-list">
       {#each labGroups as group}
         {#if menugroupvisible(group.ids, menuSearchQuery)}

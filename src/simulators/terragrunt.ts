@@ -1,6 +1,30 @@
 import type { Scenario } from "../types";
 import { markFirstResourceFailed } from "./shared";
 
+const formattedHclfmtStack = `include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "../../../modules/app"
+}
+
+inputs = {
+  name = "orders-api"
+}`;
+
+function hclfmtStackIsSemanticallyValid(stackFile: string): boolean {
+  return (
+    /include\s+"root"\s*\{[\s\S]*path\s*=\s*find_in_parent_folders\(\)[\s\S]*\}/.test(stackFile) &&
+    /terraform\s*\{[\s\S]*source\s*=\s*"..\/..\/..\/modules\/app"[\s\S]*\}/.test(stackFile) &&
+    /inputs\s*=\s*\{[\s\S]*name\s*=\s*"orders-api"[\s\S]*\}/.test(stackFile)
+  );
+}
+
+function hclfmtStackIsFormatted(stackFile: string): boolean {
+  return stackFile.trim() === formattedHclfmtStack;
+}
+
 export function terragruntInit(runtime: Scenario, scenarioId: string): string[] {
   if (scenarioId === "terragruntWrongSourceRef") {
     const stackFile = runtime.files["live/dev/app/terragrunt.hcl"] ?? "";
@@ -120,19 +144,18 @@ export function terragruntHclfmt(runtime: Scenario, scenarioId: string): string[
   if (scenarioId !== "terragruntHclfmt") return ["All Terragrunt files are already formatted."];
 
   const stackFile = runtime.files["live/dev/app/terragrunt.hcl"] ?? "";
-  const formatted =
-    stackFile.includes('include "root" {\n') &&
-    stackFile.includes('terraform {\n') &&
-    stackFile.includes("inputs = {\n") &&
-    !stackFile.includes("{ path =") &&
-    !stackFile.includes('terraform { source =');
+  const valid = hclfmtStackIsSemanticallyValid(stackFile);
 
-  if (!formatted) {
+  if (!valid) {
     return [
       "live/dev/app/terragrunt.hcl",
-      "terragrunt hclfmt found formatting changes.",
-      "Rewrite the one-line blocks as normal multi-line HCL blocks.",
+      "terragrunt hclfmt could not format the file because the expected include, terraform source, or inputs block is missing.",
+      "Keep include root, source ../../../modules/app, and input name orders-api.",
     ];
+  }
+
+  if (!hclfmtStackIsFormatted(stackFile)) {
+    runtime.files["live/dev/app/terragrunt.hcl"] = `${formattedHclfmtStack}\n`;
   }
 
   runtime.flags.lintPassed = true;
@@ -140,7 +163,9 @@ export function terragruntHclfmt(runtime: Scenario, scenarioId: string): string[
     runtime.awsResources[0].status = "exists";
     runtime.awsResources[0].note = "terragrunt hclfmt passed.";
   }
-  return ["All Terragrunt files are formatted correctly."];
+  return hclfmtStackIsFormatted(stackFile)
+    ? ["All Terragrunt files are formatted correctly."]
+    : ["live/dev/app/terragrunt.hcl", "terragrunt hclfmt formatted the file.", "All Terragrunt files are formatted correctly."];
 }
 
 export function terragruntSuccessNote(scenarioId: string): string {
