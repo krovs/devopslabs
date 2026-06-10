@@ -37,7 +37,7 @@ export function policyFixApplied(runtime: Scenario, scenarioId: string): boolean
       policy.includes("app: checkout-api") &&
       policy.includes("action: ALLOW") &&
       policy.includes("requestPrincipals:") &&
-      policy.includes("- \"*\"")
+      (policy.includes("- \"*\"") || policy.includes("requestPrincipals: [\"*\"]"))
     );
   }
 

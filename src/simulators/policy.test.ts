@@ -85,4 +85,28 @@ spec:
     expect(kubectlDryRun(scenario, scenario.id)).toContain("Namespace default deny ingress policy is valid and ready to apply.");
     expect(checkScenario(scenario, scenario.id, "policy.yaml")).toEqual(["Scenario complete."]);
   });
+
+  it("accepts Istio requestPrincipals as an inline YAML list", () => {
+    const scenario = policyScenario("policyIstioDenyUnauthenticated", `apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: require-jwt-checkout
+  namespace: checkout
+spec:
+  selector:
+    matchLabels:
+      app: checkout-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            requestPrincipals: ["*"]
+    - to:
+        - operation:
+            methods: ["GET", "POST"]
+`);
+
+    expect(kubectlDryRun(scenario, scenario.id)).toContain("Istio authorization policy allows only authenticated JWT callers to checkout-api.");
+    expect(checkScenario(scenario, scenario.id, "policy.yaml")).toEqual(["Scenario complete."]);
+  });
 });

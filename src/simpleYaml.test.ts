@@ -52,6 +52,46 @@ tips:
     });
   });
 
+  it("rejects unconsumed indented lines", () => {
+    expect(() => parseSimpleYaml(`
+spec:
+  action: ALLOW
+   rules:
+    - from:
+`)).toThrow("Invalid YAML line: rules:");
+  });
+
+  it("parses YAML with a leading root indent", () => {
+    expect(parseSimpleYaml(`
+        security:
+          jwt:
+            issuer: checkout-api
+`)).toEqual({
+      security: {
+        jwt: {
+          issuer: "checkout-api",
+        },
+      },
+    });
+  });
+
+  it("parses nested arrays under array item keys", () => {
+    expect(parseSimpleYaml(`
+rules:
+  - from:
+      - source:
+          requestPrincipals: ["*"]
+  - resources:
+      kinds:
+        - Pod
+`)).toEqual({
+      rules: [
+        { from: [{ source: { requestPrincipals: '["*"]' } }] },
+        { resources: { kinds: ["Pod"] } },
+      ],
+    });
+  });
+
   it("parses quoted keys and block strings", () => {
     expect(parseSimpleYaml(`
 files:

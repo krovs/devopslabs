@@ -5,7 +5,12 @@ type Parsed<T> = {
 
 export function parseSimpleYaml(text: string): unknown {
   const lines = text.replace(/\r/g, "").split("\n");
-  return parseYamlObject(lines, 0, 0).value;
+  const first = nextYamlContentLine(lines, 0);
+  if (!first) return {};
+  const parsed = parseYamlObject(lines, first.index, first.indent);
+  const remaining = nextYamlContentLine(lines, parsed.index);
+  if (remaining) throw new Error(`Invalid YAML line: ${remaining.text.trim()}`);
+  return parsed.value;
 }
 
 function parseYamlObject(lines: string[], index: number, indent: number): Parsed<Record<string, unknown>> {
@@ -96,7 +101,28 @@ function parseYamlArray(lines: string[], index: number, indent: number): Parsed<
       const separatorIndex = itemText.indexOf(":");
       const key = normalizeYamlKey(itemText.slice(0, separatorIndex));
       const rest = itemText.slice(separatorIndex + 1).trim();
-      const item = { [key]: rest === "" ? {} : parseYamlScalar(rest) };
+      if (rest === "") {
+        const next = nextYamlContentLine(lines, i + 1);
+        if (!next || next.indent <= currentIndent) {
+          array.push({ [key]: {} });
+          i += 1;
+          continue;
+        }
+
+        if (next.text.trim().startsWith("- ")) {
+          const nestedArray = parseYamlArray(lines, next.index, next.indent);
+          array.push({ [key]: nestedArray.value });
+          i = nestedArray.index;
+          continue;
+        }
+
+        const nestedObject = parseYamlObject(lines, next.index, next.indent);
+        array.push({ [key]: nestedObject.value });
+        i = nestedObject.index;
+        continue;
+      }
+
+      const item = { [key]: parseYamlScalar(rest) };
       const nested = parseYamlObject(lines, i + 1, currentIndent + 2);
       array.push({ ...item, ...nested.value });
       i = nested.index;
