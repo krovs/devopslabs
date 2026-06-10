@@ -233,7 +233,7 @@ export const documentationSections: DocSection[] = [
       { type: "heading", text: "Common Commands" },
       {
         type: "code",
-        text: "kubectl get pods\nkubectl get events --sort-by=.lastTimestamp\nkubectl describe pod <pod>\nkubectl logs <pod>\nkubectl logs deploy/<deployment>\nkubectl get deploy,svc,ingress\nkubectl rollout status deploy/<deployment>\nkubectl rollout restart deploy/<deployment>\nkubectl auth can-i <verb> <resource> --as <subject>\nhelm lint <chart>\nhelm template <release> <chart>\nhelm upgrade <release> <chart>",
+        text: "kubectl get pods\nkubectl get events --sort-by=.lastTimestamp\nkubectl describe pod <pod>\nkubectl logs <pod>\nkubectl logs deploy/<deployment>\nkubectl get deploy,svc,ingress\nkubectl get pdb\nkubectl rollout status deploy/<deployment>\nkubectl rollout restart deploy/<deployment>\nkubectl auth can-i <verb> <resource> --as <subject>\nkubectl drain <node> --ignore-daemonsets --delete-emptydir-data\nhelm lint <chart>\nhelm template <release> <chart>\nhelm upgrade <release> <chart>",
       },
       { type: "heading", text: "Common Problems" },
       {
@@ -244,9 +244,46 @@ export const documentationSections: DocSection[] = [
           ["Readiness probe failure: pod runs but is not receiving traffic."],
           ["Service targetPort mismatch: Service points to the wrong container port."],
           ["RBAC denied: ServiceAccount lacks permission for a Kubernetes API action."],
+          ["HPA saturation: maxReplicas is too low or the CPU target is too high, so pods stay hot during demand spikes."],
+          ["Unsafe PDB: planned maintenance can evict too many replicas during voluntary disruptions."],
           ["Helm value mismatch: rendered manifest differs from the intended chart setting."],
         ],
       },
+      { type: "heading", text: "Horizontal Pod Autoscaler" },
+      {
+        type: "paragraph",
+        content: [
+          "Horizontal Pod Autoscaler adjusts replica count from metrics such as CPU utilization. A useful policy is not one exact set of numbers; it should give the workload enough maximum replica headroom and a target that starts scaling before pods are saturated.",
+        ],
+      },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "minReplicas" }, " sets the floor. Keep it high enough for baseline availability, but avoid using it as a manual scale fix."],
+          [{ code: "maxReplicas" }, " sets the ceiling. If it is below the replicas needed during a spike, HPA reports scaling limited and latency can stay high."],
+          [{ code: "averageUtilization" }, " sets the CPU target. A very high target, such as one near current saturation, reacts late even if more replicas are allowed."],
+          ["Reasonable values depend on SLOs, pod startup time, traffic shape, cost, cluster capacity, and whether the app scales linearly."],
+        ],
+      },
+      { type: "code", text: "kubectl get hpa <name>\nkubectl describe hpa <name>\nkubectl get pods\nkubectl apply -f hpa.yaml\nkubectl rollout status deploy/<deployment>" },
+      { type: "heading", text: "PodDisruptionBudget" },
+      {
+        type: "paragraph",
+        content: [
+          "PodDisruptionBudget limits voluntary disruptions, such as node drains and cluster maintenance. It does not protect against involuntary failures like a node crash, container OOM, or an application process exiting.",
+        ],
+      },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "maxUnavailable" }, " limits how many matching pods can be unavailable during a voluntary disruption."],
+          [{ code: "minAvailable" }, " sets the minimum number or percentage of matching pods that must stay available."],
+          ["The selector must match the pods you intend to protect; a mismatched selector can make the budget ineffective."],
+          ["A PDB can block or slow maintenance if the workload does not have enough healthy replicas to satisfy the budget."],
+          ["For three replicas, ", { code: "maxUnavailable: 1" }, " keeps at least two available during a planned drain."],
+        ],
+      },
+      { type: "code", text: "kubectl get pdb <name>\nkubectl describe pdb <name>\nkubectl get pods -l app=<app>\nkubectl apply -f pdb.yaml\nkubectl drain <node> --ignore-daemonsets --delete-emptydir-data" },
       { type: "heading", text: "Related Issues" },
       {
         type: "unorderedList",
@@ -473,6 +510,7 @@ export const documentationSections: DocSection[] = [
         type: "unorderedList",
         items: [
           ["Secret path: naming convention that separates app, environment, and purpose."],
+          ["SSM Parameter Store: hierarchical key/value store often used for application config and encrypted parameters."],
           ["KMS key: encryption key controlling decrypt permissions."],
           ["Rotation: scheduled credential replacement."],
           ["Resource policy: cross-account or service access rule."],
@@ -480,17 +518,66 @@ export const documentationSections: DocSection[] = [
         ],
       },
       { type: "heading", text: "Common Commands" },
-      { type: "code", text: "aws secretsmanager describe-secret\naws secretsmanager get-secret-value\naws secretsmanager rotate-secret\naws ssm get-parameter --with-decryption\naws kms describe-key" },
+      { type: "code", text: "aws secretsmanager describe-secret\naws secretsmanager get-secret-value\naws secretsmanager rotate-secret\naws ssm get-parameter --name <path> --with-decryption\naws ssm get-parameters-by-path --path /<env>/<app>/ --recursive --with-decryption\naws kms describe-key" },
       { type: "heading", text: "Common Problems" },
       {
         type: "unorderedList",
         items: [
           ["Application reads the wrong environment path."],
+          ["SSM parameter path points at production from a staging or development service."],
+          ["SecureString parameter is read without ", { code: "--with-decryption" }, " or without KMS decrypt permission."],
           ["Default AWS-managed key is used when a customer-managed key is required."],
           ["Rotation is disabled or missing a rotation function."],
+          ["Rotation changes stored secret but application still caches old credentials."],
+          ["KMS key policy or IAM policy allows secret read but denies decrypt."],
           ["Resource policy allows broad cross-account access."],
         ],
       },
+      { type: "heading", text: "SSM Parameter Store" },
+      {
+        type: "paragraph",
+        content: [
+          "SSM Parameter Store stores parameters under paths such as ",
+          { code: "/staging/checkout/db/password" },
+          ". Use path segments to separate environment, service, and secret purpose so applications read only the parameters intended for their boundary.",
+        ],
+      },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "String" }, " and ", { code: "StringList" }, " are plain parameter types for non-secret configuration."],
+          [{ code: "SecureString" }, " encrypts the value with KMS and requires decrypt permission when reading plaintext."],
+          ["IAM policies should scope reads to the smallest useful path prefix, such as ", { code: "arn:aws:ssm:region:account:parameter/staging/checkout/*" }, "."],
+          ["Parameter names are part of the access boundary; a wrong path can leak production credentials into lower environments."],
+        ],
+      },
+      { type: "heading", text: "Secrets Manager" },
+      {
+        type: "paragraph",
+        content: [
+          "AWS Secrets Manager stores secret values, metadata, resource policies, encryption settings, and rotation configuration. It fits credentials that need lifecycle controls such as automatic password rotation.",
+        ],
+      },
+      {
+        type: "unorderedList",
+        items: [
+          ["Secret versions use staging labels. ", { code: "AWSCURRENT" }, " is active value, ", { code: "AWSPREVIOUS" }, " is prior value, and ", { code: "AWSPENDING" }, " is used during rotation."],
+          ["Rotation usually calls a Lambda function that creates a new credential, tests it, then promotes it to ", { code: "AWSCURRENT" }, "."],
+          ["Applications should retrieve the current secret by name or ARN and handle refresh after rotation."],
+          ["Resource policies can grant cross-account access, but broad principals or wildcard paths expose too much secret material."],
+        ],
+      },
+      { type: "heading", text: "KMS and Rotation" },
+      {
+        type: "unorderedList",
+        items: [
+          ["Secrets Manager encrypts secret values with KMS. Customer-managed keys give tighter policy, audit, and separation control than default AWS-managed keys."],
+          ["Readers need both secret read permission, such as ", { code: "secretsmanager:GetSecretValue" }, ", and KMS decrypt permission for the key."],
+          ["Rotation Lambda needs permission to read and update the secret, decrypt and encrypt with the KMS key, and update the target system credential."],
+          ["KMS key policy should allow intended app roles and rotation roles, not broad account-wide decrypt unless that is deliberate."],
+        ],
+      },
+      { type: "code", text: "aws secretsmanager describe-secret --secret-id <name>\naws secretsmanager get-secret-value --secret-id <name>\naws secretsmanager list-secret-version-ids --secret-id <name>\naws secretsmanager rotate-secret --secret-id <name>\naws kms describe-key --key-id <key-id>\naws kms get-key-policy --key-id <key-id> --policy-name default" },
     ],
   },
   {

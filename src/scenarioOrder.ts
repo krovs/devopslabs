@@ -49,6 +49,9 @@ export const scenarioOrderByGroup = {
     "kubernetesImagePullBackOffTriage",
     "kubernetesReadinessProbePort",
     "kubernetesHelmValuesPort",
+    "kubernetesMemoryLimitOom",
+    "kubernetesHpaScalingPolicy",
+    "kubernetesPdbNodeDrain",
     "kubernetesEksRbacIrsa",
   ],
   applicationSecurity: [

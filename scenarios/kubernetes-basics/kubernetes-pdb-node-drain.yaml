@@ -1,0 +1,97 @@
+id: kubernetesPdbNodeDrain
+kind: kubernetes
+title: Kubernetes PodDisruptionBudget Node Drain
+description: A planned node drain can evict every checkout-api replica because the PodDisruptionBudget allows too much voluntary disruption; inspect the PDB before tightening it.
+primaryFile: pdb.yaml
+tips:
+  - Start with kubectl get pods.
+  - Use kubectl get pdb checkout-api to inspect allowed disruptions.
+  - The PDB allows three pods unavailable while the deployment has three replicas.
+  - Set maxUnavailable to 1.
+  - Apply the PDB before draining the node.
+  - Verify the drain respects the disruption budget.
+files:
+  "pdb.yaml": |
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: checkout-api
+    spec:
+      maxUnavailable: 3
+      selector:
+        matchLabels:
+          app: checkout-api
+  "deployment.yaml": |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: checkout-api
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: checkout-api
+      template:
+        metadata:
+          labels:
+            app: checkout-api
+        spec:
+          containers:
+            - name: checkout-api
+              image: ghcr.io/acme/checkout-api:1.4.2
+  "runbook.md": |
+    Goal:
+    - Make planned node maintenance safe for checkout-api.
+
+    Constraints:
+    - Inspect pods and PDB state before editing.
+    - Keep the deployment at three replicas.
+    - Allow only one voluntary checkout-api disruption at a time.
+    - Verify the node drain after applying the PDB.
+solution:
+  summary: |
+    The PDB sets maxUnavailable to 3, which permits all three checkout-api replicas to be evicted during voluntary disruption.
+  steps:
+    - Run kubectl get pods to confirm three checkout-api replicas exist.
+    - Run kubectl get pdb checkout-api to inspect allowed disruptions.
+    - Change maxUnavailable from 3 to 1.
+    - Run kubectl apply -f pdb.yaml.
+    - Run kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data.
+  explanation: |
+    PodDisruptionBudget protects only voluntary disruptions such as node drains. With three replicas, maxUnavailable 1 keeps at least two pods available during planned maintenance.
+  outcome: |
+    The drain evicts only one checkout-api pod at a time and the PDB keeps service capacity available.
+  focusFileName: pdb.yaml
+  replacements:
+    - fileName: pdb.yaml
+      search: |
+      maxUnavailable: 3
+      replace: |
+      maxUnavailable: 1
+  commands:
+    - kubectl get pods
+    - kubectl get pdb checkout-api
+    - kubectl apply -f pdb.yaml
+    - kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data
+backend:
+  bucket: kubernetes
+  key: checkout-api-pdb
+  table: workloads
+  locked: false
+  lockId: null
+awsResources:
+  - type: poddisruptionbudget
+    name: checkout-api
+    id: default/checkout-api
+    status: failed
+    note: PDB allows all replicas to be disrupted during node maintenance.
+stateResources:
+  - address: pdb.checkout-api.maxUnavailable
+    id: "3"
+  - address: deployment.checkout-api.replicas
+    id: "3"
+flags:
+  initialized: false
+  validationPassed: false
+  kubernetesEventsChecked: false
+  kubernetesValidated: false

@@ -265,6 +265,27 @@ export const scenarioManifest = [
     "path": "../scenarios/kubernetes-basics/kubernetes-helm-values-port.yaml"
   },
   {
+    "id": "kubernetesMemoryLimitOom",
+    "kind": "kubernetes",
+    "title": "Kubernetes Memory Limit OOM Triage",
+    "description": "A checkout-api pod keeps restarting after OOMKilled; inspect pod state, events, logs, and resource limits before raising the memory limit.",
+    "path": "../scenarios/kubernetes-basics/kubernetes-memory-limit-oom.yaml"
+  },
+  {
+    "id": "kubernetesHpaScalingPolicy",
+    "kind": "kubernetes",
+    "title": "Kubernetes HPA Scaling Policy",
+    "description": "checkout-api cannot handle increased traffic because the HorizontalPodAutoscaler is capped too low and reacts too late; inspect HPA state before fixing scaling policy.",
+    "path": "../scenarios/kubernetes-basics/kubernetes-hpa-scaling-policy.yaml"
+  },
+  {
+    "id": "kubernetesPdbNodeDrain",
+    "kind": "kubernetes",
+    "title": "Kubernetes PodDisruptionBudget Node Drain",
+    "description": "A planned node drain can evict every checkout-api replica because the PodDisruptionBudget allows too much voluntary disruption; inspect the PDB before tightening it.",
+    "path": "../scenarios/kubernetes-basics/kubernetes-pdb-node-drain.yaml"
+  },
+  {
     "id": "kubernetesEksRbacIrsa",
     "kind": "kubernetes",
     "title": "Kubernetes EKS RBAC And IRSA Triage",

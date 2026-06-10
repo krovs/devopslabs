@@ -1,0 +1,122 @@
+id: kubernetesHpaScalingPolicy
+kind: kubernetes
+title: Kubernetes HPA Scaling Policy
+description: checkout-api cannot handle increased traffic because the HorizontalPodAutoscaler is capped too low and reacts too late; inspect HPA state before fixing scaling policy.
+primaryFile: hpa.yaml
+tips:
+  - Start with kubectl get pods.
+  - Use kubectl get hpa checkout-api to inspect current utilization and replica limits.
+  - Use kubectl describe hpa checkout-api to see scaling conditions.
+  - Compare the replica ceiling with the number of pods the HPA wants during the spike.
+  - A high CPU target can delay scaling until pods are already saturated.
+  - Apply the HPA, then verify the rollout and pod count.
+files:
+  "hpa.yaml": |
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    metadata:
+      name: checkout-api
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: checkout-api
+      minReplicas: 1
+      maxReplicas: 3
+      metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            target:
+              type: Utilization
+              averageUtilization: 90
+  "deployment.yaml": |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: checkout-api
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: checkout-api
+      template:
+        metadata:
+          labels:
+            app: checkout-api
+        spec:
+          containers:
+            - name: checkout-api
+              image: ghcr.io/acme/checkout-api:1.4.2
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 256Mi
+  "runbook.md": |
+    Goal:
+    - Let checkout-api scale for the current traffic spike without manual replica changes.
+
+    Constraints:
+    - Inspect the HPA before changing hpa.yaml.
+    - Keep autoscaling on CPU utilization.
+    - Give the workload enough headroom for the spike and scale before pods are saturated.
+    - Do not hard-code replicas in the deployment as the fix.
+    - Apply the HPA and verify the rollout and pod count.
+solution:
+  summary: |
+    The HPA is capped at three replicas and waits until 90 percent CPU, so it cannot scale early enough for the traffic spike.
+  steps:
+    - Run kubectl get pods to see all replicas running hot.
+    - Run kubectl get hpa checkout-api to inspect current CPU and max replicas.
+    - Run kubectl describe hpa checkout-api to inspect scaling conditions.
+    - Raise maxReplicas enough for the spike and lower averageUtilization enough to scale before saturation; 2 to 8 pods at 60 percent CPU is one valid policy.
+    - Run kubectl apply -f hpa.yaml.
+    - Run kubectl rollout status deployment checkout-api.
+  explanation: |
+    Horizontal Pod Autoscaler changes replica count based on metrics. If maxReplicas is too low, the workload remains saturated even when HPA wants to scale. A lower CPU target and higher cap allow the deployment to add pods before saturation. The exact numbers depend on SLOs, cost, pod startup time, and cluster capacity; this incident accepts policies with enough headroom and an early enough CPU target.
+  outcome: |
+    checkout-api HPA can scale beyond the current cap and reacts before pods are saturated, so the deployment stays healthy during increased traffic.
+  focusFileName: hpa.yaml
+  replacements:
+    - fileName: hpa.yaml
+      search: |
+      minReplicas: 1
+      maxReplicas: 3
+      replace: |
+      minReplicas: 2
+      maxReplicas: 8
+    - fileName: hpa.yaml
+      search: |
+              averageUtilization: 90
+      replace: |
+              averageUtilization: 60
+  commands:
+    - kubectl get pods
+    - kubectl get hpa checkout-api
+    - kubectl describe hpa checkout-api
+    - kubectl apply -f hpa.yaml
+    - kubectl rollout status deployment checkout-api
+backend:
+  bucket: kubernetes
+  key: checkout-api-hpa
+  table: workloads
+  locked: false
+  lockId: null
+awsResources:
+  - type: horizontalpodautoscaler
+    name: checkout-api
+    id: default/checkout-api
+    status: failed
+    note: HPA is capped at three replicas and targets CPU too late.
+stateResources:
+  - address: hpa.checkout-api.minReplicas
+    id: "1"
+  - address: hpa.checkout-api.maxReplicas
+    id: "3"
+  - address: hpa.checkout-api.cpuTarget
+    id: "90"
+flags:
+  initialized: false
+  validationPassed: false
+  kubernetesEventsChecked: false
+  kubernetesValidated: false

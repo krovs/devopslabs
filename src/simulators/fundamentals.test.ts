@@ -3,10 +3,18 @@ import { isScenarioSolved } from "../completion";
 import {
   runEksIamGetRole,
   runEksIamListRoles,
+  runKubectlApplyManifest,
   runKubectlAuthCanI,
+  runKubectlDescribeHpa,
   runKubectlDescribeDeployment,
   runKubectlGetEvents,
+  runKubectlGetHpa,
+  runKubectlGetPdb,
+  runKubectlGetPods,
   runKubectlLogs,
+  runKubectlDrainNode,
+  runKubectlRolloutRestart,
+  runKubectlRolloutStatus,
   runLinuxCatLog,
   runLinuxDf,
   runLinuxSystemctlRestart,
@@ -119,5 +127,163 @@ describe("Kubernetes EKS IRSA simulator", () => {
       "loaded checkout-config from namespace payments",
       "ERROR aws sdk: AccessDenied for sqs:SendMessage using role arn:aws:iam::111122223333:role/eks-default-readonly",
     ]);
+  });
+});
+
+describe("Kubernetes interview scenario simulators", () => {
+  it("solves memory OOM after events, logs, limit fix, restart, and rollout status", () => {
+    const scenario: Scenario = {
+      id: "kubernetesMemoryLimitOom",
+      kind: "kubernetes",
+      title: "Kubernetes Memory Limit OOM Triage",
+      description: "Test fixture.",
+      primaryFile: "deployment.yaml",
+      files: {
+        "deployment.yaml": "limits:\n  cpu: 500m\n  memory: 512Mi\n",
+      },
+      backend: { bucket: "kubernetes", key: "memory", table: "workloads", locked: false, lockId: null },
+      awsResources: [{ type: "deployment", name: "checkout-api", id: "default/checkout-api", status: "failed" }],
+      stateResources: [{ address: "resources.checkout-api.memoryLimit", id: "128Mi" }],
+      flags: { initialized: false, validationPassed: false, kubernetesEventsChecked: false, kubernetesValidated: false },
+    };
+
+    runKubectlGetEvents(scenario, "kubernetesMemoryLimitOom");
+    runKubectlDescribeDeployment(scenario, "kubernetesMemoryLimitOom");
+    runKubectlLogs(scenario, "kubernetesMemoryLimitOom");
+    runKubectlRolloutRestart(scenario, "kubernetesMemoryLimitOom");
+    runKubectlRolloutStatus(scenario, "kubernetesMemoryLimitOom");
+
+    expect(scenario.flags.kubernetesValidated).toBe(true);
+    expect(isScenarioSolved(scenario, "kubernetesMemoryLimitOom", "deployment.yaml")).toBe(true);
+  });
+
+  it("solves HPA scaling after inspecting and applying fixed scaling policy", () => {
+    const scenario: Scenario = {
+      id: "kubernetesHpaScalingPolicy",
+      kind: "kubernetes",
+      title: "Kubernetes HPA Scaling Policy",
+      description: "Test fixture.",
+      primaryFile: "hpa.yaml",
+      files: {
+        "hpa.yaml": "minReplicas: 2\nmaxReplicas: 8\naverageUtilization: 60\n",
+      },
+      backend: { bucket: "kubernetes", key: "hpa", table: "workloads", locked: false, lockId: null },
+      awsResources: [{ type: "horizontalpodautoscaler", name: "checkout-api", id: "default/checkout-api", status: "failed" }],
+      stateResources: [],
+      flags: { initialized: false, validationPassed: false, kubernetesEventsChecked: false, kubernetesValidated: false },
+    };
+
+    runKubectlGetHpa(scenario, "kubernetesHpaScalingPolicy");
+    runKubectlDescribeHpa(scenario, "kubernetesHpaScalingPolicy");
+    runKubectlApplyManifest(scenario, "kubernetesHpaScalingPolicy", "hpa.yaml");
+    runKubectlRolloutStatus(scenario, "kubernetesHpaScalingPolicy");
+    const pods = runKubectlGetPods(scenario, "kubernetesHpaScalingPolicy");
+
+    expect(scenario.flags.kubernetesValidated).toBe(true);
+    expect(isScenarioSolved(scenario, "kubernetesHpaScalingPolicy", "hpa.yaml")).toBe(true);
+    expect(pods).toHaveLength(6);
+    expect(pods[pods.length - 1]).toContain("Running");
+  });
+
+  it("accepts an HPA policy with max 7 and target 80", () => {
+    const scenario: Scenario = {
+      id: "kubernetesHpaScalingPolicy",
+      kind: "kubernetes",
+      title: "Kubernetes HPA Scaling Policy",
+      description: "Test fixture.",
+      primaryFile: "hpa.yaml",
+      files: {
+        "hpa.yaml": "minReplicas: 1\nmaxReplicas: 7\naverageUtilization: 80\n",
+      },
+      backend: { bucket: "kubernetes", key: "hpa", table: "workloads", locked: false, lockId: null },
+      awsResources: [{ type: "horizontalpodautoscaler", name: "checkout-api", id: "default/checkout-api", status: "failed" }],
+      stateResources: [],
+      flags: { initialized: false, validationPassed: false, kubernetesEventsChecked: false, kubernetesValidated: false },
+    };
+
+    runKubectlGetHpa(scenario, "kubernetesHpaScalingPolicy");
+    runKubectlDescribeHpa(scenario, "kubernetesHpaScalingPolicy");
+    runKubectlApplyManifest(scenario, "kubernetesHpaScalingPolicy", "hpa.yaml");
+    const rollout = runKubectlRolloutStatus(scenario, "kubernetesHpaScalingPolicy");
+    const pods = runKubectlGetPods(scenario, "kubernetesHpaScalingPolicy");
+
+    expect(scenario.flags.kubernetesValidated).toBe(true);
+    expect(isScenarioSolved(scenario, "kubernetesHpaScalingPolicy", "hpa.yaml")).toBe(true);
+    expect(rollout).toContain("hpa checkout-api stabilized at 4 replicas");
+    expect(pods).toHaveLength(5);
+  });
+
+  it("keeps HPA scaling solved after an extra rollout restart", () => {
+    const scenario: Scenario = {
+      id: "kubernetesHpaScalingPolicy",
+      kind: "kubernetes",
+      title: "Kubernetes HPA Scaling Policy",
+      description: "Test fixture.",
+      primaryFile: "hpa.yaml",
+      files: {
+        "hpa.yaml": "minReplicas: 1\nmaxReplicas: 7\naverageUtilization: 60\n",
+      },
+      backend: { bucket: "kubernetes", key: "hpa", table: "workloads", locked: false, lockId: null },
+      awsResources: [{ type: "horizontalpodautoscaler", name: "checkout-api", id: "default/checkout-api", status: "failed" }],
+      stateResources: [],
+      flags: { initialized: false, validationPassed: false, kubernetesEventsChecked: false, kubernetesValidated: false },
+    };
+
+    runKubectlGetHpa(scenario, "kubernetesHpaScalingPolicy");
+    runKubectlDescribeHpa(scenario, "kubernetesHpaScalingPolicy");
+    runKubectlApplyManifest(scenario, "kubernetesHpaScalingPolicy", "hpa.yaml");
+    runKubectlRolloutRestart(scenario, "kubernetesHpaScalingPolicy");
+    runKubectlRolloutStatus(scenario, "kubernetesHpaScalingPolicy");
+
+    expect(scenario.flags.kubernetesValidated).toBe(true);
+    expect(isScenarioSolved(scenario, "kubernetesHpaScalingPolicy", "hpa.yaml")).toBe(true);
+  });
+
+  it("explains why an HPA policy with target 90 is not accepted", () => {
+    const scenario: Scenario = {
+      id: "kubernetesHpaScalingPolicy",
+      kind: "kubernetes",
+      title: "Kubernetes HPA Scaling Policy",
+      description: "Test fixture.",
+      primaryFile: "hpa.yaml",
+      files: {
+        "hpa.yaml": "minReplicas: 2\nmaxReplicas: 7\naverageUtilization: 90\n",
+      },
+      backend: { bucket: "kubernetes", key: "hpa", table: "workloads", locked: false, lockId: null },
+      awsResources: [{ type: "horizontalpodautoscaler", name: "checkout-api", id: "default/checkout-api", status: "failed" }],
+      stateResources: [],
+      flags: { initialized: false, validationPassed: false, kubernetesEventsChecked: false, kubernetesValidated: false },
+    };
+
+    runKubectlGetHpa(scenario, "kubernetesHpaScalingPolicy");
+    runKubectlDescribeHpa(scenario, "kubernetesHpaScalingPolicy");
+    const output = runKubectlApplyManifest(scenario, "kubernetesHpaScalingPolicy", "hpa.yaml");
+
+    expect(output[output.length - 1]).toContain("averageUtilization should be 80 or lower");
+    expect(scenario.flags.cleanPlan).not.toBe(true);
+  });
+
+  it("solves PDB node drain after inspecting PDB and applying maxUnavailable 1", () => {
+    const scenario: Scenario = {
+      id: "kubernetesPdbNodeDrain",
+      kind: "kubernetes",
+      title: "Kubernetes PodDisruptionBudget Node Drain",
+      description: "Test fixture.",
+      primaryFile: "pdb.yaml",
+      files: {
+        "pdb.yaml": "maxUnavailable: 1\n",
+      },
+      backend: { bucket: "kubernetes", key: "pdb", table: "workloads", locked: false, lockId: null },
+      awsResources: [{ type: "poddisruptionbudget", name: "checkout-api", id: "default/checkout-api", status: "failed" }],
+      stateResources: [],
+      flags: { initialized: false, validationPassed: false, kubernetesEventsChecked: false, kubernetesValidated: false },
+    };
+
+    runKubectlGetPdb(scenario, "kubernetesPdbNodeDrain");
+    runKubectlApplyManifest(scenario, "kubernetesPdbNodeDrain", "pdb.yaml");
+    runKubectlDrainNode(scenario, "kubernetesPdbNodeDrain");
+
+    expect(scenario.flags.kubernetesValidated).toBe(true);
+    expect(isScenarioSolved(scenario, "kubernetesPdbNodeDrain", "pdb.yaml")).toBe(true);
   });
 });

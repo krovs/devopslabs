@@ -58,6 +58,11 @@ export type CommandHandlers = {
   kubectlDescribePod: () => string[];
   kubectlGetEvents: () => string[];
   kubectlLogs: () => string[];
+  kubectlGetHpa: () => string[];
+  kubectlDescribeHpa: () => string[];
+  kubectlGetPdb: () => string[];
+  kubectlApplyManifest: (fileName?: string) => string[];
+  kubectlDrainNode: () => string[];
   kubectlAuthCanI: () => string[];
   eksIamListRoles: () => string[];
   eksIamGetRole: (roleName?: string) => string[];
@@ -159,6 +164,11 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "kubectl describe pod checkout-api") return handlers.kubectlDescribePod();
     if (input === "kubectl get events") return handlers.kubectlGetEvents();
     if (input === "kubectl logs checkout-api") return handlers.kubectlLogs();
+    if (input === "kubectl get hpa checkout-api") return handlers.kubectlGetHpa();
+    if (input === "kubectl describe hpa checkout-api") return handlers.kubectlDescribeHpa();
+    if (input === "kubectl get pdb checkout-api") return handlers.kubectlGetPdb();
+    if (args[0] === "kubectl" && args[1] === "apply" && args[2] === "-f") return handlers.kubectlApplyManifest(args[3]);
+    if (input === "kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data") return handlers.kubectlDrainNode();
     if (input === "kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments") return handlers.kubectlAuthCanI();
     if (input === "aws iam list-roles") return handlers.eksIamListRoles();
     if (args[0] === "aws" && args[1] === "iam" && args[2] === "get-role" && args[3] === "--role-name") return handlers.eksIamGetRole(args[4]);
@@ -318,7 +328,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "kubernetes") {
-    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe deployment checkout-api", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws iam list-roles", "  aws iam get-role --role-name <name>", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
+    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe deployment checkout-api", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl get hpa checkout-api", "  kubectl describe hpa checkout-api", "  kubectl get pdb checkout-api", "  kubectl apply -f hpa.yaml", "  kubectl apply -f pdb.yaml", "  kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws iam list-roles", "  aws iam get-role --role-name <name>", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
   }
 
   if (runtime.kind === "appsec") {

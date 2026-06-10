@@ -939,6 +939,10 @@ select {
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+.app-shell.terminal-less-page {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .app-shell.is-resizing-terminal {
   cursor: row-resize;
   user-select: none;
@@ -2529,6 +2533,11 @@ th {
     grid-template-rows: auto minmax(520px, 1fr) var(--terminal-height, 240px);
     height: auto;
     min-height: 100vh;
+  }
+
+  .app-shell.index-page,
+  .app-shell.terminal-less-page {
+    grid-template-rows: auto minmax(520px, 1fr);
   }
 
   .docs-window {

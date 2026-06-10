@@ -1,0 +1,100 @@
+id: kubernetesMemoryLimitOom
+kind: kubernetes
+title: Kubernetes Memory Limit OOM Triage
+description: A checkout-api pod keeps restarting after OOMKilled; inspect pod state, events, logs, and resource limits before raising the memory limit.
+primaryFile: deployment.yaml
+tips:
+  - Start with kubectl get pods.
+  - Use kubectl describe pod checkout-api and kubectl get events to confirm OOMKilled.
+  - Logs show the app starts but exits under normal startup memory.
+  - The memory limit is 128Mi, below the observed startup requirement.
+  - Raise the memory limit to 512Mi while keeping the CPU limit unchanged.
+  - Restart the rollout and verify rollout status.
+files:
+  "deployment.yaml": |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: checkout-api
+    spec:
+      replicas: 2
+      selector:
+        matchLabels:
+          app: checkout-api
+      template:
+        metadata:
+          labels:
+            app: checkout-api
+        spec:
+          containers:
+            - name: checkout-api
+              image: ghcr.io/acme/checkout-api:1.4.2
+              ports:
+                - containerPort: 8080
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 128Mi
+  "runbook.md": |
+    Goal:
+    - Stop the checkout-api CrashLoopBackOff caused by memory OOM kills.
+
+    Constraints:
+    - Inspect pods, events, logs, and pod details before editing.
+    - Do not change the approved image tag.
+    - Keep the CPU limit at 500m.
+    - Set the memory limit high enough for startup without removing limits.
+solution:
+  summary: |
+    The pod is OOMKilled because the memory limit is 128Mi while startup needs roughly 300Mi.
+  steps:
+    - Run kubectl get pods to see CrashLoopBackOff.
+    - Run kubectl describe pod checkout-api to confirm Last State is OOMKilled.
+    - Run kubectl get events to inspect memory kill events.
+    - Run kubectl logs checkout-api to confirm the app starts before being killed.
+    - Change the memory limit from 128Mi to 512Mi.
+    - Run kubectl rollout restart deployment checkout-api.
+    - Run kubectl rollout status deployment checkout-api.
+  explanation: |
+    Kubernetes enforces memory limits with OOM kills. CPU can throttle, but memory over-limit terminates the container. A request of 256Mi with a lower limit of 128Mi is also inconsistent, so the workload needs a corrected memory limit.
+  outcome: |
+    checkout-api rolls out with a 512Mi memory limit and reaches a healthy rollout state.
+  focusFileName: deployment.yaml
+  replacements:
+    - fileName: deployment.yaml
+      search: |
+                  memory: 128Mi
+      replace: |
+                  memory: 512Mi
+  commands:
+    - kubectl get pods
+    - kubectl describe pod checkout-api
+    - kubectl get events
+    - kubectl logs checkout-api
+    - kubectl rollout restart deployment checkout-api
+    - kubectl rollout status deployment checkout-api
+backend:
+  bucket: kubernetes
+  key: checkout-api-memory-limit
+  table: workloads
+  locked: false
+  lockId: null
+awsResources:
+  - type: deployment
+    name: checkout-api
+    id: default/checkout-api
+    status: failed
+    note: Pod is restarting because the memory limit causes OOMKilled.
+stateResources:
+  - address: pod.checkout-api
+    id: CrashLoopBackOff
+  - address: resources.checkout-api.memoryLimit
+    id: 128Mi
+flags:
+  initialized: false
+  validationPassed: false
+  kubernetesEventsChecked: false
+  kubernetesValidated: false

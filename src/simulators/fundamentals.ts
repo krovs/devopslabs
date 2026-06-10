@@ -88,6 +88,18 @@ function isEksRbacIrsaScenario(scenarioId: string): boolean {
   return scenarioId === "kubernetesEksRbacIrsa";
 }
 
+function isMemoryLimitScenario(scenarioId: string): boolean {
+  return scenarioId === "kubernetesMemoryLimitOom";
+}
+
+function isHpaScalingScenario(scenarioId: string): boolean {
+  return scenarioId === "kubernetesHpaScalingPolicy";
+}
+
+function isPdbNodeDrainScenario(scenarioId: string): boolean {
+  return scenarioId === "kubernetesPdbNodeDrain";
+}
+
 function readinessProbeUsesAppPort(deployment: string): boolean {
   return /readinessProbe:[\s\S]*httpGet:[\s\S]*port: 8080/.test(deployment);
 }
@@ -104,10 +116,87 @@ function eksServiceAccountUsesPaymentsRole(serviceAccount: string): boolean {
   return serviceAccount.includes("eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/eks-checkout-api-payments");
 }
 
+function memoryLimitIsRaised(deployment: string): boolean {
+  return /limits:[\s\S]*cpu:\s*500m[\s\S]*memory:\s*512Mi/.test(deployment) && !deployment.includes("memory: 128Mi");
+}
+
+function hpaScalingPolicyIsFixed(hpa: string): boolean {
+  const policy = parseHpaScalingPolicy(hpa);
+  return Boolean(policy && policy.minReplicas >= 1 && policy.minReplicas <= 2 && policy.maxReplicas >= 7 && policy.averageUtilization <= 80);
+}
+
+function parseHpaScalingPolicy(hpa: string): { minReplicas: number; maxReplicas: number; averageUtilization: number } | null {
+  const minReplicas = Number(hpa.match(/minReplicas:\s*(\d+)/)?.[1]);
+  const maxReplicas = Number(hpa.match(/maxReplicas:\s*(\d+)/)?.[1]);
+  const averageUtilization = Number(hpa.match(/averageUtilization:\s*(\d+)/)?.[1]);
+  if (!Number.isFinite(minReplicas) || !Number.isFinite(maxReplicas) || !Number.isFinite(averageUtilization)) return null;
+  return { minReplicas, maxReplicas, averageUtilization };
+}
+
+function hpaStableReplicaCount(hpa: string): number {
+  const policy = parseHpaScalingPolicy(hpa);
+  if (!policy) return 3;
+  return policy.averageUtilization <= 60 ? 5 : 4;
+}
+
+function hpaCurrentCpuDisplay(hpa: string): string {
+  const policy = parseHpaScalingPolicy(hpa);
+  if (!policy) return "92%/90%";
+  if (!hpaScalingPolicyIsFixed(hpa)) return `92%/${policy.averageUtilization}%`;
+  return `${Math.max(policy.averageUtilization - 2, 1)}%/${policy.averageUtilization}%`;
+}
+
+function hpaScalingPolicySummary(hpa: string): string {
+  const policy = parseHpaScalingPolicy(hpa);
+  if (!policy) return "HPA applied; verify rollout.";
+  return `HPA applied with min ${policy.minReplicas}, max ${policy.maxReplicas}, and ${policy.averageUtilization} percent CPU target; verify rollout.`;
+}
+
+function hpaScalingPolicySuccessMessage(hpa: string): string {
+  const policy = parseHpaScalingPolicy(hpa);
+  if (!policy) return "HPA can scale checkout-api before saturation.";
+  return (
+    `HPA can scale checkout-api from ${policy.minReplicas} to ${policy.maxReplicas} replicas ` +
+    `at ${policy.averageUtilization} percent CPU, before pods are saturated.`
+  );
+}
+
+function hpaScalingPolicyFeedback(hpa: string): string {
+  const policy = parseHpaScalingPolicy(hpa);
+  if (!policy) return "warning: HPA manifest must include minReplicas, maxReplicas, and averageUtilization";
+
+  const issues = [];
+  if (policy.minReplicas < 1 || policy.minReplicas > 2) issues.push("minReplicas should stay at 1 or 2 for this incident");
+  if (policy.maxReplicas < 7) issues.push("maxReplicas should be at least 7 so the HPA is not capped during the spike");
+  if (policy.averageUtilization > 80) issues.push("averageUtilization should be 80 or lower so scaling starts before pods are saturated");
+  return issues.length ? `warning: ${issues.join("; ")}` : "warning: inspect the HPA state before applying the manifest";
+}
+
+function pdbAllowsOneDisruption(pdb: string): boolean {
+  return /maxUnavailable:\s*1/.test(pdb) && !/maxUnavailable:\s*3/.test(pdb);
+}
+
 export function runKubectlGetPods(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.initialized = true;
-  if (runtime.flags.kubernetesValidated) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   1/1     Running   0"];
   if (isEksRbacIrsaScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-5d9f6bbd76-zm9kq   1/1     Running   3"];
+  if (isPdbNodeDrainScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS   NODE", "checkout-api-7bd8dfc6d4-2q8xp   1/1     Running   0          ip-10-0-4-21", "checkout-api-7bd8dfc6d4-5jv7m   1/1     Running   0          ip-10-0-5-12", "checkout-api-7bd8dfc6d4-rp9kx   1/1     Running   0          ip-10-0-6-33"];
+  if (isHpaScalingScenario(scenarioId)) {
+    const hpa = runtime.files["hpa.yaml"] ?? "";
+    if (runtime.flags.cleanPlan && hpaScalingPolicyIsFixed(hpa)) {
+      const pods = [
+        "NAME                            READY   STATUS    RESTARTS",
+        "checkout-api-7bd8dfc6d4-2q8xp   1/1     Running   0",
+        "checkout-api-7bd8dfc6d4-5jv7m   1/1     Running   0",
+        "checkout-api-7bd8dfc6d4-rp9kx   1/1     Running   0",
+        "checkout-api-7bd8dfc6d4-vh6mn   1/1     Running   0",
+        "checkout-api-7bd8dfc6d4-x9t4b   1/1     Running   0",
+      ];
+      return pods.slice(0, hpaStableReplicaCount(hpa) + 1);
+    }
+    return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-7bd8dfc6d4-2q8xp   1/1     Running   0", "checkout-api-7bd8dfc6d4-5jv7m   1/1     Running   0", "checkout-api-7bd8dfc6d4-rp9kx   1/1     Running   0"];
+  }
+  if (runtime.flags.kubernetesValidated) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   1/1     Running   0"];
+  if (isMemoryLimitScenario(scenarioId)) return ["NAME                            READY   STATUS             RESTARTS", "checkout-api-74d6d5b969-nq2zp   0/1     CrashLoopBackOff   7"];
   if (isHelmValuesScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-7f5f6c9f7b-r2lsk   0/1     Running   0"];
   if (isReadinessProbeScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   0/1     Running   0"];
   return ["NAME                            READY   STATUS             RESTARTS", "checkout-api-6d7c9b7c9b-2q8xp   0/1     ImagePullBackOff   4"];
@@ -160,6 +249,40 @@ export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): st
     ];
   }
 
+  if (isMemoryLimitScenario(scenarioId)) {
+    return [
+      "Name: checkout-api-74d6d5b969-nq2zp",
+      "Image: ghcr.io/acme/checkout-api:1.4.2",
+      "State: Waiting",
+      "Reason: CrashLoopBackOff",
+      "Last State: Terminated",
+      "Reason: OOMKilled",
+      "Exit Code: 137",
+      "Limits: memory=128Mi cpu=500m",
+      "Requests: memory=256Mi cpu=100m",
+    ];
+  }
+
+  if (isHpaScalingScenario(scenarioId)) {
+    return [
+      "Name: checkout-api-7bd8dfc6d4-2q8xp",
+      "Image: ghcr.io/acme/checkout-api:1.4.2",
+      "Status: Running",
+      "CPU: 92%",
+      "Finding: HPA maxReplicas is 3, all replicas are saturated.",
+    ];
+  }
+
+  if (isPdbNodeDrainScenario(scenarioId)) {
+    return [
+      "Name: checkout-api-7bd8dfc6d4-2q8xp",
+      "Status: Running",
+      "Controlled By: ReplicaSet/checkout-api-7bd8dfc6d4",
+      "Node: ip-10-0-4-21",
+      "Finding: planned drain depends on PodDisruptionBudget checkout-api.",
+    ];
+  }
+
   if (isReadinessProbeScenario(scenarioId)) {
     return [
       "Name: checkout-api-6d7c9b7c9b-2q8xp",
@@ -208,6 +331,30 @@ export function runKubectlGetEvents(runtime: Scenario, scenarioId: string): stri
     ];
   }
 
+  if (isMemoryLimitScenario(scenarioId)) {
+    return [
+      "LAST SEEN   TYPE      REASON      OBJECT                              MESSAGE",
+      "2m          Warning   OOMKilling  pod/checkout-api-74d6d5b969-nq2zp   Container checkout-api exceeded memory limit 128Mi",
+      "1m          Warning   BackOff     pod/checkout-api-74d6d5b969-nq2zp   Back-off restarting failed container",
+    ];
+  }
+
+  if (isHpaScalingScenario(scenarioId)) {
+    return [
+      "LAST SEEN   TYPE      REASON              OBJECT                    MESSAGE",
+      "3m          Warning   FailedGetScale      hpa/checkout-api          current CPU 92%, maxReplicas 3 reached",
+      "1m          Normal    SuccessfulRescale   hpa/checkout-api          desired replicas capped by maxReplicas",
+    ];
+  }
+
+  if (isPdbNodeDrainScenario(scenarioId)) {
+    return [
+      "LAST SEEN   TYPE      REASON              OBJECT                    MESSAGE",
+      "3m          Warning   DisruptionAllowed   pdb/checkout-api          maxUnavailable 3 permits all replicas to be evicted",
+      "1m          Normal    NoPodsEvicted       node/ip-10-0-4-21         drain not started",
+    ];
+  }
+
   return [
     "LAST SEEN   TYPE      REASON    OBJECT                              MESSAGE",
     "2m          Warning   Failed    pod/checkout-api-6d7c9b7c9b-2q8xp   Failed to pull image: tag latest is not allowed",
@@ -237,9 +384,113 @@ export function runKubectlLogs(runtime: Scenario, scenarioId: string): string[] 
 
   if (isHelmValuesScenario(scenarioId)) return ["checkout-api listening on :8080", "GET /healthz 200 OK"];
   if (isReadinessProbeScenario(scenarioId)) return ["checkout-api listening on :8080", "GET /healthz 200 OK"];
+  if (isMemoryLimitScenario(scenarioId)) return ["checkout-api starting", "loaded 286 MiB product cache", "process terminated before readiness"];
+  if (isHpaScalingScenario(scenarioId)) return ["checkout-api latency p95=1840ms", "worker pool saturated while CPU > 90%"];
+  if (isPdbNodeDrainScenario(scenarioId)) return ["checkout-api serving traffic", "no application error; risk is planned voluntary disruption"];
   return runtime.flags.kubernetesValidated
     ? ["checkout-api listening on :8080"]
     : ["Error from server (BadRequest): container checkout-api is waiting to start: trying and failing to pull image"];
+}
+
+export function runKubectlGetHpa(runtime: Scenario, scenarioId: string): string[] {
+  if (!isHpaScalingScenario(scenarioId)) return ["NAME           REFERENCE                 TARGETS   MINPODS   MAXPODS   REPLICAS", "checkout-api   Deployment/checkout-api   22%/60%   2         8         2"];
+
+  runtime.flags.kubernetesEventsChecked = true;
+  const hpa = runtime.files["hpa.yaml"] ?? "";
+  if (hpaScalingPolicyIsFixed(hpa)) {
+    const policy = parseHpaScalingPolicy(hpa);
+    const minPods = policy?.minReplicas ?? 2;
+    const maxPods = policy?.maxReplicas ?? 8;
+    return [
+      "NAME           REFERENCE                 TARGETS   MINPODS   MAXPODS   REPLICAS",
+      `checkout-api   Deployment/checkout-api   ${hpaCurrentCpuDisplay(hpa)}   ${minPods}         ${maxPods}         ${hpaStableReplicaCount(hpa)}`,
+    ];
+  }
+
+  return ["NAME           REFERENCE                 TARGETS   MINPODS   MAXPODS   REPLICAS", "checkout-api   Deployment/checkout-api   92%/90%   1         3         3"];
+}
+
+export function runKubectlDescribeHpa(runtime: Scenario, scenarioId: string): string[] {
+  if (!isHpaScalingScenario(scenarioId)) return ["Name: checkout-api", "Reference: Deployment/checkout-api"];
+
+  runtime.flags.validationPassed = true;
+  const hpa = runtime.files["hpa.yaml"] ?? "";
+  if (hpaScalingPolicyIsFixed(hpa)) {
+    const policy = parseHpaScalingPolicy(hpa);
+    return [
+      "Name: checkout-api",
+      `Min replicas: ${policy?.minReplicas ?? 2}`,
+      `Max replicas: ${policy?.maxReplicas ?? 8}`,
+      `Metric target: cpu ${policy?.averageUtilization ?? 60}%`,
+      "Conditions: AbleToScale=True ScalingActive=True ScalingLimited=False",
+    ];
+  }
+
+  return ["Name: checkout-api", "Min replicas: 1", "Max replicas: 3", "Metric target: cpu 90%", "Conditions: AbleToScale=True ScalingActive=True ScalingLimited=True", "Warning: desired replicas are capped by maxReplicas"];
+}
+
+export function runKubectlGetPdb(runtime: Scenario, scenarioId: string): string[] {
+  if (!isPdbNodeDrainScenario(scenarioId)) return ["NAME           MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS", "checkout-api   N/A             1                 1"];
+
+  runtime.flags.validationPassed = true;
+  const pdb = runtime.files["pdb.yaml"] ?? "";
+  if (pdbAllowsOneDisruption(pdb)) {
+    return ["NAME           MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS", "checkout-api   N/A             1                 1"];
+  }
+
+  return ["NAME           MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS", "checkout-api   N/A             3                 3"];
+}
+
+export function runKubectlApplyManifest(runtime: Scenario, scenarioId: string, fileName?: string): string[] {
+  if (isHpaScalingScenario(scenarioId)) {
+    const hpa = runtime.files["hpa.yaml"] ?? "";
+    if (fileName === "hpa.yaml" && runtime.flags.validationPassed && runtime.flags.kubernetesEventsChecked && hpaScalingPolicyIsFixed(hpa)) {
+      const policy = parseHpaScalingPolicy(hpa);
+      runtime.flags.cleanPlan = true;
+      setFirstResource(runtime, "drifted", hpaScalingPolicySummary(hpa));
+      runtime.stateResources = runtime.stateResources.map((resource) => {
+        if (resource.address === "hpa.checkout-api.minReplicas") return { ...resource, id: String(policy?.minReplicas ?? 2) };
+        if (resource.address === "hpa.checkout-api.maxReplicas") return { ...resource, id: String(policy?.maxReplicas ?? 8) };
+        if (resource.address === "hpa.checkout-api.cpuTarget") return { ...resource, id: String(policy?.averageUtilization ?? 60) };
+        return resource;
+      });
+      return ["horizontalpodautoscaler.autoscaling/checkout-api configured"];
+    }
+
+    setFirstResource(runtime, "failed", "HPA still has the wrong replica bounds or CPU target, or HPA state was not inspected first.");
+    return ["horizontalpodautoscaler.autoscaling/checkout-api configured", hpaScalingPolicyFeedback(hpa)];
+  }
+
+  if (isPdbNodeDrainScenario(scenarioId)) {
+    const pdb = runtime.files["pdb.yaml"] ?? "";
+    if (fileName === "pdb.yaml" && runtime.flags.validationPassed && pdbAllowsOneDisruption(pdb)) {
+      runtime.flags.cleanPlan = true;
+      setFirstResource(runtime, "drifted", "PDB applied with maxUnavailable 1; verify planned drain.");
+      runtime.stateResources = runtime.stateResources.map((resource) =>
+        resource.address === "pdb.checkout-api.maxUnavailable" ? { ...resource, id: "1" } : resource,
+      );
+      return ["poddisruptionbudget.policy/checkout-api configured"];
+    }
+
+    setFirstResource(runtime, "failed", "PDB still allows too many voluntary disruptions or PDB state was not inspected first.");
+    return ["poddisruptionbudget.policy/checkout-api configured", "warning: allowed disruptions still unsafe"];
+  }
+
+  return [`${fileName ?? "manifest"} applied`];
+}
+
+export function runKubectlDrainNode(runtime: Scenario, scenarioId: string): string[] {
+  if (!isPdbNodeDrainScenario(scenarioId)) return ["node/ip-10-0-4-21 drained"];
+
+  const pdb = runtime.files["pdb.yaml"] ?? "";
+  if (runtime.flags.cleanPlan && runtime.flags.validationPassed && pdbAllowsOneDisruption(pdb)) {
+    runtime.flags.kubernetesValidated = true;
+    setFirstResource(runtime, "success", "Node drain respects checkout-api PDB and keeps at least two replicas available.");
+    return ["node/ip-10-0-4-21 cordoned", "evicting pod checkout-api-7bd8dfc6d4-2q8xp", "cannot evict more checkout-api pods: PDB checkout-api requires at least 2 available", "node/ip-10-0-4-21 drained"];
+  }
+
+  setFirstResource(runtime, "failed", "Drain would allow too many checkout-api replicas to be evicted.");
+  return ["node/ip-10-0-4-21 cordoned", "evicting pod checkout-api-7bd8dfc6d4-2q8xp", "evicting pod checkout-api-7bd8dfc6d4-5jv7m", "evicting pod checkout-api-7bd8dfc6d4-rp9kx", "warning: checkout-api capacity dropped below maintenance target"];
 }
 
 export function runKubectlAuthCanI(runtime: Scenario, scenarioId: string): string[] {
@@ -360,6 +611,15 @@ export function runEksAssumeRoleWithWebIdentity(runtime: Scenario, scenarioId: s
 
 export function runKubectlRolloutRestart(runtime: Scenario, scenarioId: string): string[] {
   const deployment = runtime.files["deployment.yaml"] ?? "";
+  if (isHpaScalingScenario(scenarioId)) {
+    const hpa = runtime.files["hpa.yaml"] ?? "";
+    if (runtime.flags.cleanPlan && hpaScalingPolicyIsFixed(hpa)) {
+      return ["deployment.apps/checkout-api restarted", "note: HPA policy is already applied; verify rollout status."];
+    }
+
+    return ["deployment.apps/checkout-api restarted", "rollout status: pending. Apply the HPA scaling policy before verifying rollout."];
+  }
+
   if (isEksRbacIrsaScenario(scenarioId)) {
     const rbac = runtime.files["rbac.yaml"] ?? "";
     const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
@@ -382,6 +642,17 @@ export function runKubectlRolloutRestart(runtime: Scenario, scenarioId: string):
 
     setFirstResource(runtime, "failed", "Rollout still has a readiness probe port mismatch or pod events were not inspected first.");
     return ["deployment.apps/checkout-api restarted", "rollout status: waiting for ready replicas"];
+  }
+
+  if (isMemoryLimitScenario(scenarioId)) {
+    if (runtime.flags.validationPassed && runtime.flags.kubernetesEventsChecked && memoryLimitIsRaised(deployment)) {
+      runtime.flags.cleanPlan = true;
+      setFirstResource(runtime, "drifted", "Rollout restarted with memory limit 512Mi; verify rollout status.");
+      return ["deployment.apps/checkout-api restarted"];
+    }
+
+    setFirstResource(runtime, "failed", "Rollout still has an unsafe memory limit or pod events were not inspected first.");
+    return ["deployment.apps/checkout-api restarted", "rollout status: CrashLoopBackOff after OOMKilled"];
   }
 
   if (runtime.flags.validationPassed && runtime.flags.kubernetesEventsChecked && deployment.includes("ghcr.io/acme/checkout-api:1.4.2")) {
@@ -455,6 +726,36 @@ export function runKubectlRolloutStatus(runtime: Scenario, scenarioId: string): 
     }
 
     return ["Waiting for deployment checkout-api rollout to finish...", "rollout status: pending. Restart rollout and scale deployment after fixing the readiness probe."];
+  }
+
+  if (isMemoryLimitScenario(scenarioId)) {
+    if (runtime.flags.cleanPlan && memoryLimitIsRaised(deployment)) {
+      runtime.flags.kubernetesValidated = true;
+      setFirstResource(runtime, "success", "Deployment memory limit is 512Mi and rollout is healthy after OOM triage.");
+      runtime.stateResources = runtime.stateResources.map((resource) => {
+        if (resource.address === "pod.checkout-api") return { ...resource, id: "Running" };
+        if (resource.address === "resources.checkout-api.memoryLimit") return { ...resource, id: "512Mi" };
+        return resource;
+      });
+      return ["Waiting for deployment checkout-api rollout to finish...", "deployment \"checkout-api\" successfully rolled out"];
+    }
+
+    return ["Waiting for deployment checkout-api rollout to finish...", "rollout status: pending. Raise the memory limit and restart rollout after inspecting OOM events."];
+  }
+
+  if (isHpaScalingScenario(scenarioId)) {
+    const hpa = runtime.files["hpa.yaml"] ?? "";
+    if (runtime.flags.cleanPlan && hpaScalingPolicyIsFixed(hpa)) {
+      runtime.flags.kubernetesValidated = true;
+      setFirstResource(runtime, "success", hpaScalingPolicySuccessMessage(hpa));
+      return [
+        "Waiting for deployment checkout-api rollout to finish...",
+        "deployment \"checkout-api\" successfully rolled out",
+        `hpa checkout-api stabilized at ${hpaStableReplicaCount(hpa)} replicas`,
+      ];
+    }
+
+    return ["Waiting for deployment checkout-api rollout to finish...", "rollout status: pending. Inspect and apply the HPA scaling policy."];
   }
 
   if (runtime.flags.cleanPlan && runtime.flags.lintPassed && deployment.includes("ghcr.io/acme/checkout-api:1.4.2")) {
