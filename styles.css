@@ -2422,6 +2422,23 @@ th {
   font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+.wiki-table-wrap {
+  max-width: 920px;
+  margin: 12px 0 16px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.wiki-table-wrap table {
+  min-width: 760px;
+}
+
+.wiki-table-wrap th,
+.wiki-table-wrap td {
+  line-height: 1.45;
+}
+
 .wiki-article code {
   color: var(--text);
   font-size: 12px;

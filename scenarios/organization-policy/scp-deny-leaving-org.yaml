@@ -49,7 +49,16 @@ solution:
   focusFileName: scp.json
   files:
     "scp.json": |
-      { "Version": "2012-10-17", "Statement": [{ "Effect": "Deny", "Action": "organizations:LeaveOrganization", "Resource": "*" }] }
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Deny",
+            "Action": "organizations:LeaveOrganization",
+            "Resource": "*"
+          }
+        ]
+      }
   commands:
     - aws iam simulate-principal-policy
 backend:

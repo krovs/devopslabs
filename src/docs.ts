@@ -8,6 +8,7 @@ export type DocBlock =
   | { type: "unorderedList"; items: DocInline[][] }
   | { type: "heading"; text: string }
   | { type: "code"; text: string }
+  | { type: "table"; headers: string[]; rows: DocInline[][][] }
   | { type: "diagram"; ariaLabel: string; nodes: { title: string; detail: string }[] }
   | { type: "tree"; ariaLabel: string; rows: { kind: "root" | "branch" | "leaf"; code: string; text: string }[] };
 
@@ -300,8 +301,25 @@ export const documentationSections: DocSection[] = [
           ["Least privilege means narrow action, resource, and condition."],
         ],
       },
+      { type: "heading", text: "Azure RBAC" },
+      {
+        type: "paragraph",
+        content: [
+          "Azure role-based access control assigns a role definition to a principal at a scope. Effective access comes from the role's allowed data or management actions and the narrowest applicable scope.",
+        ],
+      },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "principal" }, ": user, group, service principal, or managed identity receiving access."],
+          [{ code: "roleDefinitionName" }, ": built-in or custom role, such as ", { code: "Storage Blob Data Reader" }, "."],
+          [{ code: "scope" }, ": management group, subscription, resource group, resource, or child resource path."],
+          ["Storage data roles are separate from management roles. ", { code: "Reader" }, " can inspect the storage account, while ", { code: "Storage Blob Data Reader" }, " can read blob data."],
+          ["Container-scoped assignments should target the container resource path instead of the whole subscription or storage account."],
+        ],
+      },
       { type: "heading", text: "Common Commands" },
-      { type: "code", text: "aws iam simulate-principal-policy\naws iam get-policy-version\naws sts get-caller-identity\naws sts assume-role-with-web-identity\naws s3 cp\naws kms decrypt\naz role assignment list" },
+      { type: "code", text: "aws iam simulate-principal-policy\naws iam get-policy-version\naws sts get-caller-identity\naws sts assume-role-with-web-identity\naws s3 cp\naws kms decrypt\naz role assignment list\naz role definition list --name \"Storage Blob Data Reader\"\naz storage blob list --auth-mode login --account-name <account> --container-name <container>" },
       { type: "heading", text: "Common Problems" },
       {
         type: "unorderedList",
@@ -309,7 +327,7 @@ export const documentationSections: DocSection[] = [
           ["Wildcard action or resource grants more access than intended."],
           ["Missing KMS permissions or missing encryption context condition."],
           ["OIDC trust policy subject does not match the caller."],
-          ["Azure role assignment is scoped too broadly."],
+          ["Azure role assignment is scoped too broadly, such as subscription Owner when only one container needs blob read access."],
         ],
       },
     ],
@@ -338,6 +356,94 @@ export const documentationSections: DocSection[] = [
       },
       { type: "heading", text: "Common Commands" },
       { type: "code", text: "kyverno test .\nkubectl apply --dry-run=server -f policy.yaml\nkubectl get networkpolicy\nkubectl describe authorizationpolicy" },
+      { type: "heading", text: "Policy Comparison" },
+      {
+        type: "table",
+        headers: ["Policy", "Purpose", "Main Scope", "When to Use"],
+        rows: [
+          [
+            [{ code: "Kyverno ClusterPolicy" }],
+            ["Admission control: validate, mutate, generate, or verify Kubernetes resources before they are accepted."],
+            ["Cluster-wide or namespace-scoped Kubernetes API objects."],
+            ["Use when the rule is about what Kubernetes objects are allowed to exist, such as required labels, approved images, or pod security settings."],
+          ],
+          [
+            [{ code: "Kubernetes NetworkPolicy" }],
+            ["Native pod traffic control for ingress and egress between pods, namespaces, and CIDRs."],
+            ["Namespace-local pods selected by ", { code: "podSelector" }, "."],
+            ["Use for basic pod network isolation, default-deny posture, and allow rules between namespaces or app tiers."],
+          ],
+          [
+            [{ code: "Istio AuthorizationPolicy" }],
+            ["Service mesh request authorization for workload-to-workload or end-user requests."],
+            ["Istio-managed workloads selected by labels in a namespace or mesh root namespace."],
+            ["Use when access depends on service identity, JWT identity, HTTP path, method, host, or mesh-aware request context."],
+          ],
+          [
+            [{ code: "CiliumNetworkPolicy" }],
+            ["Cilium traffic policy with Kubernetes labels plus DNS, service, entity, CIDR, and L7 controls."],
+            ["Cilium endpoints selected by labels, with ingress or egress rules."],
+            ["Use when native NetworkPolicy is not expressive enough, especially for DNS egress, L7 rules, entities, or Cilium-specific controls."],
+          ],
+        ],
+      },
+      { type: "heading", text: "Kyverno Basics" },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "ClusterPolicy" }, " applies across the cluster; ", { code: "Policy" }, " applies inside one namespace."],
+          [{ code: "match" }, " selects resources the rule evaluates. Use ", { code: "any" }, " or ", { code: "all" }, " to combine resource filters."],
+          [{ code: "validate.pattern" }, " describes required fields. A resource must match the pattern to pass."],
+          [{ code: "?*" }, " means the field must exist and contain a non-empty value."],
+          [{ code: "validationFailureAction: Enforce" }, " blocks non-compliant resources; ", { code: "Audit" }, " only reports them."],
+        ],
+      },
+      { type: "heading", text: "Kyverno Test Flow" },
+      {
+        type: "orderedList",
+        items: [
+          ["Read ", { code: "kyverno-test.yaml" }, " to see expected pass/fail results."],
+          ["Fix the policy rule, usually ", { code: "match" }, ", ", { code: "validate.pattern" }, ", or ", { code: "validationFailureAction" }, "."],
+          ["Run ", { code: "kyverno test ." }, " until expected resources pass or fail for the intended reason."],
+        ],
+      },
+      { type: "code", text: "apiVersion: kyverno.io/v1\nkind: ClusterPolicy\nmetadata:\n  name: require-app-label\nspec:\n  validationFailureAction: Enforce\n  rules:\n    - name: require-app-label\n      match:\n        any:\n          - resources:\n              kinds:\n                - Pod\n      validate:\n        message: Pods must set metadata.labels.app.\n        pattern:\n          metadata:\n            labels:\n              app: \"?*\"" },
+      { type: "heading", text: "Kubernetes NetworkPolicy" },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "podSelector" }, " selects pods the policy protects. Empty ", { code: "{}" }, " selects all pods in the namespace."],
+          [{ code: "policyTypes" }, " controls whether the policy affects ", { code: "Ingress" }, ", ", { code: "Egress" }, ", or both."],
+          ["A default-deny policy has a selector and policy type but no allow rules."],
+          [{ code: "ingress.from" }, " and ", { code: "egress.to" }, " define allowed peers by pod, namespace, or IP block."],
+          ["NetworkPolicy is additive. Traffic is allowed if any matching policy allows it."],
+        ],
+      },
+      { type: "code", text: "apiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: default-deny-ingress\n  namespace: payments\nspec:\n  podSelector: {}\n  policyTypes:\n    - Ingress" },
+      { type: "heading", text: "Istio AuthorizationPolicy" },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "selector.matchLabels" }, " chooses workloads the policy applies to."],
+          [{ code: "action: ALLOW" }, " permits matching requests. If an ALLOW policy exists for a workload, unmatched requests are denied."],
+          [{ code: "from.source.principals" }, " matches authenticated workload identities."],
+          [{ code: "from.source.requestPrincipals" }, " matches authenticated end-user JWT principals."],
+          [{ code: "to.operation" }, " constrains methods, paths, hosts, or ports."],
+        ],
+      },
+      { type: "code", text: "apiVersion: security.istio.io/v1beta1\nkind: AuthorizationPolicy\nmetadata:\n  name: checkout-api-jwt\n  namespace: payments\nspec:\n  selector:\n    matchLabels:\n      app: checkout-api\n  action: ALLOW\n  rules:\n    - from:\n        - source:\n            requestPrincipals:\n              - \"issuer.example.com/*\"" },
+      { type: "heading", text: "CiliumNetworkPolicy" },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "endpointSelector" }, " selects Cilium-managed endpoints by labels."],
+          [{ code: "egress" }, " and ", { code: "ingress" }, " allow traffic by endpoint, CIDR, entity, service, DNS, or L7 rule."],
+          [{ code: "toEndpoints" }, " allows traffic to selected pods. ", { code: "toFQDNs" }, " allows DNS-name based egress."],
+          [{ code: "toPorts.rules.dns" }, " can restrict DNS queries while allowing UDP/TCP 53."],
+          ["Cilium policy also works with cluster entities such as ", { code: "kube-apiserver" }, ", ", { code: "world" }, ", and ", { code: "cluster" }, "."],
+        ],
+      },
+      { type: "code", text: "apiVersion: cilium.io/v2\nkind: CiliumNetworkPolicy\nmetadata:\n  name: allow-dns-egress\n  namespace: payments\nspec:\n  endpointSelector:\n    matchLabels:\n      app: checkout-api\n  egress:\n    - toEndpoints:\n        - matchLabels:\n            k8s:io.kubernetes.pod.namespace: kube-system\n            k8s:k8s-app: kube-dns\n      toPorts:\n        - ports:\n            - port: \"53\"\n              protocol: UDP\n          rules:\n            dns:\n              - matchPattern: \"*\"" },
       { type: "heading", text: "Common Problems" },
       {
         type: "unorderedList",
@@ -345,6 +451,7 @@ export const documentationSections: DocSection[] = [
           ["Selector does not match the intended pods or namespace."],
           ["Default-deny policy is missing, so allow rules are not meaningful."],
           ["Admission rule validates the wrong field path."],
+          ["Kyverno rule stays in ", { code: "Audit" }, " mode, so bad resources are reported but not blocked."],
           ["Mesh policy misses principal, namespace, or method constraints."],
         ],
       },
@@ -513,6 +620,17 @@ export const documentationSections: DocSection[] = [
           ["Require IMDSv2 for EC2 metadata access."],
           ["Block public S3 access by default."],
           ["Require encryption, logging, and backup controls for managed services."],
+        ],
+      },
+      { type: "heading", text: "SCP Policy Basics" },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "Action" }, ": actions affected by the statement."],
+          [{ code: "NotAction" }, ": every action except the listed action or actions. In a Deny statement, this denies everything except the excluded actions."],
+          [{ code: "Condition" }, ": context requirement such as principal ARN, requested region, or EC2 metadata token mode."],
+          ["SCPs set permission boundaries for accounts; they do not grant permissions by themselves."],
+          ["An explicit Deny cannot be overridden by an Allow in another SCP, identity policy, or resource policy."],
         ],
       },
       { type: "heading", text: "Common Commands" },

@@ -43,6 +43,15 @@ resources:
     });
   });
 
+  it("parses quoted list items with colons as strings", () => {
+    expect(parseSimpleYaml(`
+tips:
+  - 'requestPrincipals: ["*"] means any authenticated principal.'
+`)).toEqual({
+      tips: ['requestPrincipals: ["*"] means any authenticated principal.'],
+    });
+  });
+
   it("parses quoted keys and block strings", () => {
     expect(parseSimpleYaml(`
 files:

@@ -86,6 +86,12 @@ function parseYamlArray(lines: string[], index: number, indent: number): Parsed<
       continue;
     }
 
+    if (isQuotedYamlScalar(itemText)) {
+      array.push(parseYamlScalar(itemText));
+      i += 1;
+      continue;
+    }
+
     if (/^["']?[\w.-]+["']?:($|\s)/.test(itemText)) {
       const separatorIndex = itemText.indexOf(":");
       const key = normalizeYamlKey(itemText.slice(0, separatorIndex));
@@ -130,10 +136,14 @@ function parseYamlScalar(value: string): unknown {
   if (value === "false") return false;
   if (value === "null") return null;
   if (value === "[]") return [];
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+  if (isQuotedYamlScalar(value)) {
     return value.slice(1, -1);
   }
   return value;
+}
+
+function isQuotedYamlScalar(value: string): boolean {
+  return (value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"));
 }
 
 function normalizeYamlKey(key: string): string {

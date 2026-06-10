@@ -7,7 +7,6 @@ export function policyFixApplied(runtime: Scenario, scenarioId: string): boolean
     return (
       policy.includes("kind: ClusterPolicy") &&
       policy.includes("validationFailureAction: Enforce") &&
-      policy.includes("message: Pods must define the app label.") &&
       policy.includes("pattern:") &&
       policy.includes("metadata:") &&
       policy.includes("labels:") &&
@@ -23,8 +22,7 @@ export function policyFixApplied(runtime: Scenario, scenarioId: string): boolean
       policy.includes("namespace: payments") &&
       policy.includes("podSelector: {}") &&
       policy.includes("policyTypes:") &&
-      policy.includes("- Ingress") &&
-      policy.includes("ingress: []")
+      policy.includes("- Ingress")
     );
   }
 

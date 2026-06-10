@@ -93,6 +93,12 @@ function hasBroadDenyAction(policy: JsonObject | null, action: string): boolean 
   );
 }
 
+function hasAllowAction(policy: JsonObject | null, action: string): boolean {
+  return statements(policy).some((statement) =>
+    isAllow(statement) && (hasValue(actions(statement), action) || hasValue(actions(statement), action.split(":")[0] + ":*") || hasValue(actions(statement), "*")),
+  );
+}
+
 export function iamFixApplied(runtime: Scenario, scenarioId: string): boolean {
   if (scenarioId === "iamS3PrefixLeastPrivilege") {
     const policy = parseJsonObject(runtime.files["policy.json"] ?? "");
@@ -194,8 +200,9 @@ export function scpFixApplied(runtime: Scenario, scenarioId: string): boolean {
     return policyStatements.some((statement) =>
       isDeny(statement)
       && hasCondition(statement, "aws:PrincipalArn", "arn:aws:iam::*:root")
-      && hasValue(actions(statement), "aws-portal:ViewBilling"),
-    ) && !hasBroadDenyAction(policy, "ec2:TerminateInstances");
+      && hasValue(notActions(statement), "aws-portal:ViewBilling")
+      && !hasValue(actions(statement), "aws-portal:ViewBilling"),
+    ) && !hasBroadDenyAction(policy, "aws-portal:ViewBilling");
   }
 
   if (scenarioId === "scpBlankRequireImdsv2") {
@@ -263,9 +270,9 @@ export function scpSimulationSuccess(scenarioId: string): string[] {
   if (scenarioId === "scpBlankDenyRootUser") {
     return [
       "EvalPrincipalArn: arn:aws:iam::123456789012:root",
-      "EvalActionName: ec2:TerminateInstances",
+      "EvalActionName: iam:CreateUser",
       "EvalDecision: explicitDeny",
-      "MatchedStatement: DenyRootUser",
+      "MatchedStatement: DenyRootExceptBillingView",
       "",
       "EvalActionName: aws-portal:ViewBilling",
       "EvalDecision: allowed by SCP exception",
@@ -287,7 +294,7 @@ export function scpSimulationSuccess(scenarioId: string): string[] {
   return ["SCP simulation passed."];
 }
 
-export function scpSimulationFailure(scenarioId: string): string[] {
+export function scpSimulationFailure(scenarioId: string, runtime?: Scenario): string[] {
   if (scenarioId === "scpDenyLeavingOrg") {
     return [
       "EvalActionName: organizations:LeaveOrganization",
@@ -306,11 +313,28 @@ export function scpSimulationFailure(scenarioId: string): string[] {
   }
 
   if (scenarioId === "scpBlankDenyRootUser") {
+    const policy = runtime ? parseJsonObject(runtime.files["scp.json"] ?? "") : null;
+    const policyStatements = statements(policy);
+    if (
+      hasAllowAction(policy, "aws-portal:ViewBilling")
+      && (
+        hasBroadDenyAction(policy, "aws-portal:ViewBilling")
+        || policyStatements.some((statement) => isDeny(statement) && hasValue(actions(statement), "aws-portal:ViewBilling"))
+      )
+    ) {
+      return [
+        "EvalPrincipalArn: arn:aws:iam::123456789012:root",
+        "EvalActionName: aws-portal:ViewBilling",
+        "EvalDecision: explicitDeny",
+        "Finding: the Allow statement does not override DenyRootUser; exclude billing from the Deny with NotAction.",
+      ];
+    }
+
     return [
       "EvalPrincipalArn: arn:aws:iam::123456789012:root",
-      "EvalActionName: ec2:TerminateInstances",
+      "EvalActionName: iam:CreateUser",
       "EvalDecision: allowed",
-      "Finding: root user actions are not explicitly denied or billing exception is missing.",
+      "Finding: root user actions are not explicitly denied or billing view is also denied.",
     ];
   }
 
@@ -337,7 +361,7 @@ export function scpSimulatePrincipalPolicy(runtime: Scenario, scenarioId: string
   }
 
   markFirstResourceFailed(runtime, scpFailureNote(scenarioId));
-  return scpSimulationFailure(scenarioId);
+  return scpSimulationFailure(scenarioId, runtime);
 }
 
 export function iamSimulatePrincipalPolicy(runtime: Scenario, scenarioId: string): string[] {

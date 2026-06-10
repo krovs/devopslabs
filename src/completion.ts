@@ -8,6 +8,7 @@ import { dnsFixApplied, finopsFixApplied, observabilityFixApplied, secretsFixApp
 import { policyFixApplied } from "./simulators/policy";
 import { hasStateAddress } from "./simulators/terraform";
 import { markThreatModelScenarioSolved, threatModelFixApplied } from "./simulators/threatmodel";
+import { parseSimpleYaml } from "./simpleYaml";
 import type { Scenario, ScenarioFlags } from "./types";
 
 type OperationalCompletionFlag = Extract<
@@ -27,6 +28,38 @@ function markOperationalScenarioSolved(runtime: Scenario, flag: OperationalCompl
   markFirstResource(runtime, "exists", note);
 }
 
+function jsonValidationErrors(runtime: Scenario): string[] {
+  return Object.entries(runtime.files)
+    .filter(([fileName]) => fileName.endsWith(".json"))
+    .flatMap(([fileName, source]) => {
+      try {
+        JSON.parse(source);
+        return [];
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Invalid JSON";
+        return [`Invalid JSON in ${fileName}: ${message}`];
+      }
+    });
+}
+
+function yamlValidationErrors(runtime: Scenario): string[] {
+  return Object.entries(runtime.files)
+    .filter(([fileName]) => fileName.endsWith(".yaml") || fileName.endsWith(".yml"))
+    .flatMap(([fileName, source]) => {
+      try {
+        parseSimpleYaml(source);
+        return [];
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Invalid YAML";
+        return [`Invalid YAML in ${fileName}: ${message}`];
+      }
+    });
+}
+
+function syntaxValidationErrors(runtime: Scenario): string[] {
+  return [...jsonValidationErrors(runtime), ...yamlValidationErrors(runtime)];
+}
+
 export function prReviewIsCorrect(runtime: Scenario): boolean {
   if (!runtime.prReview) return false;
   const decisionMatches = runtime.prReview.decision === runtime.prReview.expectedDecision;
@@ -35,6 +68,9 @@ export function prReviewIsCorrect(runtime: Scenario): boolean {
 }
 
 export function checkScenario(runtime: Scenario, scenarioId: string, activeFileName: string): string[] {
+  const syntaxErrors = syntaxValidationErrors(runtime);
+  if (syntaxErrors.length > 0) return syntaxErrors;
+
   if (isScenarioSolved(runtime, scenarioId, activeFileName)) return ["Scenario complete."];
   if (runtime.flags.solutionViewed) return ["Not complete: the solution was viewed for this attempt. Reset the lab and solve it without opening the solution to mark it complete."];
 

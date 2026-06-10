@@ -6,22 +6,25 @@ primaryFile: scp.json
 tips:
   - Start from the requirement notes, not from an existing policy.
   - SCP Deny statements can match root users with aws:PrincipalArn.
-  - Keep a billing exception so account teams can still view billing data.
+  - In a Deny statement, NotAction means deny every action except the listed action.
+  - Use NotAction for the billing exception; an Allow statement cannot override an explicit Deny.
 files:
   "scp.json": |
     {}
   "request.txt": |
     Build an SCP that:
     - Denies actions when aws:PrincipalArn matches arn:aws:iam::*:root
-    - Keeps aws-portal:ViewBilling available
+    - Allows the root user only to view billing in the portal
     - Uses an explicit Deny statement
+    - Uses NotAction so the Deny applies to every action except aws-portal:ViewBilling
+    - Does not rely on an Allow statement to override a Deny
 solution:
   summary: |
     Build an SCP from a blank policy that denies root-user actions while preserving a billing exception.
   steps:
     - Start from the requirement notes, not from an existing policy.
     - SCP Deny statements can match root users with aws:PrincipalArn.
-    - Keep a billing exception so account teams can still view billing data.
+    - In a Deny statement, use NotAction so the Deny applies to everything except aws-portal:ViewBilling.
   explanation: |
     Build an SCP from a blank policy that denies root-user actions while preserving a billing exception.
     
@@ -33,9 +36,24 @@ solution:
   focusFileName: scp.json
   files:
     "scp.json": |
-      { "Version": "2012-10-17", "Statement": [{ "Effect": "Deny", "Action": ["ec2:TerminateInstances", "s3:DeleteBucket", "aws-portal:ViewBilling"], "Resource": "arn:aws:iam::*:root", "Condition": { "StringLike": { "aws:PrincipalArn": "arn:aws:iam::*:root" } } }] }
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "DenyRootExceptBillingView",
+            "Effect": "Deny",
+            "NotAction": "aws-portal:ViewBilling",
+            "Resource": "*",
+            "Condition": {
+              "StringLike": {
+                "aws:PrincipalArn": "arn:aws:iam::*:root"
+              }
+            }
+          }
+        ]
+      }
   commands:
-    - check
+    - aws iam simulate-principal-policy
 backend:
   bucket: governance-training
   key: scp-blank-deny-root-user

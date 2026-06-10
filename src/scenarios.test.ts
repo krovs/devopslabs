@@ -50,6 +50,37 @@ describe("scenarios", () => {
     expect(() => validateScenario(invalidScenario)).toThrow("invalid is missing files");
   });
 
+  it("requires tips and solution lists to contain strings", () => {
+    const invalidScenario = {
+      id: "invalidTips",
+      title: "Invalid Tips",
+      description: "Tip parsed as an object.",
+      tips: [{ requestPrincipals: ["*"] }],
+      files: {
+        "policy.yaml": "kind: Policy",
+      },
+      backend: {
+        bucket: "tf-state-training",
+        key: "invalid.tfstate",
+        table: "tf-locks",
+        locked: false,
+        lockId: null,
+      },
+      awsResources: [],
+      stateResources: [],
+      flags: {},
+      solution: {
+        summary: "Fix it.",
+        steps: ["Apply the fix."],
+        commands: ["check"],
+        explanation: "Explains it.",
+        outcome: "Done.",
+      },
+    } as unknown as Scenario;
+
+    expect(() => validateScenario(invalidScenario)).toThrow("invalidTips has a non-string tip");
+  });
+
   it("requires networking, threat modeling, and PR models for those scenario kinds", () => {
     const baseScenario: Scenario = {
       id: "invalidNetworking",
@@ -129,5 +160,40 @@ describe("scenarios", () => {
     expect(checkScenario(scenario, "assisted", "main.tf")).toEqual([
       "Not complete: the solution was viewed for this attempt. Reset the lab and solve it without opening the solution to mark it complete.",
     ]);
+  });
+
+  it("reports invalid JSON before scenario-specific completion checks", async () => {
+    const scenario = (await loadAllScenarios()).scpRegionRestrictionBreakGlass;
+
+    scenario.files["scp.json"] = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Condition": {
+        "ArnNotLike": {
+          "aws:PrincipalArn": [
+            "arn:aws:iam::*:role/BreakGlassAdmin",
+          ]
+        }
+      }
+    }
+  ]
+}`;
+
+    expect(checkScenario(scenario, scenario.id, "scp.json")[0]).toMatch(/^Invalid JSON in scp\.json:/);
+  });
+
+  it("reports invalid YAML before scenario-specific completion checks", async () => {
+    const scenario = (await loadAllScenarios()).mlopsTrainingDatasetVersion;
+
+    scenario.files["pipeline.yaml"] = `dataset:
+  name: churn
+  version churn-2026-05-17
+training:
+  image: ghcr.io/acme/churn-trainer:2.8.0
+`;
+
+    expect(checkScenario(scenario, scenario.id, "pipeline.yaml")[0]).toMatch(/^Invalid YAML in pipeline\.yaml:/);
   });
 });

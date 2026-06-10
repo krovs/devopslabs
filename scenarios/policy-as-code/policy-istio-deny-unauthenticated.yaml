@@ -6,7 +6,7 @@ primaryFile: policy.yaml
 tips:
   - The policy should target app checkout-api in the checkout namespace.
   - Use an ALLOW policy with requestPrincipals so unauthenticated requests are not allowed.
-  - requestPrincipals: ["*"] means any authenticated principal.
+  - 'requestPrincipals: ["*"] means any authenticated principal.'
 files:
   "policy.yaml": |
     apiVersion: security.istio.io/v1beta1
@@ -38,7 +38,7 @@ solution:
   steps:
     - The policy should target app checkout-api in the checkout namespace.
     - Use an ALLOW policy with requestPrincipals so unauthenticated requests are not allowed.
-    - requestPrincipals: ["*"] means any authenticated principal.
+    - 'requestPrincipals: ["*"] means any authenticated principal.'
   explanation: |
     Fix an Istio AuthorizationPolicy so checkout-api only accepts requests with an authenticated JWT principal.
     

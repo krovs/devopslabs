@@ -99,6 +99,86 @@ describe("Identity simulator", () => {
     expect(scpSimulatePrincipalPolicy(scenario, "scpBlankRequireImdsv2")).toContain("EvalDecision: explicitDeny");
     expect(scenario.flags.scpValidated).toBe(true);
   });
+
+  it("accepts root-user SCP deny with only billing view excluded", () => {
+    const scenario = identityScenario("scp", {
+      "scp.json": JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "DenyRootExceptBillingView",
+            Effect: "Deny",
+            NotAction: "aws-portal:ViewBilling",
+            Resource: "*",
+            Condition: {
+              StringLike: {
+                "aws:PrincipalArn": "arn:aws:iam::*:root",
+              },
+            },
+          },
+        ],
+      }),
+    });
+
+    expect(scpFixApplied(scenario, "scpBlankDenyRootUser")).toBe(true);
+    expect(scpSimulatePrincipalPolicy(scenario, "scpBlankDenyRootUser")).toContain("EvalActionName: iam:CreateUser");
+    expect(scpSimulatePrincipalPolicy(scenario, "scpBlankDenyRootUser")).toContain("EvalActionName: aws-portal:ViewBilling");
+    expect(scenario.flags.scpValidated).toBe(true);
+  });
+
+  it("rejects root-user SCP deny that denies billing view", () => {
+    const scenario = identityScenario("scp", {
+      "scp.json": JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Effect: "Deny",
+            Action: ["iam:CreateUser", "aws-portal:ViewBilling"],
+            Resource: "*",
+            Condition: {
+              StringLike: {
+                "aws:PrincipalArn": "arn:aws:iam::*:root",
+              },
+            },
+          },
+        ],
+      }),
+    });
+
+    expect(scpFixApplied(scenario, "scpBlankDenyRootUser")).toBe(false);
+  });
+
+  it("explains that an SCP allow cannot override a root-user deny", () => {
+    const scenario = identityScenario("scp", {
+      "scp.json": JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "AllowBillingForRoot",
+            Effect: "Allow",
+            Action: ["aws-portal:*"],
+            Resource: "*",
+          },
+          {
+            Sid: "DenyRootUser",
+            Effect: "Deny",
+            Action: "*",
+            Resource: "*",
+            Condition: {
+              StringLike: {
+                "aws:PrincipalArn": ["arn:aws:iam::*:root"],
+              },
+            },
+          },
+        ],
+      }),
+    });
+
+    expect(scpFixApplied(scenario, "scpBlankDenyRootUser")).toBe(false);
+    expect(scpSimulatePrincipalPolicy(scenario, "scpBlankDenyRootUser")).toContain(
+      "Finding: the Allow statement does not override DenyRootUser; exclude billing from the Deny with NotAction.",
+    );
+  });
 });
 
 function identityScenario(kind: "iam" | "scp", files: Record<string, string>): Scenario {

@@ -57,6 +57,27 @@
             <h3>{block.text}</h3>
           {:else if block.type === "code"}
             <pre>{block.text}</pre>
+          {:else if block.type === "table"}
+            <div class="wiki-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    {#each block.headers as header}
+                      <th>{header}</th>
+                    {/each}
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each block.rows as row}
+                    <tr>
+                      {#each row as cell}
+                        <td>{@render inlineContent(cell)}</td>
+                      {/each}
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
           {:else if block.type === "diagram"}
             <div class="wiki-diagram" aria-label={block.ariaLabel}>
               {#each block.nodes as node, index}
