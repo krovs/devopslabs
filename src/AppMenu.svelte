@@ -3,6 +3,7 @@
   import Shuffle from "carbon-icons-svelte/lib/Shuffle.svelte";
   import FireFill from "carbon-icons-svelte/lib/FireFill.svelte";
   import Search from "carbon-icons-svelte/lib/Search.svelte";
+  import footerFern from "./assets/fern.png";
   import sidebarLogo from "./assets/octopus.png";
   import { scenarioDifficultyClass, type LabGroup, type MenuGroupId } from "./labCatalog";
 
@@ -286,7 +287,7 @@
 
   <footer class="menu-footer">
     <a class="menu-repo-link" href="https://github.com/krovs/devopslabs" target="_blank" rel="noreferrer">
-      <span>🌵 krovs@2026</span>
+      <img class="menu-footer-icon" src={footerFern} alt="" />krovs@2026
     </a>
   </footer>
 </aside>

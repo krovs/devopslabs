@@ -222,7 +222,7 @@ select {
 .menu-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
   margin-top: auto;
   padding-top: 12px;
@@ -232,11 +232,19 @@ select {
 .menu-repo-link {
   display: flex;
   align-items: center;
+  gap: 6px;
   min-width: 0;
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
+}
+
+.menu-footer-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
 .menu-repo-link:hover {
