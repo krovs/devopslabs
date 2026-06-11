@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkScenario, isScenarioSolved } from "../completion";
 import type { Scenario } from "../types";
-import { dependencyCheck, gitleaksDetect, mvnTest, trivyConfig, trivyImage } from "./appsec";
+import { dependencyCheck, gitleaksDetect, mvnTest, semgrepScan, trivyConfig, trivyImage } from "./appsec";
 
 describe("AppSec simulator", () => {
   it("accepts env-backed secrets and any explicit non-root container user", () => {
@@ -52,6 +52,35 @@ describe("AppSec simulator", () => {
     expect(checkScenario(scenario, "containerImageCveGate", "Dockerfile")).toEqual([
       "Not complete: Dockerfile must change RUN npm ci to RUN npm ci --omit=dev.",
     ]);
+  });
+
+  it("solves basic Semgrep command injection after eval is removed", () => {
+    const scenario: Scenario = {
+      id: "semgrepBasicCommandInjection",
+      kind: "appsec",
+      title: "Semgrep Basic Command Injection",
+      description: "Test fixture.",
+      primaryFile: "src/routes/discount.js",
+      files: {
+        "src/routes/discount.js": [
+          "export function previewDiscount(req, res) {",
+          "  const discount = Number.parseFloat(req.query.discount);",
+          "  if (!Number.isFinite(discount) || discount < 0 || discount > 100) {",
+          "    return res.status(400).json({ error: \"invalid discount\" });",
+          "  }",
+          "  return res.json({ finalPrice: 100 - discount });",
+          "}",
+        ].join("\n"),
+      },
+      backend: { bucket: "appsec-training", key: "semgrep", table: "none", locked: false, lockId: null },
+      awsResources: [{ type: "finding", name: "semgrep-eval", id: "src/routes/discount.js:2", status: "failed" }],
+      stateResources: [{ address: "semgrep.finding.eval", id: "open" }],
+      flags: { securityPassed: false, appsecValidated: false },
+    };
+
+    expect(semgrepScan(scenario, "semgrepBasicCommandInjection")).toContain("0 blocking findings");
+    expect(checkScenario(scenario, "semgrepBasicCommandInjection", "src/routes/discount.js")).toEqual(["Scenario complete."]);
+    expect(isScenarioSolved(scenario, "semgrepBasicCommandInjection", "src/routes/discount.js")).toBe(true);
   });
 });
 

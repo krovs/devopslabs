@@ -55,6 +55,7 @@ export const scenarioOrderByGroup = {
     "kubernetesEksRbacIrsa",
   ],
   applicationSecurity: [
+    "semgrepBasicCommandInjection",
     "javaDependencySecretsContainerAudit",
     "containerImageCveGate",
     "javaCodeAuthSqlAudit",
@@ -95,6 +96,7 @@ export const scenarioOrderByGroup = {
     "secretsSsmEnvironmentPath",
     "secretsManagerRotationKms",
     "secretsManagerResourcePolicy",
+    "secretsVaultKvPolicyPath",
   ],
   dnsTls: [
     "dnsRoute53AlbAlias",
@@ -105,6 +107,9 @@ export const scenarioOrderByGroup = {
     "observabilityLogRetention",
     "observabilityAlb5xxAlarmDimension",
     "observabilityAlarmAction",
+    "observabilityPrometheusScrapeTarget",
+    "observabilityOtelExporterEndpoint",
+    "observabilityKafkaConsumerLag",
   ],
   finops: [
     "finopsS3Lifecycle",

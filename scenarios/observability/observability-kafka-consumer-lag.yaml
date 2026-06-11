@@ -1,0 +1,68 @@
+id: observabilityKafkaConsumerLag
+kind: observability
+title: Kafka Consumer Lag Spike
+description: checkout-worker consumer lag is growing because the deployment has too few consumers for the current partition count.
+primaryFile: consumer-deployment.yaml
+tips:
+  - Inspect the consumer group lag before editing.
+  - The topic has six partitions.
+  - Scale consumers enough to process partitions in parallel.
+files:
+  "consumer-deployment.yaml": |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: checkout-worker
+    spec:
+      replicas: 2
+      template:
+        spec:
+          containers:
+            - name: worker
+              image: ghcr.io/acme/checkout-worker:2.3.0
+              env:
+                - name: KAFKA_CONSUMER_GROUP
+                  value: checkout-worker
+  "topic.txt": |
+    topic: checkout-events
+    partitions: 6
+    consumer_group: checkout-worker
+solution:
+  summary: |
+    checkout-worker consumer lag is growing because the deployment has too few consumers for the current partition count.
+  steps:
+    - Run kafka-consumer-groups --describe to inspect lag.
+    - Increase checkout-worker replicas to 6.
+    - Run kafka-consumer-groups --describe again.
+  explanation: |
+    A Kafka consumer group can process partitions in parallel up to the number of assigned partitions. With six partitions and two consumers, lag can grow during a spike if each consumer cannot keep up.
+  outcome: |
+    checkout-worker has six replicas and the consumer group lag drains.
+  focusFileName: consumer-deployment.yaml
+  replacements:
+    - fileName: consumer-deployment.yaml
+      search: |
+      replicas: 2
+      replace: |
+      replicas: 6
+  commands:
+    - kafka-consumer-groups --describe
+backend:
+  bucket: observability-training
+  key: kafka-consumer-lag
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: kafka_consumer_group
+    name: checkout-worker
+    id: kafka/checkout-events/checkout-worker
+    status: failed
+    note: Consumer group lag is growing because only two consumers are processing six partitions.
+stateResources:
+  - address: kafka.topic.checkout-events.partitions
+    id: "6"
+  - address: deployment.checkout-worker.replicas
+    id: "2"
+flags:
+  observabilityValidated: false

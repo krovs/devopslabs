@@ -43,7 +43,7 @@
     if (!link.controlIds) return link.status === "failed";
 
     const controlIds = link.controlIds.split(",").map((id) => id.trim()).filter(Boolean);
-    return networking.controls.some((control) => controlIds.includes(control.id) && control.value !== control.answer);
+    return networking.controls.some((control) => controlIds.includes(control.id) && String(control.value).trim() !== String(control.answer).trim());
   }
 </script>
 

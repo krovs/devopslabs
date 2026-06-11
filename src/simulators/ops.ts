@@ -32,6 +32,15 @@ export function secretsFixApplied(runtime: Scenario, scenarioId: string): boolea
     );
   }
 
+  if (scenarioId === "secretsVaultKvPolicyPath") {
+    const policy = runtime.files["vault-policy.hcl"] ?? "";
+    return (
+      policy.includes('path "secret/data/staging/checkout/db"') &&
+      policy.includes('capabilities = ["read"]') &&
+      !policy.includes('path "secret/data/prod/checkout/db"')
+    );
+  }
+
   return false;
 }
 
@@ -97,6 +106,25 @@ export function observabilityFixApplied(runtime: Scenario, scenarioId: string): 
       config.includes('"okActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"]') &&
       !config.includes('"alarmActions": []')
     );
+  }
+
+  if (scenarioId === "observabilityPrometheusScrapeTarget") {
+    const config = runtime.files["servicemonitor.yaml"] ?? "";
+    return config.includes("app: checkout-api") && config.includes("path: /metrics") && config.includes("port: http");
+  }
+
+  if (scenarioId === "observabilityOtelExporterEndpoint") {
+    const config = runtime.files["otel-collector.yaml"] ?? "";
+    return (
+      config.includes("endpoint: tempo.observability.svc:4317") &&
+      config.includes("exporters: [otlp]") &&
+      !config.includes("endpoint: tempo.observability.svc:4318")
+    );
+  }
+
+  if (scenarioId === "observabilityKafkaConsumerLag") {
+    const config = runtime.files["consumer-deployment.yaml"] ?? "";
+    return config.includes("replicas: 6") && config.includes("value: checkout-worker");
   }
 
   return false;
@@ -197,6 +225,40 @@ export function secretsSsmGetParameter(runtime: Scenario, scenarioId: string): s
   ];
 }
 
+export function vaultPolicyRead(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "secretsVaultKvPolicyPath") return ["Vault policy read is not the validation command for this lab."];
+
+  runtime.flags.validationPassed = true;
+  return (runtime.files["vault-policy.hcl"] ?? "").split("\n").filter((line) => line.length > 0);
+}
+
+export function vaultTokenCapabilities(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "secretsVaultKvPolicyPath") return ["Vault token capabilities is not the validation command for this lab."];
+
+  if (!runtime.flags.validationPassed) return ["Run vault policy read checkout-api before validating capabilities."];
+
+  if (secretsFixApplied(runtime, scenarioId)) {
+    markOperationalScenarioSolved(runtime, "secretsValidated", "Vault policy allows only the staging checkout KV path.");
+    runtime.stateResources = runtime.stateResources.map((resource) =>
+      resource.address === "vault.policy.checkout-api.path" ? { ...resource, id: "secret/data/staging/checkout/db" } : resource,
+    );
+    return ["read"];
+  }
+
+  markFirstResourceFailed(runtime, "Vault policy still grants the wrong KV environment path.");
+  return ["deny", "Finding: checkout-api policy does not grant secret/data/staging/checkout/db"];
+}
+
+export function vaultKvGet(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "secretsVaultKvPolicyPath") return ["Vault KV get is not the validation command for this lab."];
+
+  if (secretsFixApplied(runtime, scenarioId)) {
+    return ["====== Secret Path ======", "secret/data/staging/checkout/db", "password: ********"];
+  }
+
+  return ["Error reading secret/data/staging/checkout/db: permission denied"];
+}
+
 export function dnsAcmDescribeCertificate(runtime: Scenario, scenarioId: string): string[] {
   if (scenarioId !== "dnsAcmCloudFrontCertificate" && scenarioId !== "dnsAcmWildcardValidation") {
     return ["DescribeCertificate is not the validation command for this lab."];
@@ -273,13 +335,21 @@ export function cloudWatchDescribeAlarms(runtime: Scenario, scenarioId: string):
       ];
     }
 
+    const config = runtime.files["alarm.json"] ?? "";
+    const namespace = config.includes('"namespace": "AWS/ApplicationELB"') ? "AWS/ApplicationELB" : "AWS/ELB";
+    const dimensionValue = config.includes('"value": "app/prod-web/50dc6c495c0c9188"') ? "app/prod-web/50dc6c495c0c9188" : "prod-web";
+    const dimensionName = config.includes('"name": "LoadBalancerName"') ? "LoadBalancerName" : "unknown";
+    const finding = config.includes('"name": "LoadBalancerName"') && config.includes('"value": "app/prod-web/50dc6c495c0c9188"')
+      ? "Finding: Application Load Balancer metrics use dimension name LoadBalancer, not LoadBalancerName."
+      : "Finding: alarm must use namespace AWS/ApplicationELB and dimension LoadBalancer=app/prod-web/50dc6c495c0c9188.";
     markFirstResourceFailed(runtime, "Alarm still uses the wrong namespace or missing LoadBalancer dimension.");
     return [
       "AlarmName: alb-5xx-prod",
-      "Namespace: AWS/ELB",
+      `Namespace: ${namespace}`,
       "MetricName: HTTPCode_ELB_5XX_Count",
-      "Dimensions: LoadBalancerName=prod-web",
+      `Dimensions: ${dimensionName}=${dimensionValue}`,
       "StateValue: INSUFFICIENT_DATA",
+      finding,
     ];
   }
 
@@ -329,6 +399,51 @@ export function logsDescribeLogGroups(runtime: Scenario, scenarioId: string): st
   }
 
   return ["No CloudWatch Logs data for this scenario."];
+}
+
+export function promtoolTargets(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "observabilityPrometheusScrapeTarget") return ["promtool targets is not the validation command for this lab."];
+
+  if (observabilityFixApplied(runtime, scenarioId)) {
+    markOperationalScenarioSolved(runtime, "observabilityValidated", "Prometheus scrapes checkout-api /metrics successfully.");
+    runtime.stateResources = runtime.stateResources.map((resource) =>
+      resource.address === "servicemonitor.checkout-api.selector" ? { ...resource, id: "app=checkout-api" } : resource,
+    );
+    return ["ACTIVE TARGETS", "checkout-api.default.svc:8080/metrics  UP  labels: app=checkout-api"];
+  }
+
+  markFirstResourceFailed(runtime, "ServiceMonitor selector still does not match checkout-api Service labels.");
+  return ["DROPPED TARGETS", "checkout-api.default.svc:8080/metrics  DROPPED  selector app=checkout does not match service label app=checkout-api"];
+}
+
+export function otelcolValidate(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "observabilityOtelExporterEndpoint") return ["otelcol validate is not the validation command for this lab."];
+
+  if (observabilityFixApplied(runtime, scenarioId)) {
+    markOperationalScenarioSolved(runtime, "observabilityValidated", "OpenTelemetry Collector exports traces to the OTLP gRPC endpoint.");
+    runtime.stateResources = runtime.stateResources.map((resource) =>
+      resource.address === "otel.exporter.otlp.endpoint" ? { ...resource, id: "tempo.observability.svc:4317" } : resource,
+    );
+    return ["otelcol config valid", "exporter otlp endpoint tempo.observability.svc:4317", "traces pipeline exporting"];
+  }
+
+  markFirstResourceFailed(runtime, "OTLP exporter still points at the wrong protocol endpoint.");
+  return ["otelcol config warning", "exporter otlp endpoint tempo.observability.svc:4318", "export failed: gRPC exporter is pointed at HTTP OTLP port"];
+}
+
+export function kafkaConsumerGroupsDescribe(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "observabilityKafkaConsumerLag") return ["kafka-consumer-groups is not the validation command for this lab."];
+
+  if (observabilityFixApplied(runtime, scenarioId)) {
+    markOperationalScenarioSolved(runtime, "observabilityValidated", "checkout-worker replicas match the six partition workload and lag is draining.");
+    runtime.stateResources = runtime.stateResources.map((resource) =>
+      resource.address === "deployment.checkout-worker.replicas" ? { ...resource, id: "6" } : resource,
+    );
+    return ["GROUP            TOPIC            PARTITIONS  CONSUMERS  LAG", "checkout-worker  checkout-events  6           6          12"];
+  }
+
+  markFirstResourceFailed(runtime, "Consumer deployment still has too few replicas for the six partition spike.");
+  return ["GROUP            TOPIC            PARTITIONS  CONSUMERS  LAG", "checkout-worker  checkout-events  6           2          18420"];
 }
 
 export function costAndUsage(runtime: Scenario, scenarioId: string): string[] {

@@ -37,7 +37,12 @@ solution:
   focusFileName: certificate.json
   files:
     "certificate.json": |
-      { "domainName": "app.example.com", "region": "us-east-1", "validationRecordName": "_9f3b.app.example.com", "validationRecordValue": "_7a1d.acm-validations.aws" }
+      {
+        "domainName": "app.example.com",
+        "region": "us-east-1",
+        "validationRecordName": "_9f3b.app.example.com",
+        "validationRecordValue": "_7a1d.acm-validations.aws"
+      }
   commands:
     - aws acm describe-certificate
 backend:

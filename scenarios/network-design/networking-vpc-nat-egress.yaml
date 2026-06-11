@@ -117,22 +117,27 @@ networking:
       to: public_rt
       label: public 0.0.0.0/0
       status: ok
+      controlIds: public_default_route
     - from: public_rt
       to: public_subnet
       label: public subnet association
       status: ok
+      controlIds: public_default_route
     - from: public_subnet
       to: nat
       label: NAT placement
       status: ok
+      controlIds: nat_subnet
     - from: private_rt
       to: private_subnet
       label: private association
       status: ok
+      controlIds: private_default_route
     - from: private_rt
       to: igw
       label: private default route
       status: failed
+      controlIds: private_default_route
   traces:
     - id: private_egress
       label: Private app subnet to internet

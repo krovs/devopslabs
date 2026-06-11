@@ -103,22 +103,27 @@ networking:
       to: nat
       label: app 0.0.0.0/0
       status: ok
+      controlIds: app_default_route
     - from: app_rt
       to: app_subnet
       label: app association
       status: ok
+      controlIds: app_default_route
     - from: db_rt
       to: db_subnet
       label: db association
       status: ok
+      controlIds: db_default_route
     - from: app_subnet
       to: db_subnet
       label: local VPC route
       status: ok
+      controlIds: app_to_db_route,vpc_cidr
     - from: db_rt
       to: nat
       label: db default route
       status: failed
+      controlIds: db_default_route
   traces:
     - id: app_to_db
       label: App subnet to database subnet

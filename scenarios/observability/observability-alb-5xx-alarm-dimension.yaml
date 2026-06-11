@@ -45,7 +45,19 @@ solution:
   focusFileName: alarm.json
   files:
     "alarm.json": |
-      { "alarmName": "alb-5xx-prod", "namespace": "AWS/ApplicationELB", "metricName": "HTTPCode_ELB_5XX_Count", "dimensions": [{ "name": "LoadBalancer", "value": "app/prod-web/50dc6c495c0c9188" }], "threshold": 5, "evaluationPeriods": 2 }
+      {
+        "alarmName": "alb-5xx-prod",
+        "namespace": "AWS/ApplicationELB",
+        "metricName": "HTTPCode_ELB_5XX_Count",
+        "dimensions": [
+          {
+            "name": "LoadBalancer",
+            "value": "app/prod-web/50dc6c495c0c9188"
+          }
+        ],
+        "threshold": 5,
+        "evaluationPeriods": 2
+      }
   commands:
     - aws cloudwatch describe-alarms
 backend:

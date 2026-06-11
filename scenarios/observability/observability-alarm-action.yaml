@@ -39,7 +39,15 @@ solution:
   focusFileName: alarm.json
   files:
     "alarm.json": |
-      { "alarmName": "api-latency-critical", "namespace": "AWS/ApplicationELB", "metricName": "TargetResponseTime", "threshold": 1.5, "evaluationPeriods": 3, "alarmActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"], "okActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"] }
+      {
+        "alarmName": "api-latency-critical",
+        "namespace": "AWS/ApplicationELB",
+        "metricName": "TargetResponseTime",
+        "threshold": 1.5,
+        "evaluationPeriods": 3,
+        "alarmActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"],
+        "okActions": ["arn:aws:sns:eu-west-1:123456789012:oncall-critical"]
+      }
   commands:
     - aws cloudwatch describe-alarms
 backend:

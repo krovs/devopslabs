@@ -36,7 +36,11 @@ solution:
   focusFileName: log-group.json
   files:
     "log-group.json": |
-      { "logGroupName": "/aws/ecs/payments-api", "retentionInDays": 30, "kmsKeyId": "alias/logs-kms" }
+      {
+        "logGroupName": "/aws/ecs/payments-api",
+        "retentionInDays": 30,
+        "kmsKeyId": "alias/logs-kms"
+      }
   commands:
     - aws logs describe-log-groups
 backend:

@@ -119,22 +119,27 @@ networking:
       to: public_rt
       label: 0.0.0.0/0 -> igw
       status: ok
+      controlIds: public_default_route
     - from: public_rt
       to: public_a
       label: public-a association
       status: ok
+      controlIds: public_default_route
     - from: public_rt
       to: public_b
       label: public-b association
       status: ok
+      controlIds: public_default_route
     - from: private_rt
       to: private_a
       label: private-a association
       status: ok
+      controlIds: private_default_route
     - from: public_rt
       to: private_b
       label: private-b association
       status: failed
+      controlIds: private_b_association,private_default_route
   traces:
     - id: internet_to_public
       label: Internet to public subnet

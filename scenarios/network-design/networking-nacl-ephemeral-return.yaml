@@ -95,18 +95,22 @@ networking:
       to: nacl
       label: inbound 443
       status: ok
+      controlIds: inbound_rule_port,inbound_source,nacl_mode
     - from: nacl
       to: web
       label: allow request
       status: ok
+      controlIds: inbound_rule_port,inbound_source,nacl_mode
     - from: web
       to: nacl
       label: ephemeral return
       status: failed
+      controlIds: outbound_ephemeral
     - from: nacl
       to: client
       label: outbound response
       status: failed
+      controlIds: outbound_ephemeral
   traces:
     - id: https_round_trip
       label: HTTPS client round trip
@@ -119,16 +123,16 @@ networking:
   controls:
     - id: inbound_rule_port
       label: Inbound allowed port
-      nodeId: nacl,web_subnet,web
+      nodeId: nacl
       value: all
-      answer: 443
+      answer: "443"
       options: []
       inputType: text
       placeholder: 443
       note: Allow only the service port inbound.
     - id: inbound_source
       label: Inbound source CIDR
-      nodeId: nacl,web_subnet,web
+      nodeId: nacl
       value: 0.0.0.0/0
       answer: 0.0.0.0/0
       options: []
@@ -137,7 +141,7 @@ networking:
       note: This lab models a public HTTPS service.
     - id: outbound_ephemeral
       label: Outbound ephemeral ports
-      nodeId: nacl,web_subnet,web
+      nodeId: nacl
       value: denied
       answer: 1024-65535
       options: []
@@ -146,7 +150,7 @@ networking:
       note: NACLs require explicit outbound return traffic.
     - id: nacl_mode
       label: NACL inbound scope
-      nodeId: nacl,web_subnet
+      nodeId: nacl
       value: all_ports
       answer: service_only
       options: all_ports,service_only,deny_all

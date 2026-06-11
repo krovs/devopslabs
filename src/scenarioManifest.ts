@@ -293,6 +293,13 @@ export const scenarioManifest = [
     "path": "../scenarios/kubernetes-basics/kubernetes-eks-rbac-irsa.yaml"
   },
   {
+    "id": "semgrepBasicCommandInjection",
+    "kind": "appsec",
+    "title": "Semgrep Basic Command Injection",
+    "description": "A Node.js discount preview endpoint uses eval on request input, and Semgrep blocks the change.",
+    "path": "../scenarios/application-security/semgrep-basic-command-injection.yaml"
+  },
+  {
     "id": "javaDependencySecretsContainerAudit",
     "kind": "appsec",
     "title": "Java Dependency Secrets And Container Audit",
@@ -475,6 +482,13 @@ export const scenarioManifest = [
     "path": "../scenarios/secrets-management/secrets-manager-resource-policy.yaml"
   },
   {
+    "id": "secretsVaultKvPolicyPath",
+    "kind": "secrets",
+    "title": "Vault KV Policy Path",
+    "description": "checkout-api runs in staging, but its Vault policy allows reading the production KV path.",
+    "path": "../scenarios/secrets-management/secrets-vault-kv-policy-path.yaml"
+  },
+  {
     "id": "dnsRoute53AlbAlias",
     "kind": "dns",
     "title": "DNS Route 53 ALB Alias",
@@ -515,6 +529,27 @@ export const scenarioManifest = [
     "title": "CloudWatch Alarm Missing Action",
     "description": "A critical latency alarm enters ALARM state but never notifies the on-call SNS topic.",
     "path": "../scenarios/observability/observability-alarm-action.yaml"
+  },
+  {
+    "id": "observabilityPrometheusScrapeTarget",
+    "kind": "observability",
+    "title": "Prometheus Missing Scrape Target",
+    "description": "checkout-api metrics are absent because the ServiceMonitor selector does not match the Service labels.",
+    "path": "../scenarios/observability/observability-prometheus-scrape-target.yaml"
+  },
+  {
+    "id": "observabilityOtelExporterEndpoint",
+    "kind": "observability",
+    "title": "OpenTelemetry Exporter Endpoint",
+    "description": "traces are not reaching the collector backend because the OTLP exporter uses the wrong protocol endpoint.",
+    "path": "../scenarios/observability/observability-otel-exporter-endpoint.yaml"
+  },
+  {
+    "id": "observabilityKafkaConsumerLag",
+    "kind": "observability",
+    "title": "Kafka Consumer Lag Spike",
+    "description": "checkout-worker consumer lag is growing because the deployment has too few consumers for the current partition count.",
+    "path": "../scenarios/observability/observability-kafka-consumer-lag.yaml"
   },
   {
     "id": "finopsS3Lifecycle",

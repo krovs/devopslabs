@@ -1,0 +1,73 @@
+id: observabilityPrometheusScrapeTarget
+kind: observability
+title: Prometheus Missing Scrape Target
+description: checkout-api metrics are absent because the ServiceMonitor selector does not match the Service labels.
+primaryFile: servicemonitor.yaml
+tips:
+  - Inspect the Prometheus target state before editing.
+  - Compare the ServiceMonitor selector with the Service labels.
+  - Keep the scrape path on /metrics.
+files:
+  "servicemonitor.yaml": |
+    apiVersion: monitoring.coreos.com/v1
+    kind: ServiceMonitor
+    metadata:
+      name: checkout-api
+    spec:
+      selector:
+        matchLabels:
+          app: checkout
+      endpoints:
+        - port: http
+          path: /metrics
+  "service.yaml": |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: checkout-api
+      labels:
+        app: checkout-api
+    spec:
+      ports:
+        - name: http
+          port: 8080
+solution:
+  summary: |
+    checkout-api metrics are absent because the ServiceMonitor selector does not match the Service labels.
+  steps:
+    - Run promtool targets to inspect dropped and active targets.
+    - Change the selector label from app checkout to app checkout-api.
+    - Keep path /metrics and port http.
+    - Run promtool targets again.
+  explanation: |
+    Prometheus Operator discovers targets through ServiceMonitor selectors. If selector labels do not match the Service, the endpoint is never scraped even though the app exposes /metrics.
+  outcome: |
+    Prometheus discovers checkout-api and scrapes /metrics successfully.
+  focusFileName: servicemonitor.yaml
+  replacements:
+    - fileName: servicemonitor.yaml
+      search: |
+          app: checkout
+      replace: |
+          app: checkout-api
+  commands:
+    - promtool targets
+backend:
+  bucket: observability-training
+  key: prometheus-scrape-target
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: prometheus_target
+    name: checkout-api
+    id: prometheus/targets/checkout-api
+    status: failed
+    note: ServiceMonitor selector does not match checkout-api Service labels.
+stateResources:
+  - address: servicemonitor.checkout-api.selector
+    id: app=checkout
+  - address: service.checkout-api.label
+    id: app=checkout-api
+flags:
+  observabilityValidated: false

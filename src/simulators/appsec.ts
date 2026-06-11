@@ -45,6 +45,13 @@ function sqlAuditFixed(runtime: Scenario): boolean {
   return repository.includes("where email = ?") && repository.includes("email)") && !repository.includes("+ email +");
 }
 
+function semgrepBasicCommandInjectionFixed(runtime: Scenario): boolean {
+  const route = runtime.files["src/routes/discount.js"] ?? "";
+  return route.includes("Number.parseFloat(req.query.discount)")
+    && route.includes("Number.isFinite(discount)")
+    && !route.includes("eval(");
+}
+
 function trivyIgnoreEntries(trivyIgnore: string): string[] {
   return trivyIgnore
     .split("\n")
@@ -111,6 +118,7 @@ export function appsecFixApplied(runtime: Scenario, scenarioId: string): boolean
     return dependencyAuditFixed(runtime) && secretAuditFixed(runtime) && containerAuditFixed(runtime);
   }
   if (scenarioId === "javaCodeAuthSqlAudit") return authAuditFixed(runtime) && sqlAuditFixed(runtime);
+  if (scenarioId === "semgrepBasicCommandInjection") return semgrepBasicCommandInjectionFixed(runtime);
   if (scenarioId === "containerImageCveGate") return containerImageGateFixed(runtime);
   return false;
 }
@@ -147,6 +155,23 @@ export function dependencyCheck(runtime: Scenario, scenarioId: string): string[]
 }
 
 export function semgrepScan(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId === "semgrepBasicCommandInjection") {
+    if (semgrepBasicCommandInjectionFixed(runtime)) {
+      runtime.flags.securityPassed = true;
+      runtime.stateResources = runtime.stateResources.map((resource) =>
+        resource.address === "semgrep.finding.eval" ? { ...resource, id: "resolved" } : resource,
+      );
+      return ["semgrep scan completed", "0 blocking findings"];
+    }
+
+    markFirstResource(runtime, "failed", "Semgrep still finds eval on request input.");
+    return [
+      "semgrep scan completed",
+      "ERROR javascript.lang.security.audit.eval-detected.eval-detected: eval used with request-controlled input.",
+      "src/routes/discount.js:2",
+    ];
+  }
+
   if (scenarioId !== "javaCodeAuthSqlAudit") return ["semgrep scan completed", "0 findings"];
 
   if (authAuditFixed(runtime) && sqlAuditFixed(runtime)) {

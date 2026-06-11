@@ -115,22 +115,27 @@ networking:
       to: cgw
       label: corporate edge
       status: ok
+      controlIds: onprem_cidr
     - from: cgw
       to: vpn
       label: tunnels
       status: ok
+      controlIds: vpn_tunnel_state
     - from: vpn
       to: vgw
       label: encrypted
       status: ok
+      controlIds: vpn_tunnel_state
     - from: vgw
       to: private
       label: route 172.16.0.0/16
       status: failed
+      controlIds: private_onprem_route,onprem_cidr,vpc_cidr
     - from: igw
       to: public
       label: 0.0.0.0/0
       status: ok
+      controlIds: public_default_route
   traces:
     - id: corp_to_private
       label: Corporate network to private subnets

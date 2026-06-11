@@ -254,6 +254,29 @@ select {
   gap: 12px;
 }
 
+.menu-logo-row {
+  display: flex;
+  justify-content: center;
+}
+
+.menu-logo-button {
+  display: inline-grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.menu-logo {
+  display: block;
+  width: 118px;
+  height: 118px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: transparent;
+}
+
 .menu-header-controls {
   display: inline-flex;
   align-items: center;
@@ -290,6 +313,11 @@ select {
   border-top: 0;
 }
 
+.menu-logo-row + .menu-section {
+  padding-top: 0;
+  border-top: 0;
+}
+
 .menu-global-progress {
   display: grid;
   margin-top: 8px;
@@ -318,6 +346,16 @@ select {
   transition: width 180ms ease;
 }
 
+.menu-progress-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .lab-menu-section {
   display: flex;
   flex: 1 1 auto;
@@ -328,7 +366,13 @@ select {
 }
 
 .menu-search {
-  margin-bottom: 6px;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.menu-search-label {
+  width: 100%;
 }
 
 .menu-search-control {
@@ -365,8 +409,8 @@ select {
 .menu-search input {
   min-height: 38px;
   padding-left: 36px;
-  border-color: transparent;
-  background: transparent;
+  border-color: var(--line);
+  background: var(--control-bg);
   color: var(--text);
 }
 
@@ -375,9 +419,31 @@ select {
 }
 
 .menu-search input:focus {
+  border-color: var(--accent);
+  background: var(--control-bg);
+  box-shadow: none;
+}
+
+.menu-search-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
   border-color: transparent;
   background: transparent;
-  box-shadow: inset 0 -2px 0 var(--accent);
+  color: var(--muted);
+}
+
+.menu-actions .menu-search-button {
+  width: 34px;
+}
+
+.menu-search-button:hover,
+.menu-search-button:focus-visible {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .menu-lab-list {
@@ -494,6 +560,15 @@ select {
 .menu-actions {
   display: grid;
   gap: 8px;
+}
+
+.menu-actions {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.menu-actions.search-open {
+  grid-template-columns: minmax(118px, auto) minmax(120px, 1fr);
 }
 
 .menu-lab-group .scenario-list {
@@ -1010,6 +1085,19 @@ select {
   min-width: 0;
 }
 
+.topbar-title h1 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-title-icon {
+  width: 1.6em;
+  height: 1.6em;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
 .reset-button,
 .reference-button,
 .solution-button {
@@ -1042,6 +1130,8 @@ select {
   width: 38px;
   min-height: 38px;
   padding: 0;
+  border-color: transparent;
+  background: transparent;
 }
 
 .hamburger-button span {
@@ -1820,10 +1910,15 @@ th {
   min-height: 0;
 }
 
+.network-controls-panel {
+  overflow-y: auto;
+}
+
 .threat-controls-panel {
   overflow-y: auto;
 }
 
+.network-controls-panel .panel-header,
 .threat-controls-panel .panel-header {
   position: sticky;
   top: 0;

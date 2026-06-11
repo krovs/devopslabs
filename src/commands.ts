@@ -3,6 +3,9 @@ import type { Scenario } from "./types";
 export type CommandHandlers = {
   secretsManagerDescribeSecret: () => string[];
   secretsSsmGetParameter: () => string[];
+  vaultPolicyRead: () => string[];
+  vaultTokenCapabilities: () => string[];
+  vaultKvGet: () => string[];
   dnsAcmDescribeCertificate: () => string[];
   dnsDigApp: () => string[];
   iamSimulatePrincipalPolicy: () => string[];
@@ -38,6 +41,9 @@ export type CommandHandlers = {
   awsS3Ls: () => string[];
   cloudWatchDescribeAlarms: () => string[];
   logsDescribeLogGroups: () => string[];
+  promtoolTargets: () => string[];
+  otelcolValidate: () => string[];
+  kafkaConsumerGroupsDescribe: () => string[];
   costAndUsage: () => string[];
   ec2DescribeVolumes: () => string[];
   kyvernoTest: () => string[];
@@ -105,6 +111,9 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
   if (runtime.kind === "secrets") {
     if (input === "aws secretsmanager describe-secret") return handlers.secretsManagerDescribeSecret();
     if (input === "aws ssm get-parameter") return handlers.secretsSsmGetParameter();
+    if (input === "vault policy read checkout-api") return handlers.vaultPolicyRead();
+    if (input === "vault token capabilities secret/data/staging/checkout/db") return handlers.vaultTokenCapabilities();
+    if (input === "vault kv get secret/staging/checkout/db") return handlers.vaultKvGet();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -244,6 +253,9 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
   if (runtime.kind === "observability") {
     if (input === "aws cloudwatch describe-alarms") return handlers.cloudWatchDescribeAlarms();
     if (input === "aws logs describe-log-groups") return handlers.logsDescribeLogGroups();
+    if (input === "promtool targets") return handlers.promtoolTargets();
+    if (input === "otelcol validate") return handlers.otelcolValidate();
+    if (input === "kafka-consumer-groups --describe") return handlers.kafkaConsumerGroupsDescribe();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -284,7 +296,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "secrets") {
-    return ["Available commands:", "  aws secretsmanager describe-secret", "  aws ssm get-parameter", "  check", "  help"];
+    return ["Available commands:", "  aws secretsmanager describe-secret", "  aws ssm get-parameter", "  vault policy read checkout-api", "  vault token capabilities secret/data/staging/checkout/db", "  vault kv get secret/staging/checkout/db", "  check", "  help"];
   }
 
   if (runtime.kind === "dns") {
@@ -312,7 +324,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "observability") {
-    return ["Available commands:", "  aws cloudwatch describe-alarms", "  aws logs describe-log-groups", "  check", "  help"];
+    return ["Available commands:", "  aws cloudwatch describe-alarms", "  aws logs describe-log-groups", "  promtool targets", "  otelcol validate", "  kafka-consumer-groups --describe", "  check", "  help"];
   }
 
   if (runtime.kind === "finops") {

@@ -57,7 +57,7 @@ export function restoreRuntime(baseScenario: Scenario, patch: SavedRuntimePatch)
   if (restored.networking && patch.networkingControls) {
     restored.networking.controls = restored.networking.controls.map((control) => ({
       ...control,
-      value: patch.networkingControls?.[control.id] ?? control.value,
+      value: String(patch.networkingControls?.[control.id] ?? control.value),
     }));
   }
 

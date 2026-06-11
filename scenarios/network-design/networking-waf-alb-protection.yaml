@@ -110,14 +110,17 @@ networking:
       to: waf
       label: request inspection
       status: failed
+      controlIds: waf_default_action,sqli_rule_action
     - from: waf
       to: alb
       label: web ACL association
       status: failed
+      controlIds: waf_association
     - from: alb
       to: app
       label: forward clean traffic
       status: ok
+      controlIds: app_exposure
   traces:
     - id: inspected_request
       label: Internet request through WAF

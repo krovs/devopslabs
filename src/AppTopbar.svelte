@@ -1,5 +1,6 @@
 <script lang="ts">
   import Document from "carbon-icons-svelte/lib/Document.svelte";
+  import octopusIcon from "./assets/octopus.png";
 
   type PageName = "index" | "labs";
 
@@ -45,7 +46,12 @@
     <span></span>
   </button>
   <div class="topbar-title">
-    <h1>{heading}</h1>
+    <h1>
+      {#if currentPage === "index"}
+        <img class="topbar-title-icon" src={octopusIcon} alt="" />
+      {/if}
+      <span>{heading}</span>
+    </h1>
   </div>
   {#if currentPage === "labs"}
     <div class="topbar-badges">

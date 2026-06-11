@@ -37,7 +37,13 @@ solution:
   focusFileName: route53-record.json
   files:
     "route53-record.json": |
-      { "name": "app.example.com", "type": "A", "value": "app-prod-456.eu-west-1.elb.amazonaws.com", "aliasHostedZoneId": "Z32O12XQLNTSW2", "evaluateTargetHealth": true }
+      {
+        "name": "app.example.com",
+        "type": "A",
+        "value": "app-prod-456.eu-west-1.elb.amazonaws.com",
+        "aliasHostedZoneId": "Z32O12XQLNTSW2",
+        "evaluateTargetHealth": true
+      }
   commands:
     - dig app.example.com
 backend:

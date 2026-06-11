@@ -43,6 +43,7 @@
   currentScenarioId={app.view.currentScenarioId}
   completedScenarioIds={app.view.completedScenarioIds}
   onclose={app.appShell.closeMenu}
+  onopenindex={app.appShell.openLabs}
   onthemechange={app.appShell.setTheme}
   onrandomscenario={app.scenarioNavigation.selectRandomScenario}
   onincidentmodechange={app.appShell.setIncidentMode}

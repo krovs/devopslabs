@@ -1,0 +1,68 @@
+id: semgrepBasicCommandInjection
+kind: appsec
+title: Semgrep Basic Command Injection
+description: A Node.js discount preview endpoint uses eval on request input, and Semgrep blocks the change.
+primaryFile: src/routes/discount.js
+tips:
+  - Start with semgrep scan to see the finding.
+  - Treat request query values as untrusted input.
+  - Replace eval with explicit numeric parsing and bounds checking.
+files:
+  "src/routes/discount.js": |
+    export function previewDiscount(req, res) {
+      const discount = eval(req.query.discount);
+      const finalPrice = 100 - discount;
+      res.json({ finalPrice });
+    }
+  ".semgrep.yml": |
+    rules:
+      - id: javascript.lang.security.audit.eval-detected.eval-detected
+        message: Avoid eval with user-controlled input.
+        severity: ERROR
+        languages: [javascript]
+        pattern: eval(...)
+solution:
+  summary: |
+    The endpoint evaluates a request query parameter as JavaScript.
+  steps:
+    - Run semgrep scan to inspect the finding.
+    - Remove eval from the route.
+    - Parse the discount as a number.
+    - Reject missing, negative, or oversized discount values.
+    - Run semgrep scan again.
+  explanation: |
+    Semgrep is a static analysis tool that matches unsafe code patterns before runtime. eval executes a string as code, so request input can become code execution. Explicit parsing keeps the value as data.
+  outcome: |
+    Semgrep reports no blocking findings, and the endpoint handles the discount as validated numeric input.
+  focusFileName: src/routes/discount.js
+  files:
+    "src/routes/discount.js": |
+      export function previewDiscount(req, res) {
+        const discount = Number.parseFloat(req.query.discount);
+        if (!Number.isFinite(discount) || discount < 0 || discount > 100) {
+          return res.status(400).json({ error: "invalid discount" });
+        }
+
+        const finalPrice = 100 - discount;
+        return res.json({ finalPrice });
+      }
+  commands:
+    - semgrep scan
+backend:
+  bucket: appsec-training
+  key: semgrep-basic-command-injection
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: finding
+    name: semgrep-eval
+    id: src/routes/discount.js:2
+    status: failed
+    note: Semgrep found eval on request-controlled input.
+stateResources:
+  - address: semgrep.finding.eval
+    id: open
+flags:
+  securityPassed: false
+  appsecValidated: false

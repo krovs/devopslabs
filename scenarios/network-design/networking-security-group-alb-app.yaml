@@ -115,18 +115,22 @@ networking:
       to: alb_sg
       label: inbound 443
       status: failed
+      controlIds: alb_ingress_port,alb_ingress_cidr
     - from: alb_sg
       to: alb
       label: ALB protected by SG
       status: ok
+      controlIds: alb_ingress_port,alb_ingress_cidr
     - from: alb
       to: app_sg
       label: target 8080
       status: failed
+      controlIds: app_ingress_source,app_ingress_port
     - from: app_sg
       to: app
       label: app ingress
       status: failed
+      controlIds: app_ingress_source,app_ingress_port
   traces:
     - id: internet_to_app
       label: Internet request to app instances
@@ -139,16 +143,16 @@ networking:
   controls:
     - id: alb_ingress_port
       label: ALB inbound port
-      nodeId: alb_sg,alb
-      value: 80
-      answer: 443
+      nodeId: alb_sg
+      value: "80"
+      answer: "443"
       options: []
       inputType: text
       placeholder: 443
       note: Public users should connect to the ALB over HTTPS.
     - id: alb_ingress_cidr
       label: ALB inbound CIDR
-      nodeId: alb_sg,alb
+      nodeId: alb_sg
       value: 10.0.0.0/8
       answer: 0.0.0.0/0
       options: []
@@ -157,16 +161,16 @@ networking:
       note: Public ALB accepts HTTPS from the internet.
     - id: app_ingress_source
       label: App inbound source
-      nodeId: app_sg,app
+      nodeId: app_sg
       value: 0.0.0.0/0
       answer: alb_sg
       options: 0.0.0.0/0,alb_sg,vpc_cidr,none
       note: App instances should only accept traffic from the ALB security group.
     - id: app_ingress_port
       label: App inbound port
-      nodeId: app_sg,app
-      value: 80
-      answer: 8080
+      nodeId: app_sg
+      value: "80"
+      answer: "8080"
       options: []
       inputType: text
       placeholder: 8080

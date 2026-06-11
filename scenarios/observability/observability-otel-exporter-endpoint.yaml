@@ -1,0 +1,69 @@
+id: observabilityOtelExporterEndpoint
+kind: observability
+title: OpenTelemetry Exporter Endpoint
+description: traces are not reaching the collector backend because the OTLP exporter uses the wrong protocol endpoint.
+primaryFile: otel-collector.yaml
+tips:
+  - Validate the collector configuration before editing.
+  - The backend expects OTLP gRPC on port 4317.
+  - Keep traces routed through the otlp exporter.
+files:
+  "otel-collector.yaml": |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    exporters:
+      otlp:
+        endpoint: tempo.observability.svc:4318
+        tls:
+          insecure: true
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [otlp]
+  "runbook.md": |
+    Tempo endpoint:
+    - tempo.observability.svc:4317
+    Protocol:
+    - OTLP gRPC
+solution:
+  summary: |
+    traces are not reaching the collector backend because the OTLP exporter uses the wrong protocol endpoint.
+  steps:
+    - Run otelcol validate to inspect the exporter endpoint.
+    - Change endpoint to tempo.observability.svc:4317.
+    - Keep traces routed to the otlp exporter.
+    - Run otelcol validate again.
+  explanation: |
+    OTLP commonly uses gRPC on 4317 and HTTP on 4318. If the exporter points at the HTTP port while configured as an OTLP gRPC exporter, traces fail to export.
+  outcome: |
+    OpenTelemetry Collector exports traces to the Tempo OTLP gRPC endpoint.
+  focusFileName: otel-collector.yaml
+  replacements:
+    - fileName: otel-collector.yaml
+      search: |
+            endpoint: tempo.observability.svc:4318
+      replace: |
+            endpoint: tempo.observability.svc:4317
+  commands:
+    - otelcol validate
+backend:
+  bucket: observability-training
+  key: otel-exporter-endpoint
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: otel_exporter
+    name: traces
+    id: otel/exporter/otlp
+    status: failed
+    note: OTLP exporter points at the wrong protocol port.
+stateResources:
+  - address: otel.exporter.otlp.endpoint
+    id: tempo.observability.svc:4318
+flags:
+  observabilityValidated: false

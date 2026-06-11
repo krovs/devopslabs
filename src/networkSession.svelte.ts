@@ -4,7 +4,7 @@ import {
   getSelectedTrace,
   parseRequirementSections,
 } from "./networkWorkspace";
-import type { Scenario } from "./types";
+import type { NetworkControl, Scenario } from "./types";
 
 export type NetworkSessionOptions = {
   runtime: () => Scenario | null;
@@ -56,6 +56,57 @@ export function createNetworkSession(options: NetworkSessionOptions) {
 
   function clampPan(value: number): number {
     return Math.max(-260, Math.min(260, value));
+  }
+
+  function controlsAreSolved(runtime: Scenario): boolean {
+    return Boolean(runtime.networking?.controls.every((control) => String(control.value).trim() === String(control.answer).trim()));
+  }
+
+  function controlIsSolved(control: { value: string; answer: string }): boolean {
+    return String(control.value).trim() === String(control.answer).trim();
+  }
+
+  function traceSegmentLines(runtime: Scenario, steps: string[]): string[] {
+    if (!runtime.networking) return [];
+
+    const lines: string[] = [];
+    const nodeIdByLabel = new Map(runtime.networking.nodes.map((node) => [node.label, node.id]));
+    const controlsById = new Map(runtime.networking.controls.map((control) => [control.id, control]));
+
+    for (let index = 0; index < steps.length - 1; index += 1) {
+      const fromLabel = steps[index];
+      const toLabel = steps[index + 1];
+      const from = nodeIdByLabel.get(fromLabel);
+      const to = nodeIdByLabel.get(toLabel);
+      const segment = `${fromLabel} -> ${toLabel}`;
+      const link = runtime.networking.links.find((item) => item.from === from && item.to === to);
+
+      if (!link) {
+        lines.push(`INFO ${segment}: no modeled link.`);
+        continue;
+      }
+
+      const controlIds = link.controlIds?.split(",").map((id) => id.trim()).filter(Boolean) ?? [];
+      const controls = controlIds.map((id) => controlsById.get(id)).filter((control): control is NetworkControl => Boolean(control));
+      if (!controls.length) {
+        lines.push(`PASS ${segment}: ${link.label}.`);
+        continue;
+      }
+
+      const failedControls = controls.filter((control) => !controlIsSolved(control));
+      if (!failedControls.length) {
+        lines.push(`PASS ${segment}: ${controls.map((control) => control?.label).join(", ")}.`);
+        continue;
+      }
+
+      lines.push(`FAIL ${segment}: ${link.label}.`);
+      for (const control of failedControls) {
+        if (!control) continue;
+        lines.push(`  - ${control.label}: current ${String(control.value).trim()}, expected ${String(control.answer).trim()}`);
+      }
+    }
+
+    return lines;
   }
 
   return {
@@ -151,7 +202,7 @@ export function createNetworkSession(options: NetworkSessionOptions) {
     checkScenario(): void {
       const runtime = options.runtime();
       if (!runtime?.networking) return;
-      const solved = runtime.networking.controls.every((control) => control.value === control.answer);
+      const solved = controlsAreSolved(runtime);
       runtime.flags.networkConfigured = solved;
       runtime.awsResources[0].status = solved ? "exists" : "failed";
       runtime.awsResources[0].note = solved
@@ -168,16 +219,18 @@ export function createNetworkSession(options: NetworkSessionOptions) {
       traceResult = [];
     },
     runTrace(): void {
-      if (!selectedTrace) return;
+      const runtime = options.runtime();
+      if (!selectedTrace || !runtime?.networking) return;
 
       const steps = selectedTrace.path.split("|").map((step) => step.trim()).filter(Boolean);
-      const result = options.solved()
+      const segmentLines = traceSegmentLines(runtime, steps);
+      const result = controlsAreSolved(runtime)
         ? `PASS: ${selectedTrace.success ?? "Packet path completed without policy or routing drops."}`
         : `FAIL: ${selectedTrace.failure}`;
 
       traceResult = [
         `Probe: ${selectedTrace.source} -> ${selectedTrace.destination} tcp/${selectedTrace.port}`,
-        ...steps.map((step) => `- ${step}`),
+        ...segmentLines,
         result,
       ];
     },
@@ -186,7 +239,7 @@ export function createNetworkSession(options: NetworkSessionOptions) {
       if (!runtime?.networking) return;
       runtime.networking.controls = runtime.networking.controls.map((control) => ({
         ...control,
-        value: control.answer,
+        value: String(control.answer),
       }));
       options.refreshRuntime();
     },
