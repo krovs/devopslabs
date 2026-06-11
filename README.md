@@ -1,56 +1,27 @@
 # DevOpsLabs
 
-A small Svelte + TypeScript web app for practicing DevOps and cloud troubleshooting scenarios.
+![DevOpsLabs octopus](src/assets/octopus.png)  My DevOps notes turned into exercises so I can remember them quickly.  ![DevOpsLabs octopus](src/assets/octopus.png)
 
-The app simulates IaC, Terragrunt, GitHub Actions, GitOps, Kubernetes, Helm, Java application security auditing, threat modeling, AWS cloud security auditing, MLOps, IaC security baselines, IAM, organization policy, policy as code, secrets management, DNS/TLS, PR review, AWS resources, Terraform state, backend locks, partial applies, imports, drift, pipeline failures, policy checks, and diagram-based networking designs. It does not call real Terraform, Terragrunt, AWS, GitHub, Argo CD, Flux, DNS, Kubernetes, Helm, Maven, Semgrep, Gitleaks, Trivy, Kyverno, Istio, Cilium, ML platforms, or certificate services.
+## Stack
 
-## Features
+Svelte + TypeScript app for practicing DevOps, cloud, security, networking, Kubernetes, observability, FinOps, and MLOps troubleshooting labs.
 
-- Three-zone troubleshooting workspace for command-driven labs:
-  - Multi-file code editor with tabs
-  - Fake terminal
-  - Resource/state/context view or CI/CD pipeline dashboard
-- Diagram-first networking workspace for VPN, Direct Connect, VPC, subnet, route table, security group, NACL, and WAF labs
-- Diff-first PR review workspace with review decisions and finding selection
-- GitOps scenarios for Argo CD Application and Flux Kustomization reconciliation failures
-- Policy as Code scenarios for Kubernetes, Kyverno, Istio, and Cilium policy patterns
-- Application Security scenarios for Java dependency, secret, container, authorization, and injection audit patterns
-- Threat Modeling scenarios for data flows, trust boundaries, STRIDE risks, and mitigations
-- Cloud Security Audit scenarios for GuardDuty, CloudTrail, CloudWatch Logs, AWS Config, and IAM investigation workflows
-- MLOps scenarios for dataset artifacts, training runs, model registry gates, and promotion metadata
-- Observability and FinOps scenarios for CloudWatch, logs, Cost Explorer, and cost-resource cleanup
-- YAML-backed scenarios bundled at build time
-- Collapsible side menu with completion counts
-- Incident Mode to hide giveaway lab names and direct requirements
-- Catppuccin Latte, Catppuccin Mocha, Dracula, and Cyberpunk Pink themes
-- Command history with arrow keys
-- Scenario reset and completion checks
-- Saved progress in `localStorage`
+All terminals, cloud resources, policy checks, and provider commands are simulated. The app does not call real AWS, Terraform, Kubernetes, GitHub, Argo CD, Flux, Vault, or ML services.
 
-## Tech Stack
-
-- Svelte
-- TypeScript
-- Vite
-- Plain CSS
-- YAML scenario files loaded with Vite `?raw` imports
-
-## Run
+## Run Locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Then open the URL printed by Vite.
-
-The default dev URL is usually:
+Open the Vite URL, usually:
 
 ```text
 http://127.0.0.1:5173/
 ```
 
-## Build
+## Checks
 
 ```bash
 npm run validate:scenarios
@@ -61,267 +32,26 @@ npm run build
 
 ## Deploy
 
-The app is configured for GitHub Pages at:
+GitHub Pages deploys from `.github/workflows/deploy.yml` on pushes to `main`.
+
+Production URL:
 
 ```text
 https://devopslabs.krovs.dev
 ```
 
-Deployment runs from `.github/workflows/deploy.yml` on pushes to `main`. The custom domain is published through `public/CNAME`, which Vite copies into `dist/`.
-
-## Project Structure
+## Project Layout
 
 ```text
-index.html                 Vite entry HTML
-styles.css                 Global app styling and themes
-src/App.svelte             Small Svelte entry component
-src/appController.svelte.ts App session composition root
-src/scenarios.ts           Imports and validates YAML scenarios
-src/simpleYaml.ts          Small YAML parser for the supported scenario format
-src/types.ts               Scenario/runtime TypeScript types
-scenarios/*.yaml           Scenario definitions
+src/                 Svelte app, simulators, docs, scenario loading
+scenarios/           YAML lab definitions
+public/              static assets and CNAME
+styles.css           global styling and themes
+index.html           Vite entry HTML
 ```
-
-## Supported Commands
-
-The terminal is simulated. Current commands:
-
-```text
-terraform init
-terraform plan
-terraform apply
-terraform validate
-terraform state list
-terraform state mv <source> <destination>
-terraform import <address> <id>
-terraform force-unlock <lock-id>
-checkov -f main.tf
-aws dynamodb scan --table-name tf-locks
-aws s3 ls
-terragrunt init
-terragrunt validate
-terragrunt plan
-terragrunt run-all plan
-terragrunt hclfmt
-gh run view
-gh run rerun
-gh secret list
-gh secret set <name>
-argocd app get checkout
-flux reconcile kustomization platform --with-source
-kubectl get pods
-kubectl get events
-kubectl describe pod checkout-api
-kubectl logs checkout-api
-kubectl rollout restart deployment checkout-api
-kubectl rollout status deployment checkout-api
-kubectl scale deployment checkout-api --replicas=2
-helm lint checkout ./chart
-helm template checkout ./chart
-helm upgrade checkout ./chart
-ml pipeline status
-ml artifacts list
-ml pipeline run
-ml model describe
-ml model promote
-mvn test
-mvn org.owasp:dependency-check-maven:check
-semgrep scan
-gitleaks detect
-trivy config .
-aws iam simulate-principal-policy
-aws sts assume-role-with-web-identity
-aws kms decrypt
-az role assignment list
-aws organizations describe-policy
-aws secretsmanager describe-secret
-aws ssm get-parameter
-aws acm describe-certificate
-dig app.example.com
-aws cloudwatch describe-alarms
-aws logs describe-log-groups
-aws guardduty list-findings
-aws guardduty get-findings
-aws cloudtrail lookup-events
-aws logs filter-log-events
-aws configservice get-resource-config-history
-aws ce get-cost-and-usage
-aws ec2 describe-volumes
-kyverno test .
-kubectl apply --dry-run=server -f policy.yaml
-check
-help
-```
-
-## Included Scenarios
-
-Scenarios are ordered in the menu from easier, single-signal fixes toward harder labs with more moving parts.
-
-- Interrupted apply with a stuck DynamoDB state lock
-- Existing IAM role missing from Terraform state
-- Manual security group drift
-- Terraform Checkov failure for a public S3 bucket
-- Terraform validate failure from a bad resource reference
-- Terraform module failure from a missing child-module output
-- Terraform module failure from a wrong local source path
-- Terraform module failure from a missing required input variable
-- Terraform module Checkov failure from an unsafe security group default
-- Terraform folder/module migration that requires a state address move
-- IaC Security Baselines S3 baseline missing encryption, versioning, and public access block
-- IaC Security Baselines RDS public access, weak backup retention, and deletion protection
-- IaC Security Baselines CloudWatch log group missing retention
-- IaC Security Baselines CloudTrail single-region trail without log validation
-- IaC Security Baselines blank build for a secure S3 bucket baseline
-- Terragrunt missing root include
-- Terragrunt dependency output mismatch
-- Terragrunt wrong module source reference
-- Terragrunt HCL formatting gate
-- Networking site-to-site VPN route design
-- Networking Direct Connect multi-VPC routing design
-- Networking VPC public/private subnet route table design
-- Networking private subnet NAT egress design
-- Networking database subnet isolation design
-- Networking ALB to app security group design
-- Networking NACL ephemeral return traffic design
-- Networking WAF ALB protection design
-- Networking SSH CIDR hardening design
-- GitHub Actions deploy failure from a missing AWS role secret
-- GitHub Actions AWS OIDC trust-policy mismatch
-- GitHub Actions Terraform validation failure from a wrong working directory
-- GitHub Actions Checkov security gate failure
-- GitHub Actions actionlint failure for overbroad permissions
-- GitHub Actions Node.js workflow failure from a wrong working directory/cache path
-- GitHub Actions Docker registry publish failure from missing registry login
-- GitHub Actions environment approval failure from a wrong environment name
-- GitHub Actions matrix failure from an unsupported Node.js version
-- Argo CD Application target revision drift
-- Argo CD automated sync missing prune and self-heal
-- Flux Kustomization pointing at the wrong environment path
-- Flux Kustomization suspended after maintenance
-- Kubernetes ImagePullBackOff rollout and events triage
-- Kubernetes readiness probe port triage
-- Kubernetes Helm values port triage
-- Kubernetes EKS RBAC and IRSA service account triage
-- Java dependency, secrets, and container audit
-- Java authorization and SQL injection code audit
-- STRIDE checkout threat model review
-- OIDC deployment threat model review
-- AWS GuardDuty, CloudTrail, Config, and IAM audit
-- MLOps training dataset version pinning
-- MLOps model registry promotion gate
-- IAM S3 prefix least-privilege policy
-- IAM GitHub OIDC environment trust policy
-- IAM KMS encryption context policy
-- IAM DynamoDB leading keys tenant isolation policy
-- IAM Azure Blob Storage reader role assignment scope
-- IAM blank build for Secrets Manager read-only access
-- IAM blank build for CloudWatch Logs write access
-- SCP deny leaving AWS Organization guardrail
-- SCP region restriction with break-glass exception
-- SCP blank build to deny root-user actions
-- SCP blank build to require EC2 IMDSv2
-- Kyverno require app label admission policy
-- Kubernetes default deny ingress NetworkPolicy
-- Istio AuthorizationPolicy requiring authenticated requests
-- CiliumNetworkPolicy allowing DNS egress only
-- Secrets Manager rotation and KMS configuration
-- SSM Parameter Store environment path mismatch
-- Secrets Manager resource policy public access hardening
-- DNS/TLS CloudFront ACM certificate region and validation
-- DNS Route 53 ALB alias target mismatch
-- DNS/TLS ACM wildcard certificate public hosted-zone validation
-- CloudWatch ALB 5xx alarm dimension mismatch
-- CloudWatch Logs retention cost and compliance gap
-- CloudWatch critical alarm missing notification action
-- FinOps NAT Gateway cost spike from idle AZ gateways
-- FinOps S3 lifecycle cost control for logs and temporary exports
-- FinOps unattached EBS cleanup with snapshot-before-delete
-- PR review for Terraform public S3 exposure
-- PR review for GitHub Actions `write-all` permissions
-- PR review for IAM wildcard policy
-- PR review for security group admin CIDR exposure
-
-## Add A Scenario
-
-1. Create a new `.yaml` file under the matching `scenarios/<group>/` directory.
-2. Add its `id` to `scenarioOrderByGroup` in `src/scenarioOrder.ts`.
-3. Add its summary entry to `src/scenarioManifest.ts`.
-4. Keep the same structure as the existing scenario YAML files.
-5. Add simulator behavior in `src/simulators/` and command wiring in `src/commands.ts` / `src/commandHandlers.ts` if the lab needs new terminal output or completion checks.
-6. Run `npm run validate:scenarios`, `npm run audit:scenarios`, `npm run check`, and `npm run test`.
-
-Minimal shape:
-
-```yaml
-id: exampleScenario
-title: Example Scenario
-description: Short scenario description.
-files:
-  "main.tf": |
-    provider "aws" {
-      region = "eu-west-1"
-    }
-backend:
-  bucket: tf-state-training
-  key: example/app.tfstate
-  table: tf-locks
-  locked: false
-  lockId: null
-awsResources: []
-stateResources: []
-flags:
-  initialized: false
-  cleanPlan: false
-```
-
-Scenario kinds:
-
-- Default or `kind: terraform`: uses Terraform-flavored commands, state, backend, and resource checks.
-- `kind: awsconfig`: uses Terraform files plus `checkov -f main.tf` to spot missing AWS services or unsafe AWS settings.
-- `kind: terragrunt`: uses Terragrunt commands and stack/source/dependency validation.
-- `kind: cicd`: uses GitHub Actions commands and the pipeline dashboard.
-- `kind: gitops`: uses Argo CD and Flux-style reconciliation commands for Kubernetes GitOps workflows.
-- `kind: kubernetes`: uses Kubernetes, EKS IRSA, RBAC, and Helm-style commands for pod, rollout, service account, and chart troubleshooting.
-- `kind: appsec`: uses Java application security commands such as `mvn test`, dependency-check, Semgrep, Gitleaks, and Trivy.
-- `kind: threatmodel`: uses threat-modeling commands such as `threatmodel review`.
-- `kind: cloudsec`: uses GuardDuty, CloudTrail, CloudWatch Logs, AWS Config, and IAM simulation commands for AWS security investigation.
-- `kind: mlops`: uses MLOps validation commands for training pipelines, artifact inspection, model registry metadata, and promotion gates.
-- `kind: iam`: uses identity simulation or inspection commands and least-privilege checks across AWS and Azure-style exercises.
-- `kind: scp`: uses AWS Organizations policy inspection and IAM-style simulation to model SCP deny guardrails.
-- `kind: policy`: uses policy-as-code validation commands such as `kyverno test .` and Kubernetes server dry-run.
-- `kind: secrets`: uses Secrets Manager or SSM Parameter Store validation commands.
-- `kind: dns`: uses ACM and DNS lookup validation commands.
-- `kind: observability`: uses CloudWatch alarm and log group inspection commands.
-- `kind: finops`: uses Cost Explorer and cost-resource inspection commands.
-- `kind: networking`: uses a diagram/design workspace instead of the terminal.
-- `kind: pr`: uses a diff/review workspace instead of the normal resource panel.
-
-Networking scenarios add a `networking` block with `nodes`, `links`, selectable `controls`, and optional packet `traces`. Traces are deterministic probes that show the intended packet path and the component-level failure without highlighting the exact control answer.
-
-IAM scenarios use `kind: iam` and regular scenario files. They use the terminal for deterministic identity validation commands such as `aws iam simulate-principal-policy`, `aws sts assume-role-with-web-identity`, `aws s3 cp`, `aws kms decrypt`, and `az role assignment list`.
-
-Policy as Code scenarios use `kind: policy` and model platform/workload guardrails rather than cloud organization guardrails. Current labs cover Kubernetes NetworkPolicy, Kyverno admission policy, Istio AuthorizationPolicy, and CiliumNetworkPolicy patterns.
-
-GitOps scenarios use `kind: gitops` and model Kubernetes desired-state reconciliation through Argo CD Applications and Flux Kustomizations. Current labs cover target revision drift, automated prune/self-heal settings, wrong source paths, and suspended reconciliation.
-
-Kubernetes scenarios use `kind: kubernetes` and model workload triage through `kubectl` plus Helm chart workflows. Current labs cover ImagePullBackOff events, readiness probe port mismatches, Helm values that render the wrong container port, and EKS service account access that combines Kubernetes RBAC with IRSA.
-
-Application Security scenarios use `kind: appsec` and model Java DevSecOps audit workflows. Current labs cover vulnerable dependencies, committed secrets, root containers, client-controlled authorization, and SQL injection.
-
-Threat Modeling scenarios use `kind: threatmodel` and model design-review workflows. Current labs cover STRIDE coverage for checkout data flows, trust boundaries, customer data, webhook integrity, identity, availability, and OIDC deployment paths between GitHub Actions and AWS.
-
-Cloud Security Audit scenarios use `kind: cloudsec` and model AWS security investigation workflows. Current labs cover GuardDuty findings, CloudTrail activity, CloudWatch Logs event context, AWS Config policy history, and IAM simulation for overbroad permissions.
-
-MLOps scenarios use `kind: mlops` and model deterministic ML delivery workflows. Current labs cover immutable dataset artifact pinning, training pipeline validation, model registry approval metadata, metric gates, and production promotion.
-
-Incident Mode is a menu option that hides unsolved lab names and direct scenario descriptions. It replaces them with generic incident context, changes tips into optional clues, and keeps solved labs visible for review.
-
-PR review scenarios use `kind: pr` and a `prReview` block. They render a diff-oriented workspace where the user chooses a review decision and selects the findings that should block or approve the change.
-
-Secrets scenarios use `kind: secrets` and model Secrets Manager or SSM Parameter Store failures. DNS/TLS scenarios use `kind: dns` and model Route 53, ACM, CloudFront certificate, and ALB alias issues. Observability scenarios use `kind: observability` for CloudWatch alarm and log-group checks. FinOps scenarios use `kind: finops` for cost signals and cleanup controls.
-
-The current YAML parser intentionally supports only the subset used by these scenario files: nested objects, arrays of objects, booleans, `null`, empty arrays, strings, and block strings with `|`.
 
 ## Notes
 
-This is a deterministic training simulator. Scenario behavior is currently implemented in `src/App.svelte`, keyed by scenario `id`. If you add a scenario that needs new command behavior, add that behavior to the command handlers there.
+- Lab progress is saved in `localStorage`.
+- Scenario files are bundled at build time.
+- Reference docs live in `src/docs.ts`.
