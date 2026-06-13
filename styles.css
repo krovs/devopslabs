@@ -222,11 +222,10 @@ select {
 .menu-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 12px;
   margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid color-mix(in srgb, var(--line) 42%, transparent);
+  padding-top: 6px;
 }
 
 .menu-repo-link {
@@ -245,10 +244,75 @@ select {
   height: 28px;
   object-fit: contain;
   image-rendering: pixelated;
+  transform-origin: 50% 70%;
+  animation: menu-footer-icon-idle 10s ease-in-out infinite;
 }
 
+.menu-repo-link:hover .menu-footer-icon,
+.menu-repo-link:focus-visible .menu-footer-icon {
+  animation: menu-footer-icon-bounce 520ms ease;
+}
+
+.menu-github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  color: var(--muted);
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.menu-github-link:hover,
+.menu-github-link:focus-visible,
 .menu-repo-link:hover {
   color: var(--accent);
+}
+
+@keyframes menu-footer-icon-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  35% {
+    transform: translateY(-4px) rotate(-8deg);
+  }
+
+  65% {
+    transform: translateY(-2px) rotate(6deg);
+  }
+}
+
+@keyframes menu-footer-icon-idle {
+  0%,
+  94%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  96% {
+    transform: translateY(-4px) rotate(-8deg);
+  }
+
+  98% {
+    transform: translateY(-2px) rotate(6deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-footer-icon,
+  .menu-logo,
+  .topbar-title-icon,
+  .menu-repo-link:hover .menu-footer-icon,
+  .menu-repo-link:focus-visible .menu-footer-icon,
+  .menu-logo-button:hover .menu-logo,
+  .menu-logo-button:focus-visible .menu-logo,
+  .topbar-title:hover .topbar-title-icon {
+    animation: none;
+  }
 }
 
 .app-menu.open {
@@ -283,6 +347,13 @@ select {
   object-fit: contain;
   image-rendering: pixelated;
   background: transparent;
+  transform-origin: 50% 70%;
+  animation: menu-footer-icon-idle 10s ease-in-out infinite;
+}
+
+.menu-logo-button:hover .menu-logo,
+.menu-logo-button:focus-visible .menu-logo {
+  animation: menu-footer-icon-bounce 520ms ease;
 }
 
 .menu-header-controls {
@@ -1104,6 +1175,12 @@ select {
   height: 1.6em;
   object-fit: contain;
   image-rendering: pixelated;
+  transform-origin: 50% 70%;
+  animation: menu-footer-icon-idle 10s ease-in-out infinite;
+}
+
+.topbar-title:hover .topbar-title-icon {
+  animation: menu-footer-icon-bounce 520ms ease;
 }
 
 .reset-button,

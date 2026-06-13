@@ -2,6 +2,7 @@
   import { tick } from "svelte";
   import Shuffle from "carbon-icons-svelte/lib/Shuffle.svelte";
   import FireFill from "carbon-icons-svelte/lib/FireFill.svelte";
+  import LogoGithub from "carbon-icons-svelte/lib/LogoGithub.svelte";
   import Search from "carbon-icons-svelte/lib/Search.svelte";
   import footerFern from "./assets/fern.png";
   import sidebarLogo from "./assets/octopus.png";
@@ -286,8 +287,11 @@
   </section>
 
   <footer class="menu-footer">
-    <a class="menu-repo-link" href="https://github.com/krovs/devopslabs" target="_blank" rel="noreferrer">
+    <a class="menu-repo-link" href="https://krovs.dev" target="_blank" rel="noreferrer">
       <img class="menu-footer-icon" src={footerFern} alt="" />krovs@2026
+    </a>
+    <a class="menu-github-link" href="https://github.com/krovs/devopslabs" target="_blank" rel="noreferrer" aria-label="Open GitHub repository">
+      <LogoGithub size={20} aria-hidden="true" />
     </a>
   </footer>
 </aside>
