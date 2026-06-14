@@ -20,20 +20,26 @@ export function createEditorSession(options: EditorSessionOptions) {
 
   $effect(() => {
     const scenarioId = options.scenarioId();
-    if (savedScenarioId === scenarioId) return;
-    savedScenarioId = scenarioId;
-    savedFiles = { ...options.files() };
+    if (savedScenarioId !== scenarioId) {
+      savedScenarioId = scenarioId;
+      savedFiles = {};
+    }
   });
 
   function ensureBaseline(): void {
     const scenarioId = options.scenarioId();
-    if (savedScenarioId === scenarioId) return;
-    savedScenarioId = scenarioId;
-    savedFiles = { ...options.files() };
+    if (savedScenarioId !== scenarioId) {
+      savedScenarioId = scenarioId;
+      savedFiles = {};
+    }
+    if (Object.keys(savedFiles).length === 0) {
+      savedFiles = { ...options.files() };
+    }
   }
 
   function fileDirty(fileName: string): boolean {
     if (savedScenarioId !== options.scenarioId()) return false;
+    if (!(fileName in savedFiles)) return false;
     return (options.files()[fileName] ?? "") !== (savedFiles[fileName] ?? "");
   }
 
