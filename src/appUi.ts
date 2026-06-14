@@ -16,6 +16,7 @@ const resourceTitleByKind: Partial<Record<NonNullable<Scenario["kind"]>, string>
   observability: "Observability",
   finops: "Cost",
   awsconfig: "IaC Security",
+  cloudformation: "CloudFormation",
   policy: "Policy",
   linux: "Linux",
   networking: "Network",

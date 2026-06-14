@@ -1,6 +1,7 @@
 import { isGenericGithubActionsScenario, workflowFailedStep } from "./simulators/cicd";
 import { appsecFixApplied, containerImageGateIssues, markAppsecScenarioSolved } from "./simulators/appsec";
 import { cloudsecFixApplied, markCloudsecScenarioSolved } from "./simulators/cloudsec";
+import { cloudformationFixApplied, markCloudformationScenarioSolved } from "./simulators/cloudformation";
 import { gitopsFixApplied } from "./simulators/gitops";
 import { iamFixApplied, markIamScenarioSolved, scpFixApplied, scpSuccessNote } from "./simulators/identity";
 import { markMlopsScenarioSolved, mlopsFixApplied } from "./simulators/mlops";
@@ -14,7 +15,7 @@ import type { Scenario, ScenarioFlags } from "./types";
 type OperationalCompletionFlag = Extract<
   keyof ScenarioFlags,
   "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated" | "policyValidated" | "gitopsValidated"
-  | "linuxValidated" | "kubernetesValidated" | "appsecValidated" | "threatModelValidated" | "cloudsecValidated" | "mlopsValidated"
+  | "linuxValidated" | "kubernetesValidated" | "appsecValidated" | "threatModelValidated" | "cloudsecValidated" | "cloudformationValidated" | "mlopsValidated"
 >;
 
 function markFirstResource(runtime: Scenario, status: string, note: string): void {
@@ -154,6 +155,16 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
     return ["Scenario complete."];
   }
 
+  if (runtime.kind === "cloudformation") {
+    if (!runtime.flags.lintPassed) return ["Not complete: run aws cloudformation validate-template to check the template."];
+    if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation create-change-set to inspect the change set."];
+    if (!runtime.flags.validationPassed) return ["Not complete: run aws cloudformation describe-stack-events to see the last update."];
+    if (!runtime.flags.cleanPlan) return ["Not complete: run aws cloudformation detect-stack-drift to find the configuration drift."];
+    if (!cloudformationFixApplied(runtime)) return ["Not complete: the CloudFormation template still has a public-read ACL. Change AccessControl to Private and add PublicAccessBlockConfiguration."];
+    markCloudformationScenarioSolved(runtime);
+    return ["Scenario complete."];
+  }
+
   if (runtime.kind === "mlops") {
     if (!runtime.flags.initialized) return ["Not complete: inspect the MLOps pipeline or model registry status before applying the fix."];
     if (!mlopsFixApplied(runtime, scenarioId)) return ["Not complete: MLOps configuration still has the wrong dataset version or promotion metadata."];
@@ -250,6 +261,7 @@ export function isScenarioSolved(runtime: Scenario, scenarioId: string, activeFi
   if (runtime.kind === "appsec") return Boolean(runtime.flags.appsecValidated);
   if (runtime.kind === "threatmodel") return Boolean(runtime.flags.threatModelValidated);
   if (runtime.kind === "cloudsec") return Boolean(runtime.flags.cloudsecValidated);
+  if (runtime.kind === "cloudformation") return Boolean(runtime.flags.cloudformationValidated);
   if (runtime.kind === "mlops") return Boolean(runtime.flags.mlopsValidated);
   if (runtime.kind === "awsconfig") return Boolean(runtime.flags.configValidated && runtime.flags.cleanPlan);
   if (scenarioId === "githubActionsMissingSecret") return Boolean(runtime.flags.secretsConfigured && runtime.flags.runPassing);

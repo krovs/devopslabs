@@ -1,5 +1,5 @@
 id: interruptedApplyLock
-title: Interrupted Apply With Lock
+title: Terraform Interrupted Apply With Lock
 description: An apply died mid-run. The S3 bucket exists, state missed it, and the DynamoDB lock is still present.
 tips:
   - Start by initializing Terraform so commands can inspect the configured backend.

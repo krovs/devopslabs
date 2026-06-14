@@ -10,6 +10,7 @@ export const scenarioOrderByGroup = {
     "missingIamImport",
     "interruptedApplyLock",
     "terraformStateFolderMigration",
+    "cloudFormationDriftDetection",
   ],
   iacSecurity: [
     "awsConfigCloudWatchRetention",

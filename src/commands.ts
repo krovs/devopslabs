@@ -94,6 +94,10 @@ export type CommandHandlers = {
   logsFilterLogEvents: () => string[];
   configResourceHistory: () => string[];
   cloudsecSimulatePrincipalPolicy: () => string[];
+  cloudformationValidateTemplate: () => string[];
+  cloudformationCreateChangeSet: () => string[];
+  cloudformationDescribeStackEvents: () => string[];
+  cloudformationDetectStackDrift: () => string[];
   mlPipelineStatus: () => string[];
   mlArtifactsList: () => string[];
   mlPipelineRun: () => string[];
@@ -219,6 +223,15 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "aws logs filter-log-events") return handlers.logsFilterLogEvents();
     if (input === "aws configservice get-resource-config-history") return handlers.configResourceHistory();
     if (input === "aws iam simulate-principal-policy") return handlers.cloudsecSimulatePrincipalPolicy();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "cloudformation") {
+    if (input === "aws cloudformation validate-template") return handlers.cloudformationValidateTemplate();
+    if (input === "aws cloudformation create-change-set") return handlers.cloudformationCreateChangeSet();
+    if (input === "aws cloudformation describe-stack-events") return handlers.cloudformationDescribeStackEvents();
+    if (input === "aws cloudformation detect-stack-drift") return handlers.cloudformationDetectStackDrift();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -353,6 +366,10 @@ function commandHelp(runtime: Scenario): string[] {
 
   if (runtime.kind === "cloudsec") {
     return ["Available commands:", "  aws guardduty list-findings", "  aws guardduty get-findings", "  aws cloudtrail lookup-events", "  aws logs filter-log-events", "  aws configservice get-resource-config-history", "  aws iam simulate-principal-policy", "  check", "  help"];
+  }
+
+  if (runtime.kind === "cloudformation") {
+    return ["Available commands:", "  aws cloudformation validate-template", "  aws cloudformation create-change-set", "  aws cloudformation describe-stack-events", "  aws cloudformation detect-stack-drift", "  check", "  help"];
   }
 
   if (runtime.kind === "mlops") {

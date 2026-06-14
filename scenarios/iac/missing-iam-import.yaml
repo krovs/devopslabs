@@ -1,5 +1,5 @@
 id: missingIamImport
-title: Existing IAM Role Missing From State
+title: Terraform Existing IAM Role Missing From State
 description: Terraform wants to create an IAM role that already exists in AWS, but the state file does not know about it.
 tips:
   - Run terraform init first so Terraform can use the backend.

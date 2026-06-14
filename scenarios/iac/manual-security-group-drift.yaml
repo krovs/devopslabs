@@ -1,5 +1,5 @@
 id: manualSecurityGroupDrift
-title: Manual Security Group Drift
+title: Terraform Manual Security Group Drift
 description: Someone changed a security group rule outside Terraform. Bring code and reality back into agreement.
 tips:
   - Initialize Terraform before checking the plan.

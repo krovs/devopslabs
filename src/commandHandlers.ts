@@ -27,6 +27,12 @@ import {
   guardDutyListFindings as runGuardDutyListFindings,
   logsFilterLogEvents as runCloudsecLogsFilterLogEvents,
 } from "./simulators/cloudsec";
+import {
+  cloudformationCreateChangeSet as runCloudformationCreateChangeSet,
+  cloudformationDescribeStackEvents as runCloudformationDescribeStackEvents,
+  cloudformationDetectStackDrift as runCloudformationDetectStackDrift,
+  cloudformationValidateTemplate as runCloudformationValidateTemplate,
+} from "./simulators/cloudformation";
 import { argocdAppGet as runArgocdAppGet, fluxReconcileKustomization as runFluxReconcileKustomization } from "./simulators/gitops";
 import {
   runKubectlDescribePod,
@@ -237,6 +243,10 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     logsFilterLogEvents: () => withRuntimeRefresh(() => runCloudsecLogsFilterLogEvents(runtime(), scenarioId())),
     configResourceHistory: () => withRuntimeRefresh(() => runConfigResourceHistory(runtime(), scenarioId())),
     cloudsecSimulatePrincipalPolicy: () => withRuntimeRefresh(() => runCloudsecSimulatePrincipalPolicy(runtime(), scenarioId())),
+    cloudformationValidateTemplate: () => withRuntimeRefresh(() => runCloudformationValidateTemplate(runtime(), scenarioId())),
+    cloudformationCreateChangeSet: () => withRuntimeRefresh(() => runCloudformationCreateChangeSet(runtime(), scenarioId())),
+    cloudformationDescribeStackEvents: () => withRuntimeRefresh(() => runCloudformationDescribeStackEvents(runtime(), scenarioId())),
+    cloudformationDetectStackDrift: () => withRuntimeRefresh(() => runCloudformationDetectStackDrift(runtime(), scenarioId())),
     mlPipelineStatus: () => withRuntimeRefresh(() => runMlPipelineStatus(runtime(), scenarioId())),
     mlArtifactsList: () => withRuntimeRefresh(() => runMlArtifactsList(runtime(), scenarioId())),
     mlPipelineRun: () => withRuntimeRefresh(() => runMlPipelineRun(runtime(), scenarioId())),

@@ -1,0 +1,91 @@
+id: cloudFormationDriftDetection
+kind: cloudformation
+title: CloudFormation Drift Detection
+description: A CloudFormation stack for checkout API artifact storage has drifted — someone changed the S3 bucket ACL to public-read directly in the AWS console.
+primaryFile: template.yaml
+tips:
+  - Start with aws cloudformation validate-template to check the template for misconfigurations.
+  - Use aws cloudformation create-change-set to see what would be deployed.
+  - Use aws cloudformation describe-stack-events to check the last stack update.
+  - Use aws cloudformation detect-stack-drift to find configuration drift.
+  - The bucket should have AccessControl: Private and PublicAccessBlockConfiguration enabled.
+files:
+  "template.yaml": |
+    AWSTemplateFormatVersion: "2010-09-09"
+    Description: S3 bucket for checkout API artifacts
+    Resources:
+      CheckoutArtifacts:
+        Type: AWS::S3::Bucket
+        Properties:
+          BucketName: checkout-api-artifacts-prod
+          AccessControl: PublicRead
+          Tags:
+            - Key: Environment
+              Value: production
+            - Key: Service
+              Value: checkout-api
+solution:
+  summary: |
+    The CloudFormation template deploys an S3 bucket but uses AccessControl: PublicRead, which exposes the bucket to public read access. Additionally, the bucket has drifted because someone modified it directly in the AWS console. The fix adds Private ACL and PublicAccessBlockConfiguration to block all public access.
+  steps:
+    - Run aws cloudformation validate-template to see the CKV_AWS_20 failure.
+    - Run aws cloudformation create-change-set to inspect the change set contents.
+    - Run aws cloudformation describe-stack-events to review the last update.
+    - Run aws cloudformation detect-stack-drift to confirm the bucket ACL was changed outside CloudFormation.
+    - Edit template.yaml: change AccessControl to Private and add PublicAccessBlockConfiguration.
+    - Run aws cloudformation validate-template again and check the scenario.
+  explanation: |
+    CloudFormation drift detection is a critical operational control. When resources are modified outside of CloudFormation (e.g., someone editing a bucket ACL directly in the AWS console), the stack enters a drifted state. The template is the source of truth — fixing drift starts with updating the template to match the desired state, then running a change set to reconcile the live resources.
+  outcome: |
+    The CloudFormation template now sets AccessControl: Private with a full PublicAccessBlockConfiguration, blocking all public access and preventing future drift from exposing bucket contents.
+  focusFileName: template.yaml
+  files:
+    "template.yaml": |
+      AWSTemplateFormatVersion: "2010-09-09"
+      Description: S3 bucket for checkout API artifacts
+      Resources:
+        CheckoutArtifacts:
+          Type: AWS::S3::Bucket
+          Properties:
+            BucketName: checkout-api-artifacts-prod
+            AccessControl: Private
+            PublicAccessBlockConfiguration:
+              BlockPublicAcls: true
+              BlockPublicPolicy: true
+              IgnorePublicAcls: true
+              RestrictPublicBuckets: true
+            Tags:
+              - Key: Environment
+                Value: production
+              - Key: Service
+                Value: checkout-api
+  commands:
+    - aws cloudformation validate-template
+    - aws cloudformation create-change-set
+    - aws cloudformation describe-stack-events
+    - aws cloudformation detect-stack-drift
+    - check
+backend:
+  bucket: cfn-review
+  key: drift-detection
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudformation_stack
+    name: checkout-api-artifacts
+    id: arn:aws:cloudformation:eu-west-1:123456789012:stack/checkout-api-artifacts
+    status: failed
+    note: Bucket ACL drifted to PublicRead outside of CloudFormation.
+  - type: s3_bucket
+    name: checkout-api-artifacts-prod
+    id: checkout-api-artifacts-prod
+    status: failed
+    note: Public-read ACL is active and no PublicAccessBlockConfiguration is set.
+stateResources: []
+flags:
+  initialized: false
+  lintPassed: false
+  validationPassed: false
+  cleanPlan: false
+  cloudformationValidated: false

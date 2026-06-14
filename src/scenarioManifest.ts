@@ -50,21 +50,21 @@ export const scenarioManifest = [
   {
     "id": "manualSecurityGroupDrift",
     "kind": "terraform",
-    "title": "Manual Security Group Drift",
+    "title": "Terraform Manual Security Group Drift",
     "description": "Someone changed a security group rule outside Terraform. Bring code and reality back into agreement.",
     "path": "../scenarios/iac/manual-security-group-drift.yaml"
   },
   {
     "id": "missingIamImport",
     "kind": "terraform",
-    "title": "Existing IAM Role Missing From State",
+    "title": "Terraform Existing IAM Role Missing From State",
     "description": "Terraform wants to create an IAM role that already exists in AWS, but the state file does not know about it.",
     "path": "../scenarios/iac/missing-iam-import.yaml"
   },
   {
     "id": "interruptedApplyLock",
     "kind": "terraform",
-    "title": "Interrupted Apply With Lock",
+    "title": "Terraform Interrupted Apply With Lock",
     "description": "An apply died mid-run. The S3 bucket exists, state missed it, and the DynamoDB lock is still present.",
     "path": "../scenarios/iac/interrupted-apply-lock.yaml"
   },
@@ -347,6 +347,13 @@ export const scenarioManifest = [
     "title": "AWS CloudTrail Log Integrity Audit",
     "description": "GuardDuty detects the organization CloudTrail trail was stopped and restarted with log file validation, multi-region, and global service events disabled. Investigate the tampering and restore the approved integrity baseline.",
     "path": "../scenarios/cloud-security-audit/aws-cloudtrail-log-integrity-audit.yaml"
+  },
+  {
+    "id": "cloudFormationDriftDetection",
+    "kind": "cloudformation",
+    "title": "CloudFormation Drift Detection",
+    "description": "A CloudFormation stack for checkout API artifact storage has drifted — someone changed the S3 bucket ACL to public-read directly in the AWS console.",
+    "path": "../scenarios/cloudformation/cloudformation-drift-detection.yaml"
   },
   {
     "id": "mlopsTrainingDatasetVersion",

@@ -1253,6 +1253,7 @@ const referenceSectionByKind: Record<NonNullable<Scenario["kind"]>, string> = {
   appsec: "wiki-appsec",
   threatmodel: "wiki-threatmodel",
   cloudsec: "wiki-cloudsec",
+  cloudformation: "wiki-operations",
   mlops: "wiki-mlops",
   iam: "wiki-iam",
   scp: "wiki-security",

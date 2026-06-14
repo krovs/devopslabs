@@ -46,6 +46,7 @@ export type ScenarioFlags = {
   appsecValidated?: boolean;
   threatModelValidated?: boolean;
   cloudsecValidated?: boolean;
+  cloudformationValidated?: boolean;
   mlopsValidated?: boolean;
   solutionViewed?: boolean;
   linuxResourcesChecked?: boolean;
@@ -181,7 +182,7 @@ export type ScenarioSolutionReplacement = {
 
 export type Scenario = {
   id: string;
-  kind?: "terraform" | "terragrunt" | "cicd" | "gitops" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "observability" | "finops" | "policy" | "linux" | "kubernetes" | "appsec" | "threatmodel" | "cloudsec" | "mlops";
+  kind?: "terraform" | "terragrunt" | "cicd" | "gitops" | "networking" | "iam" | "scp" | "pr" | "secrets" | "dns" | "awsconfig" | "cloudformation" | "observability" | "finops" | "policy" | "linux" | "kubernetes" | "appsec" | "threatmodel" | "cloudsec" | "mlops";
   title: string;
   description: string;
   primaryFile?: string;

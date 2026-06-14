@@ -16,7 +16,7 @@ export type LabGroup = LabGroupDefinition & {
 };
 
 export const labGroupDefinitions: LabGroupDefinition[] = [
-  { id: "terraform", title: "IaC", providers: ["Generic", "AWS"], description: "State, modules, drift, imports, and plans." },
+  { id: "terraform", title: "IaC", providers: ["Generic", "AWS"], description: "Terraform state, modules, drift, imports, plans, and CloudFormation templates." },
   { id: "awsconfig", title: "IaC Security Baselines", providers: ["AWS"], description: "Cloud guardrails, encryption, backup, and audit baselines." },
   { id: "cicd", title: "Delivery Pipelines", providers: ["GitHub", "AWS"], description: "Pipeline failures, gates, secrets, and deploy flow." },
   { id: "gitops", title: "GitOps", providers: ["K8S"], description: "Reconciliation drift, sync policy, and source paths." },
@@ -92,6 +92,7 @@ export const scenarioDifficultyTiers: Partial<Record<string, DifficultyTier>> = 
   oidcDeploymentThreatModel: "hard",
   awsGuardDutyCloudTrailIamAudit: "hard",
   awsCloudTrailLogIntegrityAudit: "hard",
+  cloudFormationDriftDetection: "normal",
   mlopsTrainingDatasetVersion: "normal",
   mlopsModelRegistryPromotionGate: "hard",
   iamBlankSecretsReadonly: "easy",
@@ -154,6 +155,7 @@ const incidentDescriptions: Record<MenuGroupId, string> = {
   appsec: "A Java application has security audit findings. Inspect dependency, secret, container, and source-code signals before applying the smallest safe fix.",
   threatmodel: "A system design has incomplete threat coverage. Inspect data flows, trust boundaries, assets, and mitigations before approving the model.",
   cloudsec: "A cloud security signal needs investigation. Correlate GuardDuty, CloudTrail, logs, AWS Config, and IAM simulation before changing permissions.",
+  cloudformation: "A CloudFormation stack has a configuration issue. Validate the template, inspect change sets and stack events, detect drift, and fix the template.",
   mlops: "An ML delivery workflow is blocked. Inspect pipeline status, artifacts, registry metadata, metrics, and promotion gates before approving the model path.",
   terragrunt: "A stack operation is blocked. Reproduce the failure and inspect stack wiring, formatting, source paths, and dependency outputs.",
   networking: "A network path does not meet the operational requirement. Use the diagram, symptoms, and packet traces to isolate the broken component.",
@@ -167,7 +169,7 @@ const incidentDescriptions: Record<MenuGroupId, string> = {
   pr: "A pull request needs review. Inspect the diff, identify the risky lines, and submit the correct review decision.",
 };
 
-const commandOptionsByKind: Record<MenuGroupId, string[]> = {
+const commandOptionsByKind: Record<NonNullable<Scenario["kind"]>, string[]> = {
   terraform: [
     "terraform init",
     "terraform plan",
@@ -191,6 +193,7 @@ const commandOptionsByKind: Record<MenuGroupId, string[]> = {
   appsec: ["mvn test", "mvn org.owasp:dependency-check-maven:check", "semgrep scan", "gitleaks detect", "trivy config .", "gh run view", "trivy image checkout-api:pr-184", "docker history checkout-api:pr-184", "npm audit --production", "check", "help"],
   threatmodel: ["threatmodel review", "check", "help"],
   cloudsec: ["aws guardduty list-findings", "aws guardduty get-findings", "aws cloudtrail lookup-events", "aws logs filter-log-events", "aws configservice get-resource-config-history", "aws iam simulate-principal-policy", "check", "help"],
+  cloudformation: ["aws cloudformation validate-template", "aws cloudformation create-change-set", "aws cloudformation describe-stack-events", "aws cloudformation detect-stack-drift", "check", "help"],
   mlops: ["ml pipeline status", "ml artifacts list", "ml pipeline run", "ml model describe", "ml model promote", "check", "help"],
   terragrunt: ["terragrunt init", "terragrunt validate", "terragrunt plan", "terragrunt run-all plan", "terragrunt hclfmt", "check", "help"],
   iam: ["aws iam simulate-principal-policy", "aws sts assume-role-with-web-identity", "aws s3 cp", "aws kms decrypt", "az role assignment list", "check", "help"],
@@ -216,6 +219,7 @@ const simpleHealthLabels: Partial<Record<MenuGroupId, { solved: string; unsolved
   appsec: { solved: "AppSec: passed", unsolved: "AppSec: findings" },
   threatmodel: { solved: "Threat model: covered", unsolved: "Threat model: gaps" },
   cloudsec: { solved: "Audit: resolved", unsolved: "Audit: active" },
+  cloudformation: { solved: "CFN: validated", unsolved: "CFN: failing" },
   mlops: { solved: "MLOps: validated", unsolved: "MLOps: blocked" },
   secrets: { solved: "Secrets: healthy", unsolved: "Secrets: failing" },
   dns: { solved: "DNS/TLS: healthy", unsolved: "DNS/TLS: failing" },
@@ -225,6 +229,7 @@ const simpleHealthLabels: Partial<Record<MenuGroupId, { solved: string; unsolved
 };
 
 export function scenarioMenuGroupId(kind?: Scenario["kind"]): MenuGroupId {
+  if (kind === "cloudformation") return "terraform";
   return kind && menuGroupIds.includes(kind) ? kind : "terraform";
 }
 
@@ -249,9 +254,9 @@ export function scenarioDifficultyClass(id: string): string {
 }
 
 export function terminalCommandOptions(scenario: Scenario): string[] {
-  const groupId = scenarioMenuGroupId(scenario.kind);
-  const commands = commandOptionsByKind[groupId];
-  if (groupId !== "terraform") return commands;
+  const kind = scenario.kind ?? "terraform";
+  const commands = commandOptionsByKind[kind] ?? commandOptionsByKind.terraform;
+  if (kind !== "terraform") return commands;
   const unlockCommand = scenario.backend.lockId ? `terraform force-unlock ${scenario.backend.lockId}` : "terraform force-unlock";
   return [...commands.slice(0, 8), unlockCommand, ...commands.slice(8)];
 }
