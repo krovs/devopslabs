@@ -11,7 +11,7 @@ import {
 } from "./cloudsec";
 
 describe("CloudSec simulator", () => {
-  it("exposes the intended scoped bucket through investigation commands and solves after IAM simulation", () => {
+  it("awsGuardDutyCloudTrailIamAudit: exposes the intended scoped bucket through investigation commands and solves after IAM simulation", () => {
     const scenario = awsGuardDutyCloudTrailIamAuditScenario();
 
     expect(guardDutyListFindings(scenario, "awsGuardDutyCloudTrailIamAudit")).toContain("  gd-9f3b2c1a");
@@ -43,6 +43,51 @@ describe("CloudSec simulator", () => {
     );
     expect(checkScenario(scenario, "awsGuardDutyCloudTrailIamAudit", "iam/policy.json")).toEqual(["Scenario complete."]);
     expect(isScenarioSolved(scenario, "awsGuardDutyCloudTrailIamAudit", "iam/policy.json")).toBe(true);
+  });
+
+  it("awsCloudTrailLogIntegrityAudit: exposes the tampered trail through investigation commands and solves after restoring integrity controls", () => {
+    const scenario = awsCloudTrailLogIntegrityAuditScenario();
+
+    expect(guardDutyListFindings(scenario, "awsCloudTrailLogIntegrityAudit")).toContain("  gd-7e4a1b8c");
+    expect(guardDutyListFindings(scenario, "awsCloudTrailLogIntegrityAudit")).toContain("Type: Stealth:IAMUser/CloudTrailStopped");
+    expect(guardDutyGetFindings(scenario, "awsCloudTrailLogIntegrityAudit")).toContain("Resource: arn:aws:cloudtrail:us-east-1:123456789012:trail/org-cloudtrail");
+    expect(guardDutyGetFindings(scenario, "awsCloudTrailLogIntegrityAudit")).toContain("Finding: org-cloudtrail was stopped and restarted with weakened integrity controls");
+    expect(cloudTrailLookupEvents(scenario, "awsCloudTrailLogIntegrityAudit")).toContain(
+      "2026-06-10T02:16:18Z cloudtrail.amazonaws.com UpdateTrail user/deploy-bot logValidation=false multiRegion=false globalServices=false",
+    );
+    expect(cloudTrailLookupEvents(scenario, "awsCloudTrailLogIntegrityAudit")).toContain(
+      "Finding: trail was stopped, reconfigured without integrity controls, then restarted by deploy-bot",
+    );
+    expect(logsFilterLogEvents(scenario, "awsCloudTrailLogIntegrityAudit")).toContain(
+      "eventName=UpdateTrail userIdentity.userName=deploy-bot enableLogFileValidation=false isMultiRegionTrail=false includeGlobalServiceEvents=false",
+    );
+    expect(configResourceHistory(scenario, "awsCloudTrailLogIntegrityAudit")).toEqual([
+      "ResourceType: AWS::CloudTrail::Trail",
+      "ResourceName: org-cloudtrail",
+      "CaptureTime: 2026-06-09T14:22:01Z (approved baseline)",
+      "CaptureTime: 2026-06-10T02:18:42Z (tampered)",
+      "ChangedBy: arn:aws:iam::123456789012:user/deploy-bot",
+      "ChangeSummary: trail tampered — log file validation disabled, multi-region turned off, global service events excluded",
+      "ApprovedBaseline: EnableLogFileValidation=true IsMultiRegionTrail=true IncludeGlobalServiceEvents=true",
+      "TamperedState: EnableLogFileValidation=false IsMultiRegionTrail=false IncludeGlobalServiceEvents=false",
+    ]);
+
+    // Not yet fixed
+    expect(cloudsecSimulatePrincipalPolicy(scenario, "awsCloudTrailLogIntegrityAudit")).toContain(
+      "EnableLogFileValidation: false — WARNING: log files can be tampered without detection",
+    );
+    expect(checkScenario(scenario, "awsCloudTrailLogIntegrityAudit", "cloudtrail/config.json")).toContain(
+      "Not complete: the security configuration is not yet corrected. Review the investigation trail and fix the configuration.",
+    );
+
+    // Fix the config
+    scenario.files["cloudtrail/config.json"] = fixedTrailConfig();
+
+    expect(cloudsecSimulatePrincipalPolicy(scenario, "awsCloudTrailLogIntegrityAudit")).toContain(
+      "EnableLogFileValidation: true — log files are cryptographically signed and verifiable",
+    );
+    expect(checkScenario(scenario, "awsCloudTrailLogIntegrityAudit", "cloudtrail/config.json")).toEqual(["Scenario complete."]);
+    expect(isScenarioSolved(scenario, "awsCloudTrailLogIntegrityAudit", "cloudtrail/config.json")).toBe(true);
   });
 });
 
@@ -120,5 +165,77 @@ function scopedPolicy(): string {
         "Resource": "arn:aws:s3:::prod-audit-logs/support-cases/*"
       }
     ]
+  }`;
+}
+
+function awsCloudTrailLogIntegrityAuditScenario(): Scenario {
+  return {
+    id: "awsCloudTrailLogIntegrityAudit",
+    kind: "cloudsec",
+    title: "AWS CloudTrail Log Integrity Audit",
+    description: "Test fixture.",
+    primaryFile: "cloudtrail/config.json",
+    files: {
+      "cloudtrail/config.json": `{
+        "Name": "org-cloudtrail",
+        "S3BucketName": "org-cloudtrail-logs",
+        "EnableLogFileValidation": false,
+        "IsMultiRegionTrail": false,
+        "IncludeGlobalServiceEvents": false,
+        "IsOrganizationTrail": true
+      }`,
+    },
+    backend: {
+      bucket: "cloud-security-audit",
+      key: "cloudtrail-log-integrity-audit",
+      table: "investigations",
+      locked: false,
+      lockId: null,
+    },
+    awsResources: [
+      {
+        type: "guardduty_finding",
+        name: "gd-7e4a1b8c",
+        id: "Stealth:IAMUser/CloudTrailStopped",
+        status: "failed",
+      },
+      {
+        type: "cloudtrail_trail",
+        name: "org-cloudtrail",
+        id: "arn:aws:cloudtrail:us-east-1:123456789012:trail/org-cloudtrail",
+        status: "failed",
+      },
+    ],
+    stateResources: [
+      { address: "guardduty.finding.gd-7e4a1b8c", id: "active" },
+      { address: "cloudtrail.trail.org-cloudtrail.validation", id: "disabled" },
+      { address: "cloudtrail.trail.org-cloudtrail.multi-region", id: "disabled" },
+      { address: "cloudtrail.trail.org-cloudtrail.global-services", id: "disabled" },
+    ],
+    flags: {
+      initialized: false,
+      validationPassed: false,
+      securityPassed: false,
+      cleanPlan: false,
+      cloudsecValidated: false,
+    },
+    solution: {
+      summary: "Fix it.",
+      steps: ["Investigate the finding.", "Restore trail integrity."],
+      commands: ["aws configservice get-resource-config-history", "aws iam simulate-principal-policy"],
+      explanation: "AWS Config shows the approved baseline.",
+      outcome: "Integrity controls restored.",
+    },
+  };
+}
+
+function fixedTrailConfig(): string {
+  return `{
+    "Name": "org-cloudtrail",
+    "S3BucketName": "org-cloudtrail-logs",
+    "EnableLogFileValidation": true,
+    "IsMultiRegionTrail": true,
+    "IncludeGlobalServiceEvents": true,
+    "IsOrganizationTrail": true
   }`;
 }

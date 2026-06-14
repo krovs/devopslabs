@@ -91,6 +91,7 @@ export const scenarioDifficultyTiers: Partial<Record<string, DifficultyTier>> = 
   strideCheckoutThreatModel: "normal",
   oidcDeploymentThreatModel: "hard",
   awsGuardDutyCloudTrailIamAudit: "hard",
+  awsCloudTrailLogIntegrityAudit: "hard",
   mlopsTrainingDatasetVersion: "normal",
   mlopsModelRegistryPromotionGate: "hard",
   iamBlankSecretsReadonly: "easy",

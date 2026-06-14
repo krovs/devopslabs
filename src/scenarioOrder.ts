@@ -66,6 +66,7 @@ export const scenarioOrderByGroup = {
   ],
   cloudSecurityAudit: [
     "awsGuardDutyCloudTrailIamAudit",
+    "awsCloudTrailLogIntegrityAudit",
   ],
   mlops: [
     "mlopsTrainingDatasetVersion",

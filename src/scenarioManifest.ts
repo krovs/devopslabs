@@ -342,6 +342,13 @@ export const scenarioManifest = [
     "path": "../scenarios/cloud-security-audit/aws-guardduty-cloudtrail-iam-audit.yaml"
   },
   {
+    "id": "awsCloudTrailLogIntegrityAudit",
+    "kind": "cloudsec",
+    "title": "AWS CloudTrail Log Integrity Audit",
+    "description": "GuardDuty detects the organization CloudTrail trail was stopped and restarted with log file validation, multi-region, and global service events disabled. Investigate the tampering and restore the approved integrity baseline.",
+    "path": "../scenarios/cloud-security-audit/aws-cloudtrail-log-integrity-audit.yaml"
+  },
+  {
     "id": "mlopsTrainingDatasetVersion",
     "kind": "mlops",
     "title": "MLOps Training Dataset Version",

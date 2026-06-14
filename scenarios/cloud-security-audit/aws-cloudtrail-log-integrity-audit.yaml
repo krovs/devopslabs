@@ -1,0 +1,201 @@
+id: awsCloudTrailLogIntegrityAudit
+kind: cloudsec
+title: AWS CloudTrail Log Integrity Audit
+description: Investigate GuardDuty Stealth:IAMUser/CloudTrailStopped finding where the organization CloudTrail trail had log file validation and multi-region disabled, then restore integrity controls.
+primaryFile: cloudtrail/config.json
+tips:
+  - Start with aws guardduty list-findings.
+  - Pull the finding details before changing the trail.
+  - Use CloudTrail lookup-events to find the StopLogging and UpdateTrail API calls.
+  - Use CloudWatch Logs to see who made the changes.
+  - Use AWS Config resource history to compare the previous approved trail configuration with the current tampered configuration.
+  - Edit cloudtrail/config.json to restore log file validation, multi-region, and include global service events.
+  - Run aws iam simulate-principal-policy to confirm the fix.
+files:
+  "cloudtrail/config.json": |
+    {
+      "Name": "org-cloudtrail",
+      "S3BucketName": "org-cloudtrail-logs",
+      "S3KeyPrefix": "AWSLogs/",
+      "EnableLogFileValidation": false,
+      "IsMultiRegionTrail": false,
+      "IncludeGlobalServiceEvents": false,
+      "IsOrganizationTrail": true,
+      "CloudWatchLogsLogGroupArn": "arn:aws:logs:us-east-1:123456789012:log-group:/aws/cloudtrail/org-trail:*",
+      "CloudWatchLogsRoleArn": "arn:aws:iam::123456789012:role/CloudTrailToCloudWatchLogs",
+      "KmsKeyId": "arn:aws:kms:us-east-1:123456789012:key/a1b2c3d4-5678-90ab-cdef-EXAMPLE11111",
+      "SnsTopicARN": "arn:aws:sns:us-east-1:123456789012:org-cloudtrail-alerts",
+      "Tags": []
+    }
+  "guardduty/finding.json": |
+    {
+      "Id": "gd-7e4a1b8c",
+      "Type": "Stealth:IAMUser/CloudTrailStopped",
+      "Severity": 8.6,
+      "Resource": "arn:aws:cloudtrail:us-east-1:123456789012:trail/org-cloudtrail",
+      "Service": {
+        "Action": {
+          "AwsApiCallAction": {
+            "Api": "UpdateTrail",
+            "ServiceName": "cloudtrail.amazonaws.com",
+            "RemoteIpDetails": {
+              "IpAddressV4": "203.0.113.42",
+              "Country": "Exampleland"
+            }
+          }
+        }
+      }
+    }
+  "cloudtrail/events.json": |
+    [
+      {
+        "eventTime": "2026-06-10T02:14:33Z",
+        "eventSource": "cloudtrail.amazonaws.com",
+        "eventName": "StopLogging",
+        "userIdentity": "arn:aws:iam::123456789012:user/deploy-bot",
+        "requestParameters": {
+          "name": "org-cloudtrail"
+        }
+      },
+      {
+        "eventTime": "2026-06-10T02:16:18Z",
+        "eventSource": "cloudtrail.amazonaws.com",
+        "eventName": "UpdateTrail",
+        "userIdentity": "arn:aws:iam::123456789012:user/deploy-bot",
+        "requestParameters": {
+          "name": "org-cloudtrail",
+          "enableLogFileValidation": false,
+          "isMultiRegionTrail": false,
+          "includeGlobalServiceEvents": false
+        }
+      },
+      {
+        "eventTime": "2026-06-10T02:17:05Z",
+        "eventSource": "cloudtrail.amazonaws.com",
+        "eventName": "StartLogging",
+        "userIdentity": "arn:aws:iam::123456789012:user/deploy-bot",
+        "requestParameters": {
+          "name": "org-cloudtrail"
+        }
+      }
+    ]
+  "config/timeline.json": |
+    [
+      {
+        "configurationItemCaptureTime": "2026-06-09T14:22:01Z",
+        "resourceType": "AWS::CloudTrail::Trail",
+        "resourceName": "org-cloudtrail",
+        "changedBy": null,
+        "changeSummary": "Approved baseline configuration",
+        "previousConfig": null,
+        "currentConfig": {
+          "enableLogFileValidation": true,
+          "isMultiRegionTrail": true,
+          "includeGlobalServiceEvents": true,
+          "isOrganizationTrail": true,
+          "cloudWatchLogsLogGroupArn": "arn:aws:logs:us-east-1:123456789012:log-group:/aws/cloudtrail/org-trail:*",
+          "kmsKeyId": "arn:aws:kms:us-east-1:123456789012:key/a1b2c3d4-5678-90ab-cdef-EXAMPLE11111"
+        }
+      },
+      {
+        "configurationItemCaptureTime": "2026-06-10T02:18:42Z",
+        "resourceType": "AWS::CloudTrail::Trail",
+        "resourceName": "org-cloudtrail",
+        "changedBy": "arn:aws:iam::123456789012:user/deploy-bot",
+        "changeSummary": "Trail tampered: log file validation disabled, multi-region turned off, global service events excluded",
+        "previousConfig": {
+          "enableLogFileValidation": true,
+          "isMultiRegionTrail": true,
+          "includeGlobalServiceEvents": true
+        },
+        "currentConfig": {
+          "enableLogFileValidation": false,
+          "isMultiRegionTrail": false,
+          "includeGlobalServiceEvents": false,
+          "actions": ["s3:*", "iam:PassRole"],
+          "resources": ["*"]
+        }
+      }
+    ]
+  "runbook.md": |
+    Goal:
+    - Investigate the GuardDuty Stealth finding and restore CloudTrail integrity controls.
+
+    Constraints:
+    - Do not disable GuardDuty, AWS Config, or CloudWatch Logs.
+    - Confirm the affected trail, API calls, and actor before restoring configuration.
+    - Restore log file validation, multi-region collection, and global service events.
+    - The trail must remain an organization trail with KMS encryption.
+    - Prove the corrected configuration passes validation.
+solution:
+  summary: |
+    GuardDuty detected that org-cloudtrail was stopped and restarted with log file validation disabled, multi-region turned off, and global service events excluded. CloudTrail lookup-events show deploy-bot executed StopLogging, UpdateTrail with weakened settings, and StartLogging. AWS Config confirms the approved baseline had all integrity controls enabled.
+  steps:
+    - Run aws guardduty list-findings to find the active Stealth finding.
+    - Run aws guardduty get-findings to inspect the trail, API, severity, and remote IP.
+    - Run aws cloudtrail lookup-events to identify the StopLogging, UpdateTrail, and StartLogging events by deploy-bot.
+    - Run aws logs filter-log-events to correlate the CloudTrail API event context.
+    - Run aws configservice get-resource-config-history to compare the approved baseline with the tampered configuration.
+    - Edit cloudtrail/config.json to restore EnableLogFileValidation: true, IsMultiRegionTrail: true, and IncludeGlobalServiceEvents: true.
+    - Run aws iam simulate-principal-policy and check the scenario.
+  explanation: |
+    CloudTrail log integrity depends on three controls: log file validation prevents undetected tampering of delivered log files; multi-region collection ensures all regions are monitored even after account expansion; and global service events capture IAM, STS, and CloudFront activity. An attacker who can stop and reconfigure the trail can blind security operations. Always alert on StopLogging and UpdateTrail API calls.
+  outcome: |
+    org-cloudtrail has log file validation enabled, multi-region collection turned on, global service events included, and the tampered trail is back to the approved security baseline.
+  focusFileName: cloudtrail/config.json
+  files:
+    "cloudtrail/config.json": |
+      {
+        "Name": "org-cloudtrail",
+        "S3BucketName": "org-cloudtrail-logs",
+        "S3KeyPrefix": "AWSLogs/",
+        "EnableLogFileValidation": true,
+        "IsMultiRegionTrail": true,
+        "IncludeGlobalServiceEvents": true,
+        "IsOrganizationTrail": true,
+        "CloudWatchLogsLogGroupArn": "arn:aws:logs:us-east-1:123456789012:log-group:/aws/cloudtrail/org-trail:*",
+        "CloudWatchLogsRoleArn": "arn:aws:iam::123456789012:role/CloudTrailToCloudWatchLogs",
+        "KmsKeyId": "arn:aws:kms:us-east-1:123456789012:key/a1b2c3d4-5678-90ab-cdef-EXAMPLE11111",
+        "SnsTopicARN": "arn:aws:sns:us-east-1:123456789012:org-cloudtrail-alerts",
+        "Tags": []
+      }
+  commands:
+    - aws guardduty list-findings
+    - aws guardduty get-findings
+    - aws cloudtrail lookup-events
+    - aws logs filter-log-events
+    - aws configservice get-resource-config-history
+    - aws iam simulate-principal-policy
+    - check
+backend:
+  bucket: cloud-security-audit
+  key: cloudtrail-log-integrity-audit
+  table: investigations
+  locked: false
+  lockId: null
+awsResources:
+  - type: guardduty_finding
+    name: gd-7e4a1b8c
+    id: Stealth:IAMUser/CloudTrailStopped
+    status: failed
+    note: org-cloudtrail was stopped and restarted with log validation and multi-region disabled.
+  - type: cloudtrail_trail
+    name: org-cloudtrail
+    id: arn:aws:cloudtrail:us-east-1:123456789012:trail/org-cloudtrail
+    status: failed
+    note: Log file validation, multi-region collection, and global service events are disabled.
+stateResources:
+  - address: guardduty.finding.gd-7e4a1b8c
+    id: active
+  - address: cloudtrail.trail.org-cloudtrail.validation
+    id: disabled
+  - address: cloudtrail.trail.org-cloudtrail.multi-region
+    id: disabled
+  - address: cloudtrail.trail.org-cloudtrail.global-services
+    id: disabled
+flags:
+  initialized: false
+  validationPassed: false
+  securityPassed: false
+  cleanPlan: false
+  cloudsecValidated: false

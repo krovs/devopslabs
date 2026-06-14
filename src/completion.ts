@@ -148,7 +148,7 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
     if (!runtime.flags.initialized) return ["Not complete: start from the GuardDuty finding list."];
     if (!runtime.flags.validationPassed) return ["Not complete: inspect GuardDuty, CloudTrail, and CloudWatch Logs before changing IAM."];
     if (!runtime.flags.cleanPlan) return ["Not complete: inspect AWS Config resource history for the policy change."];
-    if (!cloudsecFixApplied(runtime, scenarioId)) return ["Not complete: DeveloperSupportRole still has broad S3 or iam:PassRole access."];
+    if (!cloudsecFixApplied(runtime, scenarioId)) return ["Not complete: the security configuration is not yet corrected. Review the investigation trail and fix the configuration."];
     if (!runtime.flags.securityPassed) return ["Not complete: run IAM simulation after narrowing the policy."];
     markCloudsecScenarioSolved(runtime);
     return ["Scenario complete."];
