@@ -16,9 +16,9 @@
   <section class="workspace">
     <section class="panel editor-panel">
       <div class="panel-header">
-        <h2>{app.view.scenarioLoadError ? "Scenario failed to load" : "Loading lab"}</h2>
+        <h2>{app.view.scenarioLoadError ? "Scenario failed to load" : "Loading lab…"}</h2>
       </div>
-      <p>{app.view.scenarioLoadError ?? "Loading scenario content."}</p>
+      <p>{app.view.scenarioLoadError ?? "Loading scenario content…"}</p>
     </section>
   </section>
 {:else if app.view.runtime.kind === "networking" && app.view.runtime.networking}

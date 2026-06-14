@@ -158,7 +158,7 @@
 
   <div class="menu-logo-row">
     <button type="button" class="menu-logo-button" aria-label="Open lab index" onclick={onopenindex}>
-      <img class="menu-logo" src={sidebarLogo} alt="" />
+      <img class="menu-logo" src={sidebarLogo} width="118" height="118" alt="" />
     </button>
   </div>
 
@@ -195,7 +195,9 @@
               <input
                 bind:this={searchInputElement}
                 value={menuSearchQuery}
-                placeholder="Search labs"
+                name="lab-search"
+                aria-label="Search labs"
+                placeholder="Search labs…"
                 autocomplete="off"
                 spellcheck="false"
                 oninput={(event) => onsearchchange(event.currentTarget.value)}
@@ -288,7 +290,7 @@
 
   <footer class="menu-footer">
     <a class="menu-repo-link" href="https://krovs.dev" target="_blank" rel="noreferrer">
-      <img class="menu-footer-icon" src={footerFern} alt="" />krovs@2026
+      <img class="menu-footer-icon" src={footerFern} width="28" height="28" alt="" />krovs@2026
     </a>
     <a class="menu-github-link" href="https://github.com/krovs/devopslabs" target="_blank" rel="noreferrer" aria-label="Open GitHub repository">
       <LogoGithub size={20} aria-hidden="true" />

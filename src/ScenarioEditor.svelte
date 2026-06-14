@@ -42,6 +42,8 @@
   {/if}
   <textarea
     value={content}
+    name="scenario-file-content"
+    aria-label={`Edit ${activeFileName}`}
     spellcheck="false"
     oninput={(event) => oncontentchange(event.currentTarget.value)}
     onkeydown={oneditorkeydown}

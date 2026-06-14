@@ -60,6 +60,8 @@
     <input
       bind:this={inputElement}
       value={input}
+      name="terminal-command"
+      aria-label="Terminal command"
       autocomplete="off"
       spellcheck="false"
       oninput={(event) => oninputchange(event.currentTarget.value)}

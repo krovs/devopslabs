@@ -146,12 +146,19 @@ body.cyberpunk-mode {
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: light dark;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  touch-action: manipulation;
+  font: 14px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 button,
@@ -163,20 +170,36 @@ textarea {
 
 button,
 select {
-  border: 1px solid var(--line);
-  background: var(--control-bg);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  background: color-mix(in srgb, var(--control-bg) 76%, transparent);
   color: var(--text);
-  border-radius: 6px;
-  min-height: 34px;
+  border-radius: 5px;
+  min-height: 32px;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
 button {
   cursor: pointer;
-  padding: 0 12px;
+  padding: 0 10px;
 }
 
 select {
   padding: 0 36px 0 10px;
+}
+
+button:hover,
+select:hover {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+  background: color-mix(in srgb, var(--control-bg) 82%, var(--accent) 6%);
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  outline-offset: 2px;
 }
 
 .menu-backdrop {
@@ -187,6 +210,12 @@ select {
   padding: 0;
   border: 0;
   border-radius: 0;
+  background: rgb(17 17 27 / 0.72);
+}
+
+.menu-backdrop:hover,
+.menu-backdrop:focus-visible {
+  outline: 0;
   background: rgb(17 17 27 / 0.72);
 }
 
@@ -209,12 +238,13 @@ select {
   flex-direction: column;
   gap: 14px;
   width: min(360px, calc(100vw - 24px));
-  height: 100vh;
-  padding: 16px;
+  height: 100dvh;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   border-right: 1px solid var(--line);
   background: var(--panel);
   box-shadow: 20px 0 45px rgb(17 17 27 / 0.42);
   overflow: hidden;
+  overscroll-behavior: contain;
   transform: translateX(-105%);
   transition: transform 160ms ease;
 }
@@ -340,6 +370,12 @@ select {
   background: transparent;
 }
 
+.menu-logo-button:hover,
+.menu-logo-button:focus-visible {
+  border-color: transparent;
+  background: transparent;
+}
+
 .menu-logo {
   display: block;
   width: 118px;
@@ -433,6 +469,7 @@ select {
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .lab-menu-section {
@@ -501,6 +538,10 @@ select {
   border-color: var(--accent);
   background: var(--control-bg);
   box-shadow: none;
+}
+
+.menu-search input:focus-visible {
+  outline: 0;
 }
 
 .menu-search-button {
@@ -1015,6 +1056,8 @@ select {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 @media (max-width: 1180px) {
@@ -1080,9 +1123,9 @@ select {
 .app-shell {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) var(--terminal-height, 260px);
-  gap: 12px;
-  height: 100vh;
-  padding: 12px;
+  gap: 10px;
+  height: 100dvh;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
 }
 
 .app-shell.index-page {
@@ -1141,17 +1184,17 @@ select {
 
 .topbar,
 .panel {
-  border: 1px solid var(--line);
-  background: var(--panel);
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  background: color-mix(in srgb, var(--panel) 86%, transparent);
+  border-radius: 6px;
 }
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 16px;
-  padding: 14px 16px;
+  gap: 12px;
+  padding: 10px 12px;
 }
 
 .app-shell.index-page .topbar {
@@ -1204,7 +1247,7 @@ select {
   flex: 0 1 auto;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
 }
 
 .hamburger-button {
@@ -1246,7 +1289,7 @@ select {
   display: flex;
   flex-direction: column;
   width: min(640px, calc(100vw - 32px));
-  max-height: min(720px, calc(100vh - 32px));
+  max-height: min(720px, calc(100dvh - 32px));
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--line));
   border-radius: 8px;
@@ -1274,7 +1317,7 @@ select {
   display: flex;
   flex-direction: column;
   width: min(960px, calc(100vw - 40px));
-  height: min(880px, calc(100vh - 40px));
+  height: min(880px, calc(100dvh - 40px));
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
   border-radius: 8px;
@@ -1398,11 +1441,13 @@ p {
 h1 {
   font-size: 20px;
   font-weight: 700;
+  text-wrap: balance;
 }
 
 h2 {
   font-size: 14px;
   font-weight: 700;
+  text-wrap: balance;
 }
 
 h3 {
@@ -1415,7 +1460,7 @@ h3 {
 .workspace {
   display: grid;
   grid-template-columns: minmax(320px, 1fr) minmax(360px, 1fr);
-  gap: 12px;
+  gap: 10px;
   min-height: 0;
 }
 
@@ -1431,19 +1476,19 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 42px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--line);
+  min-height: 36px;
+  padding: 7px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
 }
 
 .editor-panel {
-  border-color: var(--editor-border);
+  border-color: color-mix(in srgb, var(--editor-border) 72%, transparent);
   background: var(--editor-bg);
 }
 
 .editor-panel .panel-header {
-  border-bottom-color: var(--editor-border);
-  background: var(--editor-header-bg);
+  border-bottom-color: color-mix(in srgb, var(--editor-border) 72%, transparent);
+  background: color-mix(in srgb, var(--editor-header-bg) 82%, transparent);
 }
 
 .editor-panel h2 {
@@ -1458,22 +1503,22 @@ h3 {
 
 .file-tabs {
   display: flex;
-  gap: 4px;
-  min-height: 38px;
-  padding: 6px 8px 0;
+  gap: 2px;
+  min-height: 34px;
+  padding: 4px 6px 0;
   overflow-x: auto;
-  border-bottom: 1px solid var(--editor-border);
-  background: var(--editor-header-bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--editor-border) 72%, transparent);
+  background: color-mix(in srgb, var(--editor-header-bg) 82%, transparent);
 }
 
 .file-tabs button {
-  min-height: 31px;
+  min-height: 29px;
   max-width: 220px;
   overflow: hidden;
   border-color: transparent;
   border-bottom: 0;
-  border-radius: 6px 6px 0 0;
-  background: var(--tab-bg);
+  border-radius: 5px 5px 0 0;
+  background: transparent;
   color: var(--tab-text);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1485,9 +1530,9 @@ h3 {
 }
 
 .file-tabs button.active {
-  border-color: var(--editor-border);
-  border-top: 2px solid var(--accent);
-  background: var(--editor-bg);
+  border-color: color-mix(in srgb, var(--editor-border) 72%, transparent);
+  border-top: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--editor-bg) 88%, var(--accent) 4%);
   color: var(--tab-active-text);
   font-weight: 700;
 }
@@ -1498,11 +1543,15 @@ h3 {
   resize: none;
   border: 0;
   outline: 0;
-  padding: 14px;
+  padding: 12px;
   color: var(--editor-text);
   background: var(--editor-bg);
   caret-color: var(--editor-caret);
   font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.editor-panel textarea:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 42%, transparent);
 }
 
 .editor-panel textarea::selection {
@@ -1513,9 +1562,9 @@ h3 {
 .resource-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 10px;
   min-height: 0;
-  padding: 12px;
+  padding: 10px;
   overflow: auto;
 }
 
@@ -1526,19 +1575,19 @@ h3 {
 .pipeline-dashboard {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
   min-height: 0;
-  padding: 12px;
+  padding: 10px;
   overflow: auto;
 }
 
 .pipeline-card {
   min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--table-bg);
-  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--table-bg) 88%, transparent);
+  padding: 10px;
 }
 
 .run-card {
@@ -1571,13 +1620,15 @@ h3 {
 
 .kv-grid dt {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .kv-grid dd {
   margin: 2px 0 0;
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 .pipeline-log {
@@ -1585,7 +1636,7 @@ h3 {
   margin: 0;
   padding: 10px;
   overflow: auto;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
   border-radius: 6px;
   background: var(--terminal);
   color: var(--terminal-text);
@@ -1602,22 +1653,22 @@ h3 {
 .pill {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 3px 9px;
+  min-height: 24px;
+  padding: 2px 8px;
   border-radius: 999px;
-  background: var(--warn-bg);
+  background: color-mix(in srgb, var(--warn-bg) 72%, transparent);
   color: var(--warn);
   font-size: 12px;
   font-weight: 700;
 }
 
 .pill-ok {
-  background: var(--ok-bg);
+  background: color-mix(in srgb, var(--ok-bg) 72%, transparent);
   color: var(--ok);
 }
 
 .pill-danger {
-  background: var(--danger-bg);
+  background: color-mix(in srgb, var(--danger-bg) 72%, transparent);
   color: var(--danger);
 }
 
@@ -1713,10 +1764,10 @@ h3 {
 .pr-selected-summary {
   display: grid;
   gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--table-bg);
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--table-bg) 88%, transparent);
 }
 
 .pr-summary p {
@@ -1845,29 +1896,29 @@ th {
 
 .badge {
   display: inline-block;
-  padding: 2px 7px;
+  padding: 2px 6px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .badge-ok {
-  background: var(--ok-bg);
+  background: color-mix(in srgb, var(--ok-bg) 72%, transparent);
   color: var(--ok);
 }
 
 .badge-warn {
-  background: var(--warn-bg);
+  background: color-mix(in srgb, var(--warn-bg) 72%, transparent);
   color: var(--warn);
 }
 
 .badge-neutral {
-  background: var(--control-bg);
+  background: color-mix(in srgb, var(--control-bg) 72%, transparent);
   color: var(--muted);
 }
 
 .badge-danger {
-  background: var(--danger-bg);
+  background: color-mix(in srgb, var(--danger-bg) 72%, transparent);
   color: var(--danger);
 }
 
@@ -1877,16 +1928,16 @@ th {
 }
 
 .terminal-resize-handle {
-  flex: 0 0 11px;
-  min-height: 11px;
+  flex: 0 0 8px;
+  min-height: 8px;
   width: 100%;
   padding: 0;
   cursor: row-resize;
   border: 0;
   border-radius: 0;
-  border-bottom: 1px solid var(--terminal-line);
+  border-bottom: 1px solid color-mix(in srgb, var(--terminal-line) 68%, transparent);
   background:
-    linear-gradient(90deg, transparent, var(--terminal-handle), transparent) center / 56px 2px no-repeat,
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--terminal-handle) 55%, transparent), transparent) center / 42px 1px no-repeat,
     var(--terminal);
 }
 
@@ -2507,6 +2558,10 @@ th {
   font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+.terminal-panel input:focus-visible {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 62%, transparent);
+}
+
 .wiki-layout {
   display: grid;
   grid-template-columns: 220px minmax(0, 860px);
@@ -2712,7 +2767,7 @@ th {
   .app-shell {
     grid-template-rows: auto minmax(520px, 1fr) var(--terminal-height, 240px);
     height: auto;
-    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .app-shell.index-page,
@@ -2722,7 +2777,7 @@ th {
 
   .docs-window {
     width: calc(100vw - 16px);
-    height: calc(100vh - 16px);
+    height: calc(100dvh - 16px);
   }
 
   .app-shell.network-page {

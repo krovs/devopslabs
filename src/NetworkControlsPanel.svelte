@@ -170,7 +170,9 @@
         {#if control.inputType === "text"}
           <input
             value={control.value}
-            placeholder={control.placeholder ?? "CIDR or IP address"}
+            name={`network-control-${control.id}`}
+            autocomplete="off"
+            placeholder={control.placeholder ?? "CIDR or IP address…"}
             spellcheck="false"
             oninput={(event) => onupdatecontrol(control.id, event.currentTarget.value.trim())}
           >

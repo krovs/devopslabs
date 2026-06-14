@@ -24,5 +24,5 @@ export function pageHeading({
 }
 
 export function pageSubheading({ page, incidentMode, solved, runtime }: PageChromeOptions): string {
-  return runtime ? getPageDescription(page, incidentMode, solved, runtime) : "Loading scenario content.";
+  return runtime ? getPageDescription(page, incidentMode, solved, runtime) : "Loading scenario content…";
 }

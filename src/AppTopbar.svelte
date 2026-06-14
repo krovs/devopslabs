@@ -48,7 +48,7 @@
   <div class="topbar-title">
     <h1>
       {#if currentPage === "index"}
-        <img class="topbar-title-icon" src={octopusIcon} alt="" />
+        <img class="topbar-title-icon" src={octopusIcon} width="32" height="32" alt="" />
       {/if}
       <span>{heading}</span>
     </h1>

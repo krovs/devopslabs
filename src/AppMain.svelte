@@ -26,7 +26,7 @@
     menuOpen={app.appShell.isMenuOpen}
     solved={app.view.solved}
     healthClass={app.view.runtime ? labHealthClass(app.view.solved, app.view.runtime) : "badge badge-warn"}
-    healthLabel={app.view.runtime ? labHealthLabel(app.view.solved, app.view.runtime) : "Loading"}
+    healthLabel={app.view.runtime ? labHealthLabel(app.view.solved, app.view.runtime) : "Loading…"}
     incidentMode={app.view.incidentMode}
     onopenmenu={() => {
       if (app.view.currentPage === "labs") app.appShell.openMenuForScenario(app.view.currentScenarioId);
