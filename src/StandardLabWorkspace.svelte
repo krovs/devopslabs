@@ -17,11 +17,22 @@
       activeFileName={app.view.activeFileName}
       fileNames={app.view.scenarioFileNames}
       content={app.view.activeFileContent}
+      dirty={app.editorSession.isActiveFileDirty}
+      filedirty={app.editorSession.isFileDirty}
       onsave={app.editorSession.saveCurrentFile}
       onselectfile={app.editorSession.selectFile}
       oncontentchange={app.editorSession.updateContent}
       oneditorkeydown={app.editorSession.handleKeydown}
     />
+
+    <button
+      type="button"
+      class="workspace-split-handle"
+      aria-label="Resize editor and resources panels"
+      title="Resize editor and resources panels"
+      onpointerdown={app.appShell.startWorkspaceResize}
+      onkeydown={app.appShell.resizeWorkspaceWithKeyboard}
+    ></button>
 
     <ScenarioResources
       runtime={app.view.runtime}

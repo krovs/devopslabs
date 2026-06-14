@@ -35,7 +35,9 @@ export function createAppInteractionSessions({
   commandSessionRef.current = commandSession;
 
   const editorSession = createEditorSession({
+    scenarioId: () => scenario.currentId,
     activeFileName: () => scenario.activeFileName,
+    files: () => scenario.runtime?.files ?? {},
     selectFile: scenario.selectFile,
     updateActiveFile: scenario.updateActiveFile,
     updateFiles: scenario.updateFiles,

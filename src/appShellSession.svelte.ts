@@ -1,8 +1,10 @@
 import {
+  clampWorkspaceEditorPercent,
   clampTerminalHeight,
   getInitialIncidentMode,
   getInitialOpenMenuGroups,
   getInitialTerminalHeight,
+  getInitialWorkspaceEditorPercent,
   getInitialTheme,
   type AppPage,
   type ThemeName,
@@ -18,13 +20,16 @@ export function createAppShellSession(options: AppShellSessionOptions) {
   let theme = $state<ThemeName>(getInitialTheme());
   let incidentMode = $state(getInitialIncidentMode());
   let terminalHeight = $state(getInitialTerminalHeight(clampTerminalHeight));
+  let workspaceEditorPercent = $state(getInitialWorkspaceEditorPercent(clampWorkspaceEditorPercent));
   let isResizingTerminal = $state(false);
+  let isResizingWorkspace = $state(false);
   let isMenuOpen = $state(false);
   let isDocsOpen = $state(false);
   let menuSearchQuery = $state("");
   let openMenuGroups = $state<MenuGroupId[]>(getInitialOpenMenuGroups(options.initialScenarioId, options.scenarioMenuGroup));
   let highlightedMenuGroup = $state<MenuGroupId | null>(null);
   let currentPage = $state<AppPage>("index");
+  let workspaceResizeRect: DOMRect | null = null;
 
   $effect(() => {
     document.body.classList.toggle("dark-mode", theme === "mocha");
@@ -39,10 +44,21 @@ export function createAppShellSession(options: AppShellSessionOptions) {
     localStorage.setItem("terraform-sim-terminal-height", String(terminalHeight));
   }
 
+  function persistWorkspaceEditorPercent(): void {
+    localStorage.setItem("terraform-sim-workspace-editor-percent", String(workspaceEditorPercent));
+  }
+
   function resizeTerminal(event: PointerEvent): void {
     if (!isResizingTerminal) return;
     terminalHeight = clampTerminalHeight(window.innerHeight - event.clientY - 12);
     persistTerminalHeight();
+  }
+
+  function resizeWorkspace(event: PointerEvent): void {
+    if (!isResizingWorkspace || !workspaceResizeRect) return;
+    const nextPercent = ((event.clientX - workspaceResizeRect.left) / workspaceResizeRect.width) * 100;
+    workspaceEditorPercent = clampWorkspaceEditorPercent(nextPercent);
+    persistWorkspaceEditorPercent();
   }
 
   return {
@@ -55,8 +71,14 @@ export function createAppShellSession(options: AppShellSessionOptions) {
     get terminalHeight() {
       return terminalHeight;
     },
+    get workspaceEditorPercent() {
+      return workspaceEditorPercent;
+    },
     get isResizingTerminal() {
       return isResizingTerminal;
+    },
+    get isResizingWorkspace() {
+      return isResizingWorkspace;
     },
     get isMenuOpen() {
       return isMenuOpen;
@@ -156,8 +178,20 @@ export function createAppShellSession(options: AppShellSessionOptions) {
       resizeTerminal(event);
     },
     resizeTerminal,
+    startWorkspaceResize(event: PointerEvent): void {
+      const workspace = (event.currentTarget as HTMLElement).closest<HTMLElement>(".workspace");
+      if (!workspace) return;
+      workspaceResizeRect = workspace.getBoundingClientRect();
+      isResizingWorkspace = true;
+      resizeWorkspace(event);
+    },
+    resizeWorkspace,
     stopTerminalResize(): void {
       isResizingTerminal = false;
+    },
+    stopWorkspaceResize(): void {
+      isResizingWorkspace = false;
+      workspaceResizeRect = null;
     },
     resizeTerminalWithKeyboard(event: KeyboardEvent): void {
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
@@ -166,6 +200,14 @@ export function createAppShellSession(options: AppShellSessionOptions) {
       const delta = event.key === "ArrowUp" ? 20 : -20;
       terminalHeight = clampTerminalHeight(terminalHeight + delta);
       persistTerminalHeight();
+    },
+    resizeWorkspaceWithKeyboard(event: KeyboardEvent): void {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+
+      event.preventDefault();
+      const delta = event.key === "ArrowRight" ? 2 : -2;
+      workspaceEditorPercent = clampWorkspaceEditorPercent(workspaceEditorPercent + delta);
+      persistWorkspaceEditorPercent();
     },
   };
 }

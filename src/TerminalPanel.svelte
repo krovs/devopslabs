@@ -8,7 +8,7 @@
     oncommandkeydown: (event: KeyboardEvent) => void;
     onresizepointerdown: (event: PointerEvent) => void;
     onresizekeydown: (event: KeyboardEvent) => void;
-    outputref: (element: HTMLPreElement) => void;
+    outputref: (element: HTMLDivElement) => void;
     inputref: (element: HTMLInputElement) => void;
   }
 
@@ -25,7 +25,7 @@
     inputref,
   }: Props = $props();
 
-  let outputElement = $state<HTMLPreElement>();
+  let outputElement = $state<HTMLDivElement>();
   let inputElement = $state<HTMLInputElement>();
 
   $effect(() => {
@@ -40,6 +40,30 @@
     event.preventDefault();
     onrun();
   }
+
+  function terminalLineClass(line: string): string {
+    const normalized = line.trim().toLowerCase();
+    if (line.startsWith("$ ")) return "terminal-line terminal-line-command";
+    if (
+      normalized.startsWith("error") ||
+      normalized.includes(" failed") ||
+      normalized.startsWith("failed") ||
+      normalized.startsWith("not complete") ||
+      normalized.includes("invalid")
+    ) return "terminal-line terminal-line-error";
+    if (normalized.startsWith("warning") || normalized.startsWith("warn") || normalized.includes("blocked")) {
+      return "terminal-line terminal-line-warn";
+    }
+    if (
+      normalized.startsWith("pass") ||
+      normalized.includes("success") ||
+      normalized.includes("complete") ||
+      normalized.includes("successfully") ||
+      normalized.includes("no changes") ||
+      normalized.includes("passed")
+    ) return "terminal-line terminal-line-success";
+    return "terminal-line";
+  }
 </script>
 
 <section class="panel terminal-panel" role="application">
@@ -52,9 +76,17 @@
   ></button>
   <div class="panel-header">
     <h2>Terminal</h2>
-    <button type="button" onclick={onclear}>Clear</button>
+    <button type="button" disabled={!lines.length} onclick={onclear}>Clear</button>
   </div>
-  <pre bind:this={outputElement} aria-live="polite">{lines.join("\n")}</pre>
+  <div class="terminal-output" bind:this={outputElement} aria-live="polite">
+    {#if lines.length}
+      {#each lines as line}
+        <code class={terminalLineClass(line)}>{line || " "}</code>
+      {/each}
+    {:else}
+      <p class="terminal-empty">Type help to list available commands.</p>
+    {/if}
+  </div>
   <form onsubmit={submitCommand}>
     <span>$</span>
     <input

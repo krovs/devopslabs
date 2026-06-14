@@ -12,7 +12,7 @@
   let { app }: Props = $props();
 </script>
 
-{#if app.view.scenarioLoading || !app.view.runtime}
+{#if !app.view.runtime}
   <section class="workspace">
     <section class="panel editor-panel">
       <div class="panel-header">

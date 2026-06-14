@@ -13,7 +13,7 @@ export function createTerminalSession(options: TerminalSessionOptions) {
   let input = $state("");
   let commandHistory = $state<string[]>(options.commandHistory);
   let historyIndex = $state(-1);
-  let outputElement = $state<HTMLPreElement | undefined>();
+  let outputElement = $state<HTMLDivElement | undefined>();
   let inputElement = $state<HTMLInputElement | undefined>();
 
   async function scroll(): Promise<void> {
@@ -38,7 +38,7 @@ export function createTerminalSession(options: TerminalSessionOptions) {
     get commandHistory() {
       return commandHistory;
     },
-    setOutputElement(element: HTMLPreElement): void {
+    setOutputElement(element: HTMLDivElement): void {
       outputElement = element;
     },
     setInputElement(element: HTMLInputElement): void {

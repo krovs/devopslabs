@@ -71,9 +71,19 @@ export function getInitialTerminalHeight(clampTerminalHeight: (height: number) =
   return 260;
 }
 
+export function getInitialWorkspaceEditorPercent(clampWorkspaceEditorPercent: (percent: number) => number): number {
+  const savedPercent = Number(localStorage.getItem("terraform-sim-workspace-editor-percent"));
+  if (Number.isFinite(savedPercent) && savedPercent > 0) return clampWorkspaceEditorPercent(savedPercent);
+  return 50;
+}
+
 export function clampTerminalHeight(height: number): number {
   const maxHeight = Math.max(220, Math.floor(window.innerHeight * 0.72));
   return Math.min(maxHeight, Math.max(150, height));
+}
+
+export function clampWorkspaceEditorPercent(percent: number): number {
+  return Math.min(72, Math.max(32, percent));
 }
 
 export function getResourcePanelTitles(kind: Scenario["kind"]): { left: string; right: string } {

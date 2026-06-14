@@ -13,11 +13,21 @@
     if (!(event.target as HTMLElement | null)?.closest(".terminal-panel")) return;
     window.setTimeout(() => terminal.focusInput(), 0);
   }
+
+  function handlePointerMove(event: PointerEvent): void {
+    appShell.resizeTerminal(event);
+    appShell.resizeWorkspace(event);
+  }
+
+  function handlePointerUp(): void {
+    appShell.stopTerminalResize();
+    appShell.stopWorkspaceResize();
+  }
 </script>
 
 <svelte:window
   onpointerdown={handlePointerDown}
-  onpointermove={appShell.resizeTerminal}
-  onpointerup={appShell.stopTerminalResize}
+  onpointermove={handlePointerMove}
+  onpointerup={handlePointerUp}
   onkeydown={appShell.handleGlobalKeydown}
 />

@@ -55,11 +55,11 @@
   </div>
   {#if runtime.kind === "cicd" && workflowResource}
     <div class="pipeline-dashboard">
-      <article class="pipeline-card run-card">
-        <div class="card-title-row">
+      <section class="resource-section run-card">
+        <header class="resource-section-header">
           <h3>Workflow Run</h3>
           <span class={statusClass(workflowResource.status)}>{workflowResource.status}</span>
-        </div>
+        </header>
         <dl class="kv-grid">
           <div>
             <dt>Workflow</dt>
@@ -79,34 +79,38 @@
           </div>
         </dl>
         <p class="muted">{workflowResource.note}</p>
-      </article>
+      </section>
 
-      <article class="pipeline-card">
-        <div class="card-title-row">
+      <section class="resource-section">
+        <header class="resource-section-header">
           <h3>{runtime.flags.runPassing ? "Completed Steps" : "Failed Step"}</h3>
           <span class={runtime.flags.runPassing ? "badge badge-ok" : "badge badge-danger"}>
             {workflowFailedStep}
           </span>
-        </div>
+        </header>
         <pre class="pipeline-log">{workflowLogLines.join("\n")}</pre>
-      </article>
+      </section>
 
-      <article class="pipeline-card">
+      <section class="resource-section">
         {#if repositoryCredentials.length}
-          <h3>Credentials</h3>
-          <div class="path-list">
+          <header class="resource-section-header">
+            <h3>Credentials</h3>
+          </header>
+          <div class="resource-list">
             {#each repositoryCredentials as credential}
-              <div class="path-row">
+              <div class="resource-row">
                 <code>{credential.address.replace("credential.", "")}</code>
                 <span class="badge badge-ok">{credential.id}</span>
               </div>
             {/each}
           </div>
         {:else}
-          <h3>Repository Secrets</h3>
-          <div class="pill-list">
+          <header class="resource-section-header">
+            <h3>Repository Secrets</h3>
+          </header>
+          <div class="resource-chip-list">
             {#if repositorySecrets.length === 0}
-              <span class="pill pill-danger">none</span>
+              <p class="resource-empty">No repository secrets configured.</p>
             {/if}
             {#each repositorySecrets as secret}
               <span class={secret.address === "secret.AWS_ROLE_ARN" ? "pill pill-ok" : "pill"}>
@@ -115,33 +119,37 @@
             {/each}
           </div>
         {/if}
-      </article>
+      </section>
 
-      <article class="pipeline-card">
-        <h3>Repository Paths</h3>
-        <div class="path-list">
+      <section class="resource-section">
+        <header class="resource-section-header">
+          <h3>Repository Paths</h3>
+        </header>
+        <div class="resource-list">
           {#if repositoryPaths.length === 0}
-            <p class="muted">No repository paths modeled for this lab.</p>
+            <p class="resource-empty">No repository paths modeled.</p>
           {/if}
           {#each repositoryPaths as path}
-            <div class="path-row">
+            <div class="resource-row">
               <code>{path.address.replace("path.", "")}</code>
               <span class={path.id === "missing" ? "badge badge-danger" : "badge badge-ok"}>{path.id}</span>
             </div>
           {/each}
         </div>
-      </article>
+      </section>
     </div>
   {:else}
     <div class="resource-grid">
-      <article>
-        <h3>{leftResourceTitle}</h3>
-        <table>
+      <section class="resource-section">
+        <header class="resource-section-header">
+          <h3>{leftResourceTitle}</h3>
+        </header>
+        <table class="resource-table">
           <thead>
             <tr>
               <th>Type</th>
               <th>Name</th>
-              <th>Status</th>
+              <th class="resource-status-column">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -149,35 +157,37 @@
               <tr>
                 <td>{resource.type}</td>
                 <td>{resource.name}<div class="muted">{resource.note || ""}</div></td>
-                <td><span class={statusClass(resource.status)}>{resource.status}</span></td>
+                <td class="resource-status-cell"><span class={statusClass(resource.status)}>{resource.status}</span></td>
               </tr>
             {/each}
           </tbody>
         </table>
-      </article>
+      </section>
 
-      <article>
-        <h3>{rightResourceTitle}</h3>
-        <table>
+      <section class="resource-section">
+        <header class="resource-section-header">
+          <h3>{rightResourceTitle}</h3>
+        </header>
+        <table class="resource-table">
           <thead>
             <tr>
               <th>Address</th>
-              <th>{stateIdentifierLabel}</th>
+              <th class="resource-value-column">{stateIdentifierLabel}</th>
             </tr>
           </thead>
           <tbody>
             {#if runtime.stateResources.length === 0}
-              <tr><td colspan="2">No resources tracked.</td></tr>
+              <tr class="resource-empty-row"><td colspan="2"><span class="resource-empty">No resources tracked.</span></td></tr>
             {/if}
             {#each runtime.stateResources as resource}
               <tr>
                 <td>{resource.address}</td>
-                <td>{resource.id}</td>
+                <td class="resource-value-cell">{resource.id}</td>
               </tr>
             {/each}
           </tbody>
         </table>
-      </article>
+      </section>
     </div>
   {/if}
   {#if !incidentMode && visibleTips.length}

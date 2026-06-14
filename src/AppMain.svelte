@@ -14,11 +14,13 @@
 
 <main
   class:is-resizing-terminal={app.appShell.isResizingTerminal}
+  class:is-resizing-workspace={app.appShell.isResizingWorkspace}
   class:index-page={app.view.currentPage === "index"}
   class:network-page={app.view.currentPage === "labs" && (app.view.runtime?.kind === "networking" || app.view.runtime?.kind === "threatmodel")}
   class:terminal-less-page={app.view.currentPage === "labs" && (app.view.runtime?.kind === "networking" || app.view.runtime?.kind === "threatmodel" || app.view.runtime?.kind === "pr")}
+  class:modal-open={Boolean(app.view.modalKind) || app.appShell.isDocsOpen}
   class="app-shell"
-  style={`--terminal-height: ${app.appShell.terminalHeight}px`}
+  style={`--terminal-height: ${app.appShell.terminalHeight}px; --workspace-editor-width: ${app.appShell.workspaceEditorPercent}%`}
 >
   <AppTopbar
     currentPage={app.view.currentPage}
