@@ -1,4 +1,5 @@
 import type { createAppShellSession } from "./appShellSession.svelte";
+import { pushRoute } from "./appRouter";
 import type { createLabMenuFilters } from "./labMenuFilters";
 import type { createLabProgress } from "./labProgress.svelte";
 import type { MenuGroupId } from "./labCatalog";
@@ -71,6 +72,7 @@ export function createScenarioNavigation(options: ScenarioNavigationOptions) {
     selectScenario(id: string): void {
       void load(id, { restoreSavedSession: true, persist: false });
       options.appShell.openScenario();
+      pushRoute({ page: "labs", scenarioId: id });
     },
     selectRandomScenario(): void {
       options.appShell.setIncidentMode(true);
@@ -85,12 +87,14 @@ export function createScenarioNavigation(options: ScenarioNavigationOptions) {
 
       void load(randomId);
       options.appShell.openScenario();
+      pushRoute({ page: "labs", scenarioId: randomId });
     },
     openDocs(): void {
       options.appShell.openDocs();
     },
     openLabs(): void {
       options.appShell.openLabs();
+      pushRoute({ page: "index" });
     },
     openLabGroup(group: MenuGroupId): void {
       options.appShell.openLabGroup(group);

@@ -14,8 +14,8 @@ import { createScenarioSession } from "./scenarioSession.svelte";
 export type AppController = ReturnType<typeof createAppController>;
 
 export function createAppController() {
-  const { confettiColors, initialScenarioId, labGroups, labMenuFilters, savedSession } = createAppBootstrap(scenarios);
-  const appShell = createAppShellSession({ initialScenarioId, scenarioMenuGroup: labMenuFilters.scenarioMenuGroup });
+  const { confettiColors, initialPage, initialScenarioId, labGroups, labMenuFilters, savedSession } = createAppBootstrap(scenarios);
+  const appShell = createAppShellSession({ initialScenarioId, initialPage, scenarioMenuGroup: labMenuFilters.scenarioMenuGroup });
   const initialIncidentMode = appShell.incidentMode;
   const scenario = createScenarioSession({
     initialScenarioId,

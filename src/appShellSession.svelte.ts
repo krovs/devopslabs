@@ -13,6 +13,7 @@ import type { MenuGroupId } from "./labCatalog";
 
 export type AppShellSessionOptions = {
   initialScenarioId: string;
+  initialPage: AppPage;
   scenarioMenuGroup: (id: string) => MenuGroupId;
 };
 
@@ -28,7 +29,7 @@ export function createAppShellSession(options: AppShellSessionOptions) {
   let menuSearchQuery = $state("");
   let openMenuGroups = $state<MenuGroupId[]>(getInitialOpenMenuGroups(options.initialScenarioId, options.scenarioMenuGroup));
   let highlightedMenuGroup = $state<MenuGroupId | null>(null);
-  let currentPage = $state<AppPage>("index");
+  let currentPage = $state<AppPage>(options.initialPage ?? "index");
   let workspaceResizeRect: DOMRect | null = null;
 
   $effect(() => {

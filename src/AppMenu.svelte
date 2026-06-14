@@ -99,12 +99,29 @@
     ontogglegroup(groupId);
     if (wasOpen) return;
 
+    await scrollToGroup(groupId);
+  }
+
+  async function scrollToGroup(groupId: MenuGroupId): Promise<void> {
     await tick();
     await new Promise((resolve) => requestAnimationFrame(resolve));
-    menuListElement
-      ?.querySelector<HTMLElement>(`[data-menu-group-id="${groupId}"]`)
-      ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const el = menuListElement
+      ?.querySelector<HTMLElement>(`[data-menu-group-id="${groupId}"]`);
+    if (el) {
+      const listRect = menuListElement!.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const scrollBy = elRect.bottom - listRect.bottom + 12;
+      if (scrollBy > 0) {
+        menuListElement!.scrollBy({ top: scrollBy, behavior: "smooth" });
+      }
+    }
   }
+
+  $effect(() => {
+    if (open && highlightedMenuGroup) {
+      void scrollToGroup(highlightedMenuGroup);
+    }
+  });
 
   async function openSearch(): Promise<void> {
     searchExpanded = true;

@@ -1,3 +1,4 @@
+import { parseRoute, replaceRoute, type Route } from "./appRouter";
 import { buildLabGroups, type ScenarioCatalogItem } from "./labCatalog";
 import { createLabMenuFilters } from "./labMenuFilters";
 import { getSavedSession } from "./runtimeSession";
@@ -9,10 +10,22 @@ export function createAppBootstrap(scenarios: Record<string, ScenarioCatalogItem
   const labGroups = buildLabGroups(scenarios);
   const labMenuFilters = createLabMenuFilters({ scenarios, labGroups });
   const savedSession = getSavedSession(scenarioIds);
-  const initialScenarioId = savedSession?.scenarioId ?? scenarioIds[0];
+  const route = parseRoute(window.location.pathname, new Set(scenarioIds));
+
+  let initialPage: Route["page"];
+  let initialScenarioId: string;
+
+  if (route) {
+    initialPage = route.page;
+    initialScenarioId = route.page === "labs" ? route.scenarioId : scenarioIds[0];
+  } else {
+    initialPage = savedSession ? "labs" : "index";
+    initialScenarioId = savedSession?.scenarioId ?? scenarioIds[0];
+  }
 
   return {
     confettiColors,
+    initialPage,
     initialScenarioId,
     labGroups,
     labMenuFilters,
