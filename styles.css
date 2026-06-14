@@ -187,13 +187,13 @@ select {
   padding: 0 36px 0 10px;
 }
 
-button:not(.modal-backdrop, .docs-backdrop):hover,
+button:not(.modal-backdrop, .docs-backdrop, .menu-backdrop, .menu-logo-button):hover,
 select:hover {
   border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
   background: color-mix(in srgb, var(--control-bg) 82%, var(--accent) 6%);
 }
 
-button:not(.modal-backdrop, .docs-backdrop):focus-visible,
+button:not(.modal-backdrop, .docs-backdrop, .menu-backdrop, .menu-logo-button):focus-visible,
 select:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
@@ -1583,6 +1583,12 @@ h3 {
   text-transform: uppercase;
 }
 
+.editor-panel .panel-header h2,
+.pr-diff-panel .panel-header h2 {
+  font-size: 12px;
+  text-transform: none;
+}
+
 .editor-panel {
   border-color: color-mix(in srgb, var(--editor-border) 72%, transparent);
   background: var(--editor-bg);
@@ -1628,7 +1634,6 @@ h3 {
   gap: 12px;
   min-height: 32px;
   padding: 0 10px;
-  overflow-x: auto;
   border-bottom: 1px solid color-mix(in srgb, var(--editor-border) 58%, transparent);
   background: color-mix(in srgb, var(--editor-header-bg) 68%, transparent);
 }

@@ -1,4 +1,4 @@
-import { cloneScenario, getPrimaryFile, restoreRuntime, type SavedSession } from "./runtimeSession";
+import { cloneScenario, getPrimaryFile, restoreRuntime, sessionStorageKey, sessionVersion, type SavedRuntimePatch, type SavedSession } from "./runtimeSession";
 import type { Scenario } from "./types";
 
 export type ScenarioSessionLoadOptions = {
@@ -16,6 +16,20 @@ export type ScenarioSessionOptions = {
   savedSession: SavedSession | null;
   loadScenario: (id: string) => Promise<Scenario>;
 };
+
+function readSessionFor(scenarioId: string): { runtimePatch: SavedRuntimePatch; activeFileName?: string } | null {
+  const raw = localStorage.getItem(sessionStorageKey);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as SavedSession;
+    if (parsed.version !== sessionVersion) return null;
+    if (parsed.scenarioId !== scenarioId) return null;
+    if (!parsed.runtimePatch) return null;
+    return { runtimePatch: parsed.runtimePatch, activeFileName: parsed.activeFileName };
+  } catch {
+    return null;
+  }
+}
 
 export function createScenarioSession(options: ScenarioSessionOptions) {
   let currentId = $state(options.initialScenarioId);
@@ -41,12 +55,28 @@ export function createScenarioSession(options: ScenarioSessionOptions) {
       if (token !== loadToken) return null;
 
       base = loadedScenario;
-      const restored = Boolean(loadOptions.restoreSavedSession && options.savedSession?.scenarioId === id);
-      runtime = restored && options.savedSession
-        ? restoreRuntime(loadedScenario, options.savedSession.runtimePatch)
+      let restored = false;
+      let runtimePatch: SavedRuntimePatch | undefined;
+      let restoredActiveFile: string | undefined;
+
+      if (loadOptions.restoreSavedSession) {
+        const fresh = readSessionFor(id);
+        if (fresh) {
+          restored = true;
+          runtimePatch = fresh.runtimePatch;
+          restoredActiveFile = fresh.activeFileName;
+        } else if (options.savedSession?.scenarioId === id) {
+          restored = true;
+          runtimePatch = options.savedSession.runtimePatch;
+          restoredActiveFile = options.savedSession.activeFileName;
+        }
+      }
+
+      runtime = restored && runtimePatch
+        ? restoreRuntime(loadedScenario, runtimePatch)
         : cloneScenario(loadedScenario);
-      activeFileName = restored && options.savedSession?.activeFileName && runtime.files[options.savedSession.activeFileName]
-        ? options.savedSession.activeFileName
+      activeFileName = restored && restoredActiveFile && runtime.files[restoredActiveFile]
+        ? restoredActiveFile
         : getPrimaryFile(runtime);
 
       return { id, runtime, restored };

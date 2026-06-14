@@ -69,7 +69,7 @@ export function createScenarioNavigation(options: ScenarioNavigationOptions) {
   return {
     load,
     selectScenario(id: string): void {
-      void load(id);
+      void load(id, { restoreSavedSession: true, persist: false });
       options.appShell.openScenario();
     },
     selectRandomScenario(): void {
