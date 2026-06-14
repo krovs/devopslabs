@@ -98,6 +98,7 @@ export type CommandHandlers = {
   cloudformationCreateChangeSet: () => string[];
   cloudformationDescribeStackEvents: () => string[];
   cloudformationDetectStackDrift: () => string[];
+  cloudformationUpdateStack: () => string[];
   mlPipelineStatus: () => string[];
   mlArtifactsList: () => string[];
   mlPipelineRun: () => string[];
@@ -232,6 +233,7 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "aws cloudformation create-change-set") return handlers.cloudformationCreateChangeSet();
     if (input === "aws cloudformation describe-stack-events") return handlers.cloudformationDescribeStackEvents();
     if (input === "aws cloudformation detect-stack-drift") return handlers.cloudformationDetectStackDrift();
+    if (input === "aws cloudformation update-stack") return handlers.cloudformationUpdateStack();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -369,7 +371,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "cloudformation") {
-    return ["Available commands:", "  aws cloudformation validate-template", "  aws cloudformation create-change-set", "  aws cloudformation describe-stack-events", "  aws cloudformation detect-stack-drift", "  check", "  help"];
+    return ["Available commands:", "  aws cloudformation validate-template", "  aws cloudformation create-change-set", "  aws cloudformation describe-stack-events", "  aws cloudformation detect-stack-drift", "  aws cloudformation update-stack", "  check", "  help"];
   }
 
   if (runtime.kind === "mlops") {

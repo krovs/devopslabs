@@ -29,7 +29,7 @@
 {/if}
 
 {#if app.appShell.isDocsOpen}
-  <Documentation kind={app.view.runtime?.kind} onclose={app.appShell.closeDocs} />
+  <Documentation kind={app.view.referenceKind} onclose={app.appShell.closeDocs} />
 {/if}
 
 <AppMenu

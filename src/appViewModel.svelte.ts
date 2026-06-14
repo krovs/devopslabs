@@ -33,6 +33,7 @@ export function createAppViewModel(options: AppViewModelOptions) {
   let currentPage = $derived(options.appShell.currentPage);
   let completedScenarioIds = $derived(options.labMenu.completedScenarioIds);
   let manuallyUncheckedScenarioIds = $derived(options.labMenu.manuallyUncheckedScenarioIds);
+  let referenceKind = $derived(options.scenarios[currentScenarioId]?.kind ?? runtime?.kind);
   let solved = $derived(Boolean(options.scenario.runtime && options.scenario.currentId && options.scenario.activeFileName) && options.isSolved());
   let pageHeading = $derived(getPageHeading({
     page: currentPage,
@@ -77,6 +78,9 @@ export function createAppViewModel(options: AppViewModelOptions) {
     },
     get currentPage() {
       return currentPage;
+    },
+    get referenceKind() {
+      return referenceKind;
     },
     get completedScenarioIds() {
       return completedScenarioIds;

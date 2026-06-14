@@ -1128,6 +1128,53 @@ export const documentationSections: DocSection[] = [
     ],
   },
   {
+    id: "wiki-cloudformation",
+    navTitle: "CloudFormation",
+    title: "CloudFormation Drift",
+    blocks: [
+      {
+        type: "paragraph",
+        content: [
+          "CloudFormation templates define desired AWS resources. Drift happens when a live resource is changed outside CloudFormation, so the stack no longer matches the template.",
+        ],
+      },
+      { type: "heading", text: "Useful Commands" },
+      { type: "code", text: "aws cloudformation validate-template\naws cloudformation create-change-set\naws cloudformation describe-stack-events\naws cloudformation detect-stack-drift" },
+      { type: "heading", text: "Drift Triage Flow" },
+      {
+        type: "orderedList",
+        items: [
+          ["Validate the template first so syntax and obvious policy issues are visible."],
+          ["Create a change set before applying changes; it shows what CloudFormation would modify."],
+          ["Read stack events to understand the last successful or failed update."],
+          ["Run drift detection to compare expected template properties with live resource properties."],
+          ["Fix the template as the source of truth, then use a change set to reconcile live resources."],
+        ],
+      },
+      { type: "heading", text: "S3 Public Access Checks" },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "AccessControl: PublicRead" }, " makes an S3 bucket publicly readable and should be replaced with ", { code: "AccessControl: Private" }, "."],
+          [{ code: "PublicAccessBlockConfiguration" }, " should block public ACLs and public policies for production artifact buckets."],
+          ["A drifted bucket can show safe template intent but unsafe live state, so inspect both template and drift output."],
+          ["Direct console edits are operational changes; CloudFormation needs the template updated and the stack reconciled."],
+        ],
+      },
+      { type: "heading", text: "Common Problems" },
+      {
+        type: "unorderedList",
+        items: [
+          ["The template allows a public ACL."],
+          ["The template is missing public access block properties."],
+          ["Stack events show a prior update changed security-sensitive properties."],
+          ["Drift detection reports live bucket properties that do not match the template."],
+          ["A change set is skipped, so the operator cannot review what will change before deployment."],
+        ],
+      },
+    ],
+  },
+  {
     id: "wiki-operations",
     navTitle: "Operations",
     title: "Operations",
@@ -1253,7 +1300,7 @@ const referenceSectionByKind: Record<NonNullable<Scenario["kind"]>, string> = {
   appsec: "wiki-appsec",
   threatmodel: "wiki-threatmodel",
   cloudsec: "wiki-cloudsec",
-  cloudformation: "wiki-operations",
+  cloudformation: "wiki-cloudformation",
   mlops: "wiki-mlops",
   iam: "wiki-iam",
   scp: "wiki-security",

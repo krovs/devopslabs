@@ -31,6 +31,7 @@ import {
   cloudformationCreateChangeSet as runCloudformationCreateChangeSet,
   cloudformationDescribeStackEvents as runCloudformationDescribeStackEvents,
   cloudformationDetectStackDrift as runCloudformationDetectStackDrift,
+  cloudformationUpdateStack as runCloudformationUpdateStack,
   cloudformationValidateTemplate as runCloudformationValidateTemplate,
 } from "./simulators/cloudformation";
 import { argocdAppGet as runArgocdAppGet, fluxReconcileKustomization as runFluxReconcileKustomization } from "./simulators/gitops";
@@ -247,6 +248,7 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     cloudformationCreateChangeSet: () => withRuntimeRefresh(() => runCloudformationCreateChangeSet(runtime(), scenarioId())),
     cloudformationDescribeStackEvents: () => withRuntimeRefresh(() => runCloudformationDescribeStackEvents(runtime(), scenarioId())),
     cloudformationDetectStackDrift: () => withRuntimeRefresh(() => runCloudformationDetectStackDrift(runtime(), scenarioId())),
+    cloudformationUpdateStack: () => withRuntimeRefresh(() => runCloudformationUpdateStack(runtime(), scenarioId())),
     mlPipelineStatus: () => withRuntimeRefresh(() => runMlPipelineStatus(runtime(), scenarioId())),
     mlArtifactsList: () => withRuntimeRefresh(() => runMlArtifactsList(runtime(), scenarioId())),
     mlPipelineRun: () => withRuntimeRefresh(() => runMlPipelineRun(runtime(), scenarioId())),

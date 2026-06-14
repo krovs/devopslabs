@@ -193,7 +193,7 @@ const commandOptionsByKind: Record<NonNullable<Scenario["kind"]>, string[]> = {
   appsec: ["mvn test", "mvn org.owasp:dependency-check-maven:check", "semgrep scan", "gitleaks detect", "trivy config .", "gh run view", "trivy image checkout-api:pr-184", "docker history checkout-api:pr-184", "npm audit --production", "check", "help"],
   threatmodel: ["threatmodel review", "check", "help"],
   cloudsec: ["aws guardduty list-findings", "aws guardduty get-findings", "aws cloudtrail lookup-events", "aws logs filter-log-events", "aws configservice get-resource-config-history", "aws iam simulate-principal-policy", "check", "help"],
-  cloudformation: ["aws cloudformation validate-template", "aws cloudformation create-change-set", "aws cloudformation describe-stack-events", "aws cloudformation detect-stack-drift", "check", "help"],
+  cloudformation: ["aws cloudformation validate-template", "aws cloudformation create-change-set", "aws cloudformation describe-stack-events", "aws cloudformation detect-stack-drift", "aws cloudformation update-stack", "check", "help"],
   mlops: ["ml pipeline status", "ml artifacts list", "ml pipeline run", "ml model describe", "ml model promote", "check", "help"],
   terragrunt: ["terragrunt init", "terragrunt validate", "terragrunt plan", "terragrunt run-all plan", "terragrunt hclfmt", "check", "help"],
   iam: ["aws iam simulate-principal-policy", "aws sts assume-role-with-web-identity", "aws s3 cp", "aws kms decrypt", "az role assignment list", "check", "help"],

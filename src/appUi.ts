@@ -34,6 +34,7 @@ const contextualStateKinds = new Set<Scenario["kind"]>([
   "observability",
   "finops",
   "awsconfig",
+  "cloudformation",
   "policy",
   "linux",
   "networking",

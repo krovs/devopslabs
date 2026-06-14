@@ -1,5 +1,13 @@
 import type { Scenario } from "../types";
 
+function markResource(runtime: Scenario, index: number, status: string, note: string): void {
+  const resource = runtime.awsResources[index];
+  if (resource) {
+    resource.status = status;
+    resource.note = note;
+  }
+}
+
 export function cloudformationFixApplied(runtime: Scenario): boolean {
   const template = runtime.files["template.yaml"] ?? "";
   return (
@@ -13,6 +21,7 @@ export function cloudformationValidateTemplate(runtime: Scenario, scenarioId: st
 
   if (cloudformationFixApplied(runtime)) {
     runtime.flags.lintPassed = true;
+    markResource(runtime, 1, "exists", "S3 bucket ACL is Private and PublicAccessBlockConfiguration is present.");
     return [
       "Validating template.yaml ...",
       "Template format: YAML",
@@ -45,6 +54,7 @@ export function cloudformationCreateChangeSet(runtime: Scenario, scenarioId: str
 
   if (cloudformationFixApplied(runtime)) {
     runtime.flags.validationPassed = true;
+    markResource(runtime, 0, "drifted", "Change set ready: AccessControl -> Private, PublicAccessBlockConfiguration added.");
     return [
       "ChangeSetName: checkout-api-private-fix",
       "StackName: checkout-api-artifacts",
@@ -101,6 +111,30 @@ export function cloudformationDetectStackDrift(runtime: Scenario, scenarioId: st
     "    Expected: BlockPublicAcls=true",
     "    Actual: not present",
     "Drift detected: someone modified the bucket directly in the AWS console.",
+  ];
+}
+
+export function cloudformationUpdateStack(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "cloudFormationDriftDetection") return ["Stack update is not configured for this lab."];
+
+  if (!cloudformationFixApplied(runtime)) {
+    return [
+      "Error: template validation failed.",
+      "Fix the template first: change AccessControl to Private and add PublicAccessBlockConfiguration.",
+    ];
+  }
+
+  runtime.flags.cleanPlan = true;
+  runtime.flags.validationPassed = true;
+  markResource(runtime, 0, "success", "Stack updated: AccessControl set to Private with full public access block.");
+  markResource(runtime, 1, "success", "Bucket ACL is Private. PublicAccessBlockConfiguration prevents public exposure.");
+  return [
+    "StackId: arn:aws:cloudformation:eu-west-1:123456789012:stack/checkout-api-artifacts",
+    "Status: UPDATE_COMPLETE",
+    "Modified resources:",
+    "  AWS::S3::Bucket CheckoutArtifacts — AccessControl: Private, PublicAccessBlockConfiguration applied",
+    "Drift status: IN_SYNC",
+    "Stack update complete.",
   ];
 }
 

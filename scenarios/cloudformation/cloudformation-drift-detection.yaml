@@ -33,7 +33,8 @@ solution:
     - Run aws cloudformation describe-stack-events to review the last update.
     - Run aws cloudformation detect-stack-drift to confirm the bucket ACL was changed outside CloudFormation.
     - Edit template.yaml: change AccessControl to Private and add PublicAccessBlockConfiguration.
-    - Run aws cloudformation validate-template again and check the scenario.
+    - Run aws cloudformation validate-template to confirm the template passes validation.
+    - Run aws cloudformation update-stack to apply the fix and reconcile the drift.
   explanation: |
     CloudFormation drift detection is a critical operational control. When resources are modified outside of CloudFormation (e.g., someone editing a bucket ACL directly in the AWS console), the stack enters a drifted state. The template is the source of truth — fixing drift starts with updating the template to match the desired state, then running a change set to reconcile the live resources.
   outcome: |
@@ -64,6 +65,7 @@ solution:
     - aws cloudformation create-change-set
     - aws cloudformation describe-stack-events
     - aws cloudformation detect-stack-drift
+    - aws cloudformation update-stack
     - check
 backend:
   bucket: cfn-review
