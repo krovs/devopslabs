@@ -110,6 +110,8 @@ import {
 } from "./simulators/terragrunt";
 import {
   awsS3Ls as runAwsS3Ls,
+  azureBlobLeaseBreak as runAzureBlobLeaseBreak,
+  azureBlobShow as runAzureBlobShow,
   checkovScan as runCheckovScan,
   forceUnlock as runForceUnlock,
   scanLocks as runScanLocks,
@@ -189,6 +191,8 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     terraformStateMv: (source?: string, destination?: string) => withRuntimeRefresh(() => runTerraformStateMv(runtime(), scenarioId(), source, destination)),
     scanLocks: () => runScanLocks(runtime()),
     awsS3Ls: () => runAwsS3Ls(runtime()),
+    azureBlobShow: () => runAzureBlobShow(runtime()),
+    azureBlobLeaseBreak: () => withRuntimeRefresh(() => runAzureBlobLeaseBreak(runtime())),
     cloudWatchDescribeAlarms: () => withRuntimeRefresh(() => runCloudWatchDescribeAlarms(runtime(), scenarioId())),
     logsDescribeLogGroups: () => withRuntimeRefresh(() => runLogsDescribeLogGroups(runtime(), scenarioId())),
     promtoolTargets: () => withRuntimeRefresh(() => runPromtoolTargets(runtime(), scenarioId())),

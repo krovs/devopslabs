@@ -67,6 +67,8 @@ export const documentationSections: DocSection[] = [
           [{ code: "terraform import" }, " attaches an existing object to a resource address without recreating it."],
           [{ code: "terraform state mv" }, " changes the address of an object already tracked in state, useful after moving code into a module."],
           ["A stale backend lock should be released only after confirming no apply is still running and the lock ID matches the failed operation."],
+          ["AWS S3 backends commonly inspect locks with DynamoDB; Azure Blob Storage backends use blob leases on the state blob."],
+          ["For Azure backends, inspect lease state with ", { code: "az storage blob show" }, " and break a confirmed stale lease with ", { code: "az storage blob lease break" }, "."],
         ],
       },
     ],

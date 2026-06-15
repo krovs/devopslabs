@@ -39,6 +39,8 @@ export type CommandHandlers = {
   terraformStateMv: (source?: string, destination?: string) => string[];
   scanLocks: () => string[];
   awsS3Ls: () => string[];
+  azureBlobShow: () => string[];
+  azureBlobLeaseBreak: () => string[];
   cloudWatchDescribeAlarms: () => string[];
   logsDescribeLogGroups: () => string[];
   promtoolTargets: () => string[];
@@ -300,6 +302,8 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
   if (args[0] === "terraform" && args[1] === "state" && args[2] === "mv") return handlers.terraformStateMv(args[3], args[4]);
   if (input === "aws dynamodb scan --table-name tf-locks") return handlers.scanLocks();
   if (input === "aws s3 ls") return handlers.awsS3Ls();
+  if (input === "az storage blob show --container-name tfstate --name prod/web.tfstate") return handlers.azureBlobShow();
+  if (input === "az storage blob lease break --container-name tfstate --blob-name prod/web.tfstate") return handlers.azureBlobLeaseBreak();
   if (input === "check") return handlers.checkScenario();
 
   return unknownCommand(command);
@@ -391,7 +395,10 @@ function commandHelp(runtime: Scenario): string[] {
     "  checkov -f main.tf",
     "  aws dynamodb scan --table-name tf-locks",
     "  aws s3 ls",
+    "  az storage blob show --container-name tfstate --name prod/web.tfstate",
+    "  az storage blob lease break --container-name tfstate --blob-name prod/web.tfstate",
     "  check",
+    "  help",
   ];
 }
 

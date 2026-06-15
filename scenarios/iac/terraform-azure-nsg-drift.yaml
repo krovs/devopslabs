@@ -1,0 +1,91 @@
+id: terraformAzureNsgDrift
+kind: terraform
+title: Terraform Azure NSG Drift
+description: An Azure Network Security Group rule was changed in the portal. Terraform must detect the drift and bring code back in line with the accepted live state.
+primaryFile: main.tf
+tips:
+  - Initialize Terraform before checking the plan.
+  - terraform plan reports the difference between state, code, and Azure.
+  - The live Azure rule allows HTTP from 0.0.0.0/0.
+  - For this lab, accept the portal change by updating source_address_prefix in main.tf.
+  - Save the file, then run terraform plan again.
+files:
+  "main.tf": |
+    terraform {
+      backend "azurerm" {
+        resource_group_name  = "rg-tfstate-prod"
+        storage_account_name = "sttfstateprod001"
+        container_name       = "tfstate"
+        key                  = "network/web-nsg.tfstate"
+      }
+    }
+
+    provider "azurerm" {
+      features {}
+    }
+
+    resource "azurerm_resource_group" "network" {
+      name     = "rg-network-prod"
+      location = "westeurope"
+    }
+
+    resource "azurerm_network_security_group" "web" {
+      name                = "nsg-web-prod"
+      location            = azurerm_resource_group.network.location
+      resource_group_name = azurerm_resource_group.network.name
+
+      security_rule {
+        name                       = "Allow-HTTP"
+        priority                   = 100
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "Tcp"
+        source_port_range          = "*"
+        destination_port_range     = "80"
+        source_address_prefix      = "10.20.0.0/16"
+        destination_address_prefix = "*"
+      }
+    }
+solution:
+  summary: |
+    The NSG rule drifted because someone changed the source address prefix in Azure Portal. The lab accepts the live HTTP exposure and updates Terraform code to match it.
+  steps:
+    - Run terraform init.
+    - Run terraform plan to inspect the drift.
+    - Compare the configured source_address_prefix with the live Azure rule.
+    - Change source_address_prefix from 10.20.0.0/16 to 0.0.0.0/0.
+    - Run terraform plan again and confirm no changes.
+  explanation: |
+    Terraform drift detection works the same for Azure as for AWS: plan reads state and the live cloud API, then compares both with configuration. When the team decides to accept the live change, the safest fix is to update code so future plans are predictable.
+  outcome: |
+    Terraform Azure NSG Drift now has Terraform code matching the accepted Azure NSG rule.
+  focusFileName: main.tf
+  replacements:
+    - fileName: main.tf
+      search: |
+        source_address_prefix      = "10.20.0.0/16"
+      replace: |
+        source_address_prefix      = "0.0.0.0/0"
+  commands:
+    - terraform init
+    - terraform plan
+backend:
+  bucket: sttfstateprod001
+  key: network/web-nsg.tfstate
+  table: tfstate
+  locked: false
+  lockId: null
+awsResources:
+  - type: azure_network_security_group
+    name: nsg-web-prod
+    id: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-network-prod/providers/Microsoft.Network/networkSecurityGroups/nsg-web-prod
+    status: drifted
+    note: Live Azure rule Allow-HTTP has source_address_prefix 0.0.0.0/0.
+stateResources:
+  - address: azurerm_resource_group.network
+    id: rg-network-prod
+  - address: azurerm_network_security_group.web
+    id: nsg-web-prod
+flags:
+  initialized: false
+  cleanPlan: false

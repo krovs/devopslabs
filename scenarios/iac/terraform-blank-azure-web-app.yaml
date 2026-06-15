@@ -1,0 +1,133 @@
+id: terraformBlankAzureWebApp
+kind: terraform
+title: Terraform From Scratch: Azure Web App
+description: Build a complete Azure Linux Web App Terraform configuration from an empty file, including provider, resource group, service plan, and secure web app.
+primaryFile: main.tf
+tips:
+  - Read requirements.md before writing resources.
+  - Use the azurerm provider with features {}.
+  - Create the resource group in westeurope.
+  - The Linux Web App must run on a Linux App Service Plan.
+  - The web app must force HTTPS with https_only = true.
+files:
+  "main.tf": "# Write your Azure Terraform configuration here.\n"
+  "requirements.md": |
+    # Azure Web App Infrastructure Requirements
+
+    ## Provider
+    - Use the azurerm provider
+    - Include features {}
+
+    ## Resource Group
+    - Name: rg-devopslabs-web
+    - Location: westeurope
+
+    ## App Service Plan
+    - Resource type: azurerm_service_plan
+    - Name: asp-devopslabs-web
+    - OS type: Linux
+    - SKU: B1
+
+    ## Web App
+    - Resource type: azurerm_linux_web_app
+    - Name: devopslabs-web
+    - HTTPS must be enforced with https_only = true
+    - Runtime stack: Node 20 LTS
+
+    ## Tags
+    - environment = "lab"
+    - owner = "devopslabs"
+solution:
+  summary: |
+    The Azure Terraform configuration was built from an empty file. The provider, resource group, Linux service plan, and Linux Web App now form a complete, secure deployment.
+  steps:
+    - Read requirements.md for the target Azure resources.
+    - Add the azurerm provider with features {}.
+    - Create the westeurope resource group.
+    - Create a Linux App Service Plan using the B1 SKU.
+    - Create the Linux Web App, connect it to the service plan, and set https_only = true.
+    - Run terraform init, terraform validate, checkov -f main.tf, and terraform plan.
+  explanation: |
+    Building an Azure deployment from scratch teaches the same Terraform resource model used for AWS: providers connect to cloud APIs, resources declare desired infrastructure, and attributes wire dependent resources together. The Linux Web App depends on the resource group and service plan, while https_only ensures the public endpoint does not allow plain HTTP.
+  outcome: |
+    Terraform From Scratch: Azure Web App is a complete Azure App Service deployment with HTTPS enforced.
+  focusFileName: main.tf
+  files:
+    "main.tf": |
+      terraform {
+        required_providers {
+          azurerm = {
+            source  = "hashicorp/azurerm"
+            version = "~> 4.0"
+          }
+        }
+      }
+
+      provider "azurerm" {
+        features {}
+      }
+
+      resource "azurerm_resource_group" "web" {
+        name     = "rg-devopslabs-web"
+        location = "westeurope"
+
+        tags = {
+          environment = "lab"
+          owner       = "devopslabs"
+        }
+      }
+
+      resource "azurerm_service_plan" "web" {
+        name                = "asp-devopslabs-web"
+        location            = azurerm_resource_group.web.location
+        resource_group_name = azurerm_resource_group.web.name
+        os_type             = "Linux"
+        sku_name            = "B1"
+
+        tags = {
+          environment = "lab"
+          owner       = "devopslabs"
+        }
+      }
+
+      resource "azurerm_linux_web_app" "web" {
+        name                = "devopslabs-web"
+        location            = azurerm_resource_group.web.location
+        resource_group_name = azurerm_resource_group.web.name
+        service_plan_id     = azurerm_service_plan.web.id
+        https_only          = true
+
+        site_config {
+          application_stack {
+            node_version = "20-lts"
+          }
+        }
+
+        tags = {
+          environment = "lab"
+          owner       = "devopslabs"
+        }
+      }
+  commands:
+    - terraform init
+    - terraform validate
+    - checkov -f main.tf
+    - terraform plan
+backend:
+  bucket: tf-state-training
+  key: azure/web-app.tfstate
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: azure_linux_web_app
+    name: devopslabs-web
+    id: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-devopslabs-web/providers/Microsoft.Web/sites/devopslabs-web
+    status: failed
+    note: Terraform file is empty. Build the provider, resource group, Linux service plan, and secure web app configuration.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  validationPassed: false
+  securityPassed: false

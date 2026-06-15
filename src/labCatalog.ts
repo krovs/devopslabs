@@ -16,7 +16,7 @@ export type LabGroup = LabGroupDefinition & {
 };
 
 export const labGroupDefinitions: LabGroupDefinition[] = [
-  { id: "terraform", title: "IaC", providers: ["Generic", "AWS"], description: "Terraform state, modules, drift, imports, plans, and CloudFormation templates." },
+  { id: "terraform", title: "IaC", providers: ["Generic", "AWS", "Azure"], description: "Terraform state, modules, drift, imports, plans, and CloudFormation templates." },
   { id: "awsconfig", title: "IaC Security Baselines", providers: ["AWS"], description: "Cloud guardrails, encryption, backup, and audit baselines." },
   { id: "cicd", title: "Delivery Pipelines", providers: ["GitHub", "AWS"], description: "Pipeline failures, gates, secrets, and deploy flow." },
   { id: "gitops", title: "GitOps", providers: ["K8S"], description: "Reconciliation drift, sync policy, and source paths." },
@@ -55,6 +55,10 @@ export const scenarioDifficultyTiers: Partial<Record<string, DifficultyTier>> = 
   missingIamImport: "hard",
   interruptedApplyLock: "hard",
   terraformStateFolderMigration: "legendary",
+  terraformBlankEc2WebServer: "easy",
+  terraformBlankAzureWebApp: "easy",
+  terraformAzureBlobLeaseLock: "hard",
+  terraformAzureNsgDrift: "normal",
   awsConfigCloudWatchRetention: "easy",
   awsConfigS3Baseline: "normal",
   awsConfigBlankS3SecureBucket: "normal",
@@ -182,6 +186,8 @@ const commandOptionsByKind: Record<NonNullable<Scenario["kind"]>, string[]> = {
     "checkov -f main.tf",
     "aws dynamodb scan --table-name tf-locks",
     "aws s3 ls",
+    "az storage blob show --container-name tfstate --name prod/web.tfstate",
+    "az storage blob lease break --container-name tfstate --blob-name prod/web.tfstate",
     "check",
     "help",
   ],

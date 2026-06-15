@@ -1,0 +1,66 @@
+id: terraformAzureBlobLeaseLock
+kind: terraform
+title: Terraform Azure Blob Lease Lock
+description: A Terraform apply crashed while using an Azure Blob Storage backend. The state blob lease is still locked and an Azure resource group exists outside state.
+primaryFile: main.tf
+tips:
+  - Initialize Terraform so the azurerm backend configuration is active.
+  - Inspect the state blob lease with az storage blob show.
+  - Break the stale blob lease before planning.
+  - The resource group already exists in Azure but is missing from state.
+  - Import azurerm_resource_group.app with the resource group name, then plan again.
+files:
+  "main.tf": |
+    terraform {
+      backend "azurerm" {
+        resource_group_name  = "rg-tfstate-prod"
+        storage_account_name = "sttfstateprod001"
+        container_name       = "tfstate"
+        key                  = "prod/web.tfstate"
+      }
+    }
+
+    provider "azurerm" {
+      features {}
+    }
+
+    resource "azurerm_resource_group" "app" {
+      name     = "rg-prod-web"
+      location = "westeurope"
+    }
+solution:
+  summary: |
+    The crashed apply left an Azure Blob lease on the Terraform state file. After breaking the stale lease, the existing resource group can be imported and planned cleanly.
+  steps:
+    - Run terraform init to configure the Azure backend.
+    - Run az storage blob show to confirm the state blob lease is locked.
+    - Break the stale lease with az storage blob lease break.
+    - Import azurerm_resource_group.app using rg-prod-web.
+    - Run terraform plan and confirm there are no changes.
+  explanation: |
+    Azure Blob Storage backends use blob leases for Terraform state locking. If an apply crashes, the lease can remain active and block later operations. Once the stale lease is broken, Terraform can reconcile the resource group by importing the live Azure object into state instead of trying to recreate it.
+  outcome: |
+    Terraform Azure Blob Lease Lock now has an unlocked backend, imported resource group state, and a clean plan.
+  commands:
+    - terraform init
+    - az storage blob show --container-name tfstate --name prod/web.tfstate
+    - az storage blob lease break --container-name tfstate --blob-name prod/web.tfstate
+    - terraform import azurerm_resource_group.app rg-prod-web
+    - terraform plan
+backend:
+  bucket: sttfstateprod001
+  key: prod/web.tfstate
+  table: tfstate
+  locked: true
+  lockId: azure-lease-prod-web
+awsResources:
+  - type: azure_resource_group
+    name: rg-prod-web
+    id: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod-web
+    status: exists
+    note: Created before the apply crashed; backend blob lease is still locked.
+stateResources: []
+flags:
+  initialized: false
+  importedRole: false
+  cleanPlan: false

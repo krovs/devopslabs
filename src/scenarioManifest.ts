@@ -76,6 +76,34 @@ export const scenarioManifest = [
     "path": "../scenarios/iac/terraform-state-folder-migration.yaml"
   },
   {
+    "id": "terraformBlankEc2WebServer",
+    "kind": "terraform",
+    "title": "Terraform From Scratch: EC2 Web Server",
+    "description": "Build a complete EC2 web server Terraform configuration from an empty file, including provider, security group, and instance resources.",
+    "path": "../scenarios/iac/terraform-blank-ec2-web-server.yaml"
+  },
+  {
+    "id": "terraformBlankAzureWebApp",
+    "kind": "terraform",
+    "title": "Terraform From Scratch: Azure Web App",
+    "description": "Build a complete Azure Linux Web App Terraform configuration from an empty file, including provider, resource group, service plan, and secure web app.",
+    "path": "../scenarios/iac/terraform-blank-azure-web-app.yaml"
+  },
+  {
+    "id": "terraformAzureBlobLeaseLock",
+    "kind": "terraform",
+    "title": "Terraform Azure Blob Lease Lock",
+    "description": "A Terraform apply crashed while using an Azure Blob Storage backend. The state blob lease is still locked and an Azure resource group exists outside state.",
+    "path": "../scenarios/iac/terraform-azure-blob-lease-lock.yaml"
+  },
+  {
+    "id": "terraformAzureNsgDrift",
+    "kind": "terraform",
+    "title": "Terraform Azure NSG Drift",
+    "description": "An Azure Network Security Group rule was changed in the portal. Terraform must detect the drift and bring code back in line with the accepted live state.",
+    "path": "../scenarios/iac/terraform-azure-nsg-drift.yaml"
+  },
+  {
     "id": "awsConfigCloudWatchRetention",
     "kind": "awsconfig",
     "title": "IaC Security Baselines CloudWatch Retention",

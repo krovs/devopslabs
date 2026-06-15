@@ -17,7 +17,25 @@ function addStateResource(runtime: Scenario, address: string, id: string): void 
   }
 }
 
+function azureWebAppChecks(file: string) {
+  const hasProvider = file.includes('provider "azurerm"') && file.includes("features {}");
+  const hasResourceGroup = file.includes('resource "azurerm_resource_group"') && /name\s*=\s*"rg-devopslabs-web"/.test(file) && /location\s*=\s*"westeurope"/.test(file);
+  const hasServicePlan = file.includes('resource "azurerm_service_plan"') && /os_type\s*=\s*"Linux"/.test(file) && /sku_name\s*=\s*"B1"/.test(file);
+  const hasWebApp = file.includes('resource "azurerm_linux_web_app"') && /name\s*=\s*"devopslabs-web"/.test(file) && file.includes("service_plan_id");
+  const hasHttpsOnly = /https_only\s*=\s*true/.test(file);
+  const hasNodeStack = /node_version\s*=\s*"20-lts"/.test(file);
+  return { hasProvider, hasResourceGroup, hasServicePlan, hasWebApp, hasHttpsOnly, hasNodeStack };
+}
+
 export function lockError(runtime: Scenario): string[] {
+  if (runtime.backend.table === "tfstate") {
+    return [
+      "Error: Error acquiring the state lock",
+      `Lock Info: ID ${runtime.backend.lockId}`,
+      "Azure Blob Storage backend uses a blob lease to lock the Terraform state file.",
+    ];
+  }
+
   return [
     "Error: Error acquiring the state lock",
     `Lock Info: ID ${runtime.backend.lockId}`,
@@ -45,6 +63,13 @@ export function terraformInit(runtime: Scenario, scenarioId: string): string[] {
   }
 
   runtime.flags.initialized = true;
+  if (runtime.backend.table === "tfstate") {
+    return [
+      "Initializing the backend...",
+      `Successfully configured backend azurerm://${runtime.backend.bucket}/${runtime.backend.table}/${runtime.backend.key}`,
+    ];
+  }
+
   return [
     "Initializing the backend...",
     `Successfully configured backend s3://${runtime.backend.bucket}/${runtime.backend.key}`,
@@ -107,6 +132,35 @@ export function terraformPlan(runtime: Scenario, scenarioId: string): string[] {
     ];
   }
 
+  if (scenarioId === "terraformAzureNsgDrift") {
+    if (runtime.files["main.tf"].includes('source_address_prefix      = "0.0.0.0/0"') || runtime.files["main.tf"].includes('source_address_prefix = "0.0.0.0/0"')) {
+      markFirstResource(runtime, "exists", "Code now accepts the manually changed Azure NSG source prefix.");
+      runtime.flags.cleanPlan = true;
+      return ["No changes. Azure infrastructure matches the configuration."];
+    }
+    return [
+      "Note: Objects have changed outside of Terraform.",
+      "  azurerm_network_security_group.web security_rule[Allow-HTTP].source_address_prefix: state has 10.20.0.0/16, Azure has 0.0.0.0/0",
+      "",
+      "Plan: 0 to add, 1 to change, 0 to destroy.",
+    ];
+  }
+
+  if (scenarioId === "terraformAzureBlobLeaseLock") {
+    if (!hasStateAddress(runtime, "azurerm_resource_group.app")) {
+      return [
+        "Terraform will perform the following actions:",
+        "  + create azurerm_resource_group.app",
+        "",
+        "Plan: 1 to add, 0 to change, 0 to destroy.",
+        "Warning: rg-prod-web already exists in Azure but is missing from state.",
+      ];
+    }
+    runtime.flags.cleanPlan = true;
+    markFirstResource(runtime, "exists", "Azure resource group was imported into Terraform state.");
+    return ["No changes. Azure infrastructure matches the configuration."];
+  }
+
   if (scenarioId === "terraformCheckovPublicS3") {
     if (!runtime.flags.securityPassed) {
       return ["Plan blocked by policy gate.", "Run checkov -f main.tf and fix the security finding before planning."];
@@ -149,6 +203,21 @@ export function terraformPlan(runtime: Scenario, scenarioId: string): string[] {
     runtime.flags.cleanPlan = true;
     markFirstResource(runtime, "exists", "Security group module default ingress is restricted.");
     return ["No changes. Infrastructure matches the configuration."];
+  }
+
+  if (scenarioId === "terraformBlankEc2WebServer") {
+    if (!runtime.flags.securityPassed) return ["Plan blocked by policy gate. Run checkov -f main.tf and add the provider, security group, and EC2 instance."];
+    runtime.flags.cleanPlan = true;
+    markFirstResource(runtime, "exists", "EC2 web server, security group, and HTTP ingress are configured.");
+    return ["No changes. EC2 web server infrastructure matches the configuration."];
+  }
+
+  if (scenarioId === "terraformBlankAzureWebApp") {
+    if (!runtime.flags.validationPassed) return ["Error: configuration is incomplete. Run terraform validate and add the missing Azure resources first."];
+    if (!runtime.flags.securityPassed) return ["Plan blocked by policy gate. Run checkov -f main.tf and enforce HTTPS on the Linux Web App."];
+    runtime.flags.cleanPlan = true;
+    markFirstResource(runtime, "exists", "Azure Linux Web App, resource group, service plan, and HTTPS enforcement are configured.");
+    return ["No changes. Azure Web App infrastructure matches the configuration."];
   }
 
   if (runtime.kind === "awsconfig") {
@@ -237,6 +306,26 @@ export function terraformValidate(runtime: Scenario, scenarioId: string, activeF
     ];
   }
 
+  if (scenarioId === "terraformBlankAzureWebApp") {
+    const file = runtime.files[activeFileName] ?? "";
+    const checks = azureWebAppChecks(file);
+    const completeShape = checks.hasProvider && checks.hasResourceGroup && checks.hasServicePlan && checks.hasWebApp && checks.hasNodeStack;
+
+    if (completeShape) {
+      runtime.flags.validationPassed = true;
+      markFirstResource(runtime, "drifted", "Azure resources are declared. Run checkov to enforce HTTPS, then plan.");
+      return ["Success! The Azure configuration is valid."];
+    }
+
+    return [
+      checks.hasProvider ? "Provider azurerm: OK" : "Error: provider \"azurerm\" with features {} is missing.",
+      checks.hasResourceGroup ? "Resource group: OK" : "Error: azurerm_resource_group.web with westeurope location is missing.",
+      checks.hasServicePlan ? "Linux service plan: OK" : "Error: azurerm_service_plan.web with os_type Linux and sku_name B1 is missing.",
+      checks.hasWebApp ? "Linux Web App: OK" : "Error: azurerm_linux_web_app.web connected to the service plan is missing.",
+      checks.hasNodeStack ? "Runtime stack: OK" : "Error: Node 20 LTS application_stack is missing.",
+    ];
+  }
+
   return ["Success! The configuration is valid."];
 }
 
@@ -272,6 +361,45 @@ export function checkovScan(runtime: Scenario, scenarioId: string, activeFileNam
     }
 
     return ["Check: CKV_AWS_260: FAILED", "Security group ingress should not allow 0.0.0.0/0.", "Finding is in modules/security-group/main.tf."];
+  }
+
+  if (scenarioId === "terraformBlankEc2WebServer") {
+    const file = runtime.files[activeFileName] ?? "";
+    const hasProvider = file.includes('provider "aws"');
+    const hasSecurityGroup = file.includes("aws_security_group") && (file.includes("from_port   = 80") || file.includes("from_port = 80"));
+    const hasInstance = file.includes("aws_instance") && file.includes("vpc_security_group_ids");
+
+    if (hasProvider && hasSecurityGroup && hasInstance) {
+      runtime.flags.securityPassed = true;
+      markFirstResource(runtime, "exists", "Checkov passed: provider, security group with HTTP ingress, and EC2 instance configured.");
+      return ["Check: provider aws present: PASSED", "Check: security group with HTTP ingress: PASSED", "Check: EC2 instance with security group: PASSED", "Passed checks: 3, Failed checks: 0"];
+    }
+
+    return [
+      hasProvider ? "Check: provider aws present: PASSED" : "Check: FAILED — provider \"aws\" block is missing.",
+      hasSecurityGroup ? "Check: security group with HTTP ingress: PASSED" : "Check: FAILED — aws_security_group with ingress on port 80 is missing.",
+      hasInstance ? "Check: EC2 instance with security group: PASSED" : "Check: FAILED — aws_instance with vpc_security_group_ids is missing.",
+    ];
+  }
+
+  if (scenarioId === "terraformBlankAzureWebApp") {
+    const file = runtime.files[activeFileName] ?? "";
+    const checks = azureWebAppChecks(file);
+
+    if (checks.hasProvider && checks.hasResourceGroup && checks.hasServicePlan && checks.hasWebApp && checks.hasHttpsOnly && checks.hasNodeStack) {
+      runtime.flags.securityPassed = true;
+      markFirstResource(runtime, "exists", "Checkov passed: Azure Linux Web App enforces HTTPS and required resources are present.");
+      return ["Check: provider azurerm present: PASSED", "Check: Linux Web App HTTPS-only: PASSED", "Check: service plan and resource group present: PASSED", "Passed checks: 3, Failed checks: 0"];
+    }
+
+    return [
+      checks.hasProvider ? "Check: provider azurerm present: PASSED" : "Check: FAILED - provider \"azurerm\" block is missing.",
+      checks.hasResourceGroup ? "Check: resource group present: PASSED" : "Check: FAILED - azurerm_resource_group.web is missing.",
+      checks.hasServicePlan ? "Check: Linux service plan present: PASSED" : "Check: FAILED - azurerm_service_plan.web with Linux/B1 is missing.",
+      checks.hasWebApp ? "Check: Linux Web App present: PASSED" : "Check: FAILED - azurerm_linux_web_app.web is missing.",
+      checks.hasHttpsOnly ? "Check: HTTPS-only enabled: PASSED" : "Check: FAILED - azurerm_linux_web_app.web should set https_only = true.",
+      checks.hasNodeStack ? "Check: Node 20 runtime configured: PASSED" : "Check: FAILED - Node 20 LTS application stack is missing.",
+    ];
   }
 
   return ["Passed checks: 1, Failed checks: 0"];
@@ -380,6 +508,10 @@ export function terraformApply(runtime: Scenario, scenarioId: string): string[] 
     return ["aws_iam_role.app: Creating...", "Error: EntityAlreadyExists: Role with name training-app-role already exists.", "Import the role into state before applying."];
   }
 
+  if (scenarioId === "terraformAzureBlobLeaseLock" && !hasStateAddress(runtime, "azurerm_resource_group.app")) {
+    return ["azurerm_resource_group.app: Creating...", "Error: A resource with the ID rg-prod-web already exists.", "Import the existing Azure resource group into state before applying."];
+  }
+
   return terraformPlan(runtime, scenarioId);
 }
 
@@ -395,6 +527,12 @@ export function terraformImport(runtime: Scenario, scenarioId: string, address?:
   }
 
   if (scenarioId === "missingIamImport" && address === "aws_iam_role.app" && id === "training-app-role") {
+    addStateResource(runtime, address, id);
+    runtime.flags.importedRole = true;
+    return [`Import successful: ${address} (${id})`];
+  }
+
+  if (scenarioId === "terraformAzureBlobLeaseLock" && address === "azurerm_resource_group.app" && id === "rg-prod-web") {
     addStateResource(runtime, address, id);
     runtime.flags.importedRole = true;
     return [`Import successful: ${address} (${id})`];
@@ -437,4 +575,27 @@ export function forceUnlock(runtime: Scenario, lockId?: string): string[] {
 export function scanLocks(runtime: Scenario): string[] {
   if (!runtime.backend.locked) return ["Items: []"];
   return ["Items: [", `  { LockID: "${runtime.backend.lockId}", Path: "${runtime.backend.bucket}/${runtime.backend.key}" }`, "]"];
+}
+
+export function azureBlobShow(runtime: Scenario): string[] {
+  if (runtime.backend.table !== "tfstate") return ["No Azure Blob Storage backend is configured for this lab."];
+  return [
+    `name: ${runtime.backend.key}`,
+    `container: ${runtime.backend.table}`,
+    `account: ${runtime.backend.bucket}`,
+    `leaseState: ${runtime.backend.locked ? "leased" : "available"}`,
+    `leaseStatus: ${runtime.backend.locked ? "locked" : "unlocked"}`,
+    `metadata.terraformlockid: ${runtime.backend.lockId ?? "none"}`,
+  ];
+}
+
+export function azureBlobLeaseBreak(runtime: Scenario): string[] {
+  if (runtime.backend.table !== "tfstate") return ["No Azure Blob Storage backend is configured for this lab."];
+  if (!runtime.backend.locked) return ["Blob lease is already available."];
+  runtime.backend = {
+    ...runtime.backend,
+    locked: false,
+    lockId: null,
+  };
+  return ["Breaking lease on prod/web.tfstate...", "Lease break completed. Blob lease state is now available."];
 }

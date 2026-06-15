@@ -276,6 +276,13 @@ export function isScenarioSolved(runtime: Scenario, scenarioId: string, activeFi
   if (scenarioId === "terraformModuleWrongSource") return Boolean(runtime.flags.validationPassed && runtime.flags.cleanPlan);
   if (scenarioId === "terraformModuleMissingVariable") return Boolean(runtime.flags.validationPassed && runtime.flags.cleanPlan);
   if (scenarioId === "terraformModuleSecurityGroup") return Boolean(runtime.flags.securityPassed && runtime.flags.cleanPlan);
+  if (scenarioId === "terraformBlankEc2WebServer") return Boolean(runtime.flags.securityPassed && runtime.flags.cleanPlan);
+  if (scenarioId === "terraformBlankAzureWebApp") return Boolean(runtime.flags.validationPassed && runtime.flags.securityPassed && runtime.flags.cleanPlan);
+  if (scenarioId === "terraformAzureBlobLeaseLock") return Boolean(!runtime.backend.locked && runtime.flags.importedRole && runtime.flags.cleanPlan);
+  if (scenarioId === "terraformAzureNsgDrift") {
+    const file = runtime.files[activeFileName] ?? "";
+    return Boolean(runtime.flags.cleanPlan && /source_address_prefix\s*=\s*"0\.0\.0\.0\/0"/.test(file));
+  }
   if (scenarioId === "terraformStateFolderMigration") return Boolean(hasStateAddress(runtime, "module.logging.aws_s3_bucket.logs") && runtime.flags.cleanPlan);
   if (runtime.kind === "terragrunt") {
     if (scenarioId === "terragruntHclfmt") return Boolean(runtime.flags.initialized && runtime.flags.lintPassed && runtime.flags.validationPassed && runtime.flags.cleanPlan);

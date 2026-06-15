@@ -10,6 +10,10 @@ export const scenarioOrderByGroup = {
     "missingIamImport",
     "interruptedApplyLock",
     "terraformStateFolderMigration",
+    "terraformBlankEc2WebServer",
+    "terraformBlankAzureWebApp",
+    "terraformAzureBlobLeaseLock",
+    "terraformAzureNsgDrift",
     "cloudFormationDriftDetection",
   ],
   iacSecurity: [

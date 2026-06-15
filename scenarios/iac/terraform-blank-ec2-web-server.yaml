@@ -1,0 +1,103 @@
+id: terraformBlankEc2WebServer
+kind: terraform
+title: Terraform From Scratch: EC2 Web Server
+description: Build a complete EC2 web server Terraform configuration from an empty file, including provider, security group, and instance resources.
+primaryFile: main.tf
+tips:
+  - The infrastructure should be deployed in eu-west-1.
+  - The web server must accept HTTP traffic from the public internet.
+  - The web server should use a t3.micro instance with the Amazon Linux 2 AMI ami-0c55b159cbfafe1f0.
+files:
+  "main.tf": "# Write your Terraform configuration here.\n"
+  "requirements.md": |
+    # Web Server Infrastructure Requirements
+
+    ## Provider
+    - Deploy to region eu-west-1
+
+    ## Compute
+    - EC2 instance
+    - Instance type: t3.micro
+    - AMI: ami-0c55b159cbfafe1f0 (Amazon Linux 2)
+    - Tag: Name = "web-server"
+
+    ## Networking
+    - Inbound HTTP (port 80) must be open to the public internet
+    - Outbound traffic unrestricted
+
+    ## Security
+    - No SSH or other inbound ports needed for this deployment
+solution:
+  summary: |
+    The Terraform configuration was built from an empty file. The provider, security group, and EC2 instance now form a complete, deployable web server configuration.
+  steps:
+    - Read requirements.md for the infrastructure specifications.
+    - Build the provider block for eu-west-1.
+    - Create a security group allowing inbound HTTP on port 80.
+    - Create an EC2 instance with the specified AMI, instance type, and security group.
+    - Tag resources with Name = "web-server".
+    - Run terraform init, then checkov -f main.tf, then terraform plan.
+  explanation: |
+    Building infrastructure from scratch in Terraform teaches the core resource model: providers connect to cloud APIs, resources represent infrastructure components, and attributes wire them together. The security group controls network access, and the instance references it via vpc_security_group_ids. Every resource must have a unique name and type, and resource references use the format aws_resource_type.logical_name.attribute.
+  outcome: |
+    Terraform From Scratch: EC2 Web Server is a complete, deployable configuration with provider, security group, and EC2 instance.
+  focusFileName: main.tf
+  files:
+    "main.tf": |
+      provider "aws" {
+        region = "eu-west-1"
+      }
+
+      resource "aws_security_group" "web" {
+        name        = "web-server"
+        description = "Allow HTTP inbound"
+
+        ingress {
+          from_port   = 80
+          to_port     = 80
+          protocol    = "tcp"
+          cidr_blocks = ["0.0.0.0/0"]
+        }
+
+        egress {
+          from_port   = 0
+          to_port     = 0
+          protocol    = "-1"
+          cidr_blocks = ["0.0.0.0/0"]
+        }
+
+        tags = {
+          Name = "web-server"
+        }
+      }
+
+      resource "aws_instance" "web" {
+        ami                    = "ami-0c55b159cbfafe1f0"
+        instance_type          = "t3.micro"
+        vpc_security_group_ids = [aws_security_group.web.id]
+
+        tags = {
+          Name = "web-server"
+        }
+      }
+  commands:
+    - terraform init
+    - checkov -f main.tf
+    - terraform plan
+backend:
+  bucket: tf-state-training
+  key: ec2-web-server
+  table: tf-locks
+  locked: false
+  lockId: null
+awsResources:
+  - type: ec2_instance
+    name: web-server
+    id: i-0a1b2c3d4e5f67890
+    status: failed
+    note: Terraform file is empty. Build the provider, security group, and EC2 instance configuration.
+stateResources: []
+flags:
+  initialized: false
+  cleanPlan: false
+  securityPassed: false
