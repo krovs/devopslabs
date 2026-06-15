@@ -1,5 +1,5 @@
 import { getIncidentDisplayTitle } from "./appUi";
-import { labGroupDetails, scenarioKindLabel, scenarioMenuGroupId, type LabGroup, type MenuGroupId, type ScenarioCatalogItem } from "./labCatalog";
+import { scenarioKindLabel, scenarioMenuGroupId, type LabGroup, type MenuGroupId, type ScenarioCatalogItem } from "./labCatalog";
 
 export type LabMenuFilterOptions = {
   scenarios: Record<string, ScenarioCatalogItem>;
@@ -25,8 +25,7 @@ export function createLabMenuFilters({ scenarios, labGroups }: LabMenuFilterOpti
     if (!queryTokens.length) return ids;
     return ids.filter((id) => {
       const scenario = scenarios[id];
-      const providers = labGroupDetails[scenarioMenuGroup(id)].providers.join(" ");
-      const searchable = `${scenario.title} ${id} ${scenarioKindLabel(scenario)} ${providers}`.toLowerCase();
+      const searchable = `${scenario.title} ${id} ${scenario.description} ${scenarioKindLabel(scenario)}`.toLowerCase();
       return queryTokens.every((token) => searchable.includes(token));
     });
   }
