@@ -222,6 +222,87 @@ export const documentationSections: DocSection[] = [
     ],
   },
   {
+    id: "wiki-azure-devops",
+    navTitle: "Azure DevOps",
+    title: "Azure DevOps Pipelines",
+    blocks: [
+      {
+        type: "paragraph",
+        content: [
+          "Azure DevOps Pipelines run from YAML files (", { code: "azure-pipelines.yml" }, ") in the repository. A pipeline defines triggers, stages, jobs, steps, variable groups, and optional environments.",
+        ],
+      },
+      { type: "heading", text: "Core Concepts" },
+      {
+        type: "unorderedList",
+        items: [
+          ["Pipeline: YAML-defined CI/CD automation with triggers, stages, and jobs."],
+          ["Stage: logical boundary such as Build, Test, or Deploy with dependency ordering."],
+          ["Job: agent-level execution unit inside a stage."],
+          ["Step: task, script, or action inside a job."],
+          ["Variable group: named collection of secret and non-secret variables shared across pipelines."],
+          ["Service connection: authenticated link to an external service (Azure, AWS, GitHub, Docker registry)."],
+          [{ code: "azure-pipelines.yml" }, " lives in the repository root and is discovered automatically or referenced by name."],
+        ],
+      },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "az pipelines build list\naz pipelines build show --id <id>\naz pipelines run\naz devops invoke" },
+      { type: "heading", text: "Common Problems" },
+      {
+        type: "unorderedList",
+        items: [
+          ["Variable group name does not match the group configured in the project."],
+          ["Service connection is expired, revoked, or scoped to the wrong subscription."],
+          ["Pipeline YAML references a template path that does not exist in the repository."],
+          ["Stage dependsOn references a stage name that is missing or misspelled."],
+          ["Agent pool is missing required software (SDK, runtime, tool) for a step."],
+          ["Pipeline run is blocked by branch policies, required reviewers, or deployment gates."],
+          ["Secret variables are not auto-decrypted inside scripts without explicit mapping."],
+        ],
+      },
+    ],
+  },
+  {
+    id: "wiki-jenkins",
+    navTitle: "Jenkins",
+    title: "Jenkins Pipelines",
+    blocks: [
+      {
+        type: "paragraph",
+        content: [
+          "Jenkins runs pipelines defined in a ", { code: "Jenkinsfile" }, " (declarative or scripted). A pipeline contains stages, steps, credentials bindings, and optional agents or nodes.",
+        ],
+      },
+      { type: "heading", text: "Core Concepts" },
+      {
+        type: "unorderedList",
+        items: [
+          ["Pipeline: declarative or scripted automation defined in a Jenkinsfile."],
+          ["Stage: logical block like Build, Test, or Publish that groups steps."],
+          ["Step: single shell command, script, or plugin action."],
+          ["Agent: node, Docker container, or label where the pipeline or stage runs."],
+          ["Credentials: securely stored secrets accessed through ", { code: "withCredentials" }, " bindings."],
+          [{ code: "withCredentials" }, " wraps steps and binds secret ids to environment variables for that scope."],
+          ["Credentials never appear in logs when ", { code: "--password-stdin" }, " is used instead of positional password arguments."],
+        ],
+      },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "jenkins build log\njenkins rebuild" },
+      { type: "heading", text: "Common Problems" },
+      {
+        type: "unorderedList",
+        items: [
+          ["Docker login runs without bound registry credentials (username and password or token)."],
+          ["Credentials id is misspelled or references a deleted credential."],
+          ["Stage-level agent declaration is missing, so shell steps run on an unexpected node."],
+          ["Pipeline approval gate is not configured or the environment name does not match a protected resource."],
+          ["Build workspace is stale and retains artifacts from a previous run."],
+          ["Shared library version is pinned to a broken or unreachable tag."],
+        ],
+      },
+    ],
+  },
+  {
     id: "wiki-gitops",
     navTitle: "GitOps",
     title: "GitOps",
@@ -1316,6 +1397,8 @@ const referenceSectionByKind: Record<NonNullable<Scenario["kind"]>, string> = {
 };
 
 export function contextualDocumentationSections(kind: Scenario["kind"]): DocSection[] {
-  const sectionId = referenceSectionByKind[kind ?? "terraform"];
-  return documentationSections.filter((section) => section.id === sectionId);
+  const sectionIds = new Set([referenceSectionByKind[kind ?? "terraform"]]);
+  if (kind === "cicd") sectionIds.add("wiki-azure-devops");
+  if (kind === "cicd") sectionIds.add("wiki-jenkins");
+  return documentationSections.filter((section) => sectionIds.has(section.id));
 }

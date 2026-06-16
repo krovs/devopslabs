@@ -33,6 +33,7 @@ export function lockError(runtime: Scenario): string[] {
       "Error: Error acquiring the state lock",
       `Lock Info: ID ${runtime.backend.lockId}`,
       "Azure Blob Storage backend uses a blob lease to lock the Terraform state file.",
+      "Run az storage blob show to inspect the lease, then break it.",
     ];
   }
 

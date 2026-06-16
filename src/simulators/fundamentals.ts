@@ -833,3 +833,41 @@ export function runHelmUpgrade(runtime: Scenario, scenarioId: string): string[] 
   setFirstResource(runtime, "failed", "Helm upgrade still renders the wrong container port or chart output was not inspected first.");
   return ["Release \"checkout\" has been upgraded.", "STATUS: deployed", "rollout status: waiting for ready replicas"];
 }
+
+export function kubernetesBlankValidate(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "kubernetesBlankDeploymentService") {
+    return ["No blank Kubernetes scenario configured."];
+  }
+  const file = runtime.files["deployment.yaml"] ?? "";
+  const hasDeployment = file.includes("kind: Deployment");
+  const hasService = file.includes("kind: Service");
+  const hasNginxImage = file.includes("nginx:1.25");
+  const hasReplicas2 = /replicas:\s*2\b/.test(file);
+  const hasContainerPort80 = /containerPort:\s*80\b/.test(file);
+  const hasClusterIP = file.includes("type: ClusterIP");
+  const hasTargetPort80 = /targetPort:\s*80\b/.test(file);
+  const hasPort80 = /port:\s*80\b/.test(file);
+
+  if (hasDeployment && hasService && hasNginxImage && hasReplicas2 && hasContainerPort80 && hasClusterIP && hasTargetPort80 && hasPort80) {
+    runtime.flags.kubernetesValidated = true;
+    setFirstResource(runtime, "success", "Deployment and Service YAML is valid. Configuration meets all requirements.");
+    return [
+      "deployment.apps/web created (server dry run)",
+      "service/web created (server dry run)",
+      "Validation passed: Deployment with nginx:1.25, 2 replicas, port 80, and ClusterIP Service.",
+    ];
+  }
+
+  const missing: string[] = [];
+  if (!hasDeployment) missing.push("kind: Deployment");
+  if (!hasService) missing.push("kind: Service");
+  if (!hasNginxImage) missing.push("nginx:1.25 image");
+  if (!hasReplicas2) missing.push("replicas: 2");
+  if (!hasContainerPort80) missing.push("containerPort: 80");
+  if (!hasClusterIP) missing.push("type: ClusterIP");
+  if (!hasTargetPort80) missing.push("targetPort: 80");
+  if (!hasPort80) missing.push("port: 80");
+
+  setFirstResource(runtime, "failed", `YAML still missing: ${missing.join(", ")}.`);
+  return [`Error from server (dry run): resource validation failed.`, `Missing: ${missing.join(", ")}.`];
+}

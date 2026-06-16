@@ -1,0 +1,79 @@
+id: ansiblePlaybookWrongHostGroup
+kind: cicd
+title: Ansible Playbook Wrong Host Group
+description: An Ansible playbook fails because it targets a host group named app-servers, but the inventory only defines a group named web-servers.
+primaryFile: playbook.yml
+tips:
+  - Inspect the inventory with ansible-inventory --list.
+  - Run ansible-playbook playbook.yml --check to see why the playbook skips all hosts.
+  - The hosts key in the playbook must match an actual inventory group name.
+  - Fix the playbook and run ansible-playbook playbook.yml to apply.
+files:
+  "playbook.yml": |
+    - hosts: app-servers
+      tasks:
+        - name: Install nginx
+          apt:
+            name: nginx
+            state: present
+          become: true
+        - name: Start nginx
+          service:
+            name: nginx
+            state: started
+            enabled: true
+          become: true
+  "inventory.ini": |
+    [web-servers]
+    web-01 ansible_host=10.0.1.10
+    web-02 ansible_host=10.0.1.11
+  "requirements.md": |
+    # Web Server Requirements
+
+    - Install and start nginx on all web servers.
+    - Use the inventory group name that matches the inventory file.
+    - Run ansible-playbook playbook.yml --check to validate before applying.
+solution:
+  summary: |
+    The playbook targets the wrong host group app-servers. The inventory defines web-servers. Fix the hosts key to web-servers.
+  steps:
+    - Run ansible-inventory --list to list available host groups.
+    - Review the playbook hosts key.
+    - Change hosts: app-servers to hosts: web-servers.
+    - Run ansible-playbook playbook.yml --check to validate.
+    - Run ansible-playbook playbook.yml to apply the playbook.
+  explanation: |
+    Ansible playbooks specify the target inventory group with the hosts key. If the group name does not match any group in the inventory, the playbook runs against zero hosts and does nothing — or fails validation. The fix aligns the playbook host group with the inventory.
+  outcome: |
+    The playbook runs against web-servers, installs nginx, and starts the service on both web hosts.
+  focusFileName: playbook.yml
+  replacements:
+    - fileName: playbook.yml
+      search: |
+        - hosts: app-servers
+      replace: |
+        - hosts: web-servers
+  commands:
+    - ansible-inventory --list
+    - ansible-playbook playbook.yml --check
+    - ansible-playbook playbook.yml
+backend:
+  bucket: automation
+  key: ansible-playbook
+  table: runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: pipeline
+    name: ansible-web
+    id: run-442
+    status: failed
+    note: Playbook targets app-servers which does not match any inventory group.
+stateResources:
+  - address: inventory.web-servers
+    id: web-01, web-02
+  - address: playbook.hosts
+    id: app-servers
+flags:
+  workflowFixed: false
+  runPassing: false

@@ -6,6 +6,8 @@ const genericGithubActionsScenarioIds = [
   "githubActionsEnvironmentApproval",
   "githubActionsMatrixNodeVersion",
   "jenkinsMissingCredentialsBinding",
+  "azureDevOpsPipelineWrongVariableGroup",
+  "ansiblePlaybookWrongHostGroup",
 ];
 
 function fileLines(file: string): string[] {
@@ -72,6 +74,8 @@ export function workflowEvent(scenarioId: string): string {
   if (scenarioId === "githubActionsEnvironmentApproval") return "workflow_dispatch";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "pull_request on main";
   if (scenarioId === "jenkinsMissingCredentialsBinding") return "manual build";
+  if (scenarioId === "azureDevOpsPipelineWrongVariableGroup") return "push on main";
+  if (scenarioId === "ansiblePlaybookWrongHostGroup") return "manual run";
   return "workflow_dispatch";
 }
 
@@ -86,6 +90,8 @@ export function workflowJob(scenarioId: string): string {
   if (scenarioId === "githubActionsEnvironmentApproval") return "deploy";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "test";
   if (scenarioId === "jenkinsMissingCredentialsBinding") return "publish-image";
+  if (scenarioId === "azureDevOpsPipelineWrongVariableGroup") return "deploy";
+  if (scenarioId === "ansiblePlaybookWrongHostGroup") return "playbook-run";
   return "workflow";
 }
 
@@ -101,6 +107,8 @@ export function workflowFailedStep(runtime: Scenario, scenarioId: string): strin
   if (scenarioId === "githubActionsEnvironmentApproval") return "environment approval";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "npm test (node 16)";
   if (scenarioId === "jenkinsMissingCredentialsBinding") return "docker login";
+  if (scenarioId === "azureDevOpsPipelineWrongVariableGroup") return "variable group resolution";
+  if (scenarioId === "ansiblePlaybookWrongHostGroup") return "ansible-playbook hosts match";
   return "unknown";
 }
 
@@ -161,6 +169,14 @@ export function genericGithubActionsFixApplied(runtime: Scenario, scenarioId: st
       && jenkinsfile.includes("--password-stdin");
   }
 
+  if (scenarioId === "azureDevOpsPipelineWrongVariableGroup") {
+    return azureDevOpsFixApplied(runtime);
+  }
+
+  if (scenarioId === "ansiblePlaybookWrongHostGroup") {
+    return ansibleFixApplied(runtime);
+  }
+
   return false;
 }
 
@@ -170,6 +186,8 @@ export function workflowFailureSummary(scenarioId: string): string {
   if (scenarioId === "githubActionsEnvironmentApproval") return "environment prod is not configured or protected.";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "matrix node-version 16 is unsupported by this project.";
   if (scenarioId === "jenkinsMissingCredentialsBinding") return "docker login has no registry credentials bound in the Jenkins stage.";
+  if (scenarioId === "azureDevOpsPipelineWrongVariableGroup") return "variable group prod-secrets was not found.";
+  if (scenarioId === "ansiblePlaybookWrongHostGroup") return "playbook targets app-servers which does not match any inventory group.";
   return "workflow failed.";
 }
 
@@ -179,6 +197,8 @@ export function genericGithubActionsFailureNote(scenarioId: string): string {
   if (scenarioId === "githubActionsEnvironmentApproval") return "workflow still targets prod instead of production.";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "matrix still includes unsupported Node.js 16.";
   if (scenarioId === "jenkinsMissingCredentialsBinding") return "Jenkinsfile still pushes without binding registry credentials.";
+  if (scenarioId === "azureDevOpsPipelineWrongVariableGroup") return "Pipeline still references prod-secrets instead of production-secrets.";
+  if (scenarioId === "ansiblePlaybookWrongHostGroup") return "Playbook still targets app-servers instead of web-servers.";
   return "Workflow is still failing.";
 }
 
@@ -188,6 +208,8 @@ export function genericGithubActionsSuccessNote(scenarioId: string): string {
   if (scenarioId === "githubActionsEnvironmentApproval") return "Workflow targets the configured production environment.";
   if (scenarioId === "githubActionsMatrixNodeVersion") return "Matrix only uses supported Node.js versions.";
   if (scenarioId === "jenkinsMissingCredentialsBinding") return "Jenkins binds registry credentials before docker login and push.";
+  if (scenarioId === "azureDevOpsPipelineWrongVariableGroup") return "Pipeline resolves production-secrets and deploy stage completes.";
+  if (scenarioId === "ansiblePlaybookWrongHostGroup") return "Playbook runs against web-servers. nginx installed and started.";
   return "Workflow completed successfully.";
 }
 
@@ -214,6 +236,14 @@ export function genericGithubActionsLogLines(runtime: Scenario, scenarioId: stri
 
   if (scenarioId === "jenkinsMissingCredentialsBinding") {
     return ["docker login ghcr.io", "Error: Cannot perform an interactive login from a non TTY device", "Bind registry credentials before docker login"];
+  }
+
+  if (scenarioId === "azureDevOpsPipelineWrongVariableGroup") {
+    return ["Starting: Deploy", "Waiting for variable group: prod-secrets", "Error: Variable group prod-secrets was not found in this project"];
+  }
+
+  if (scenarioId === "ansiblePlaybookWrongHostGroup") {
+    return ["PLAY [app-servers]", "skipping: no hosts matched", "Error: target host group app-servers not found in inventory"];
   }
 
   return ["No logs available."];
@@ -251,6 +281,10 @@ export function workflowLogLines(runtime: Scenario, scenarioId: string): string[
         "permissions are explicitly scoped",
         "No lint findings",
       ];
+    }
+
+    if (isGenericGithubActionsScenario(scenarioId)) {
+      return genericGithubActionsLogLines(runtime, scenarioId);
     }
 
     return [
@@ -492,4 +526,126 @@ export function githubSecretSet(runtime: Scenario, name?: string): string[] {
   }
   runtime.flags.secretsConfigured = true;
   return ["Secret AWS_ROLE_ARN saved."];
+}
+
+function azureDevOpsFixApplied(runtime: Scenario): boolean {
+  const file = runtime.files["azure-pipelines.yml"] ?? "";
+  return file.includes("group: production-secrets") && !file.includes("group: prod-secrets");
+}
+
+export function azPipelinesBuildList(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "azureDevOpsPipelineWrongVariableGroup") {
+    return ["No Azure DevOps pipelines configured for this scenario."];
+  }
+  if (runtime.flags.runPassing) {
+    return ["ID      Status    Pipeline          Branch", "7231    succeeded deploy-platform   main"];
+  }
+  return ["ID      Status    Pipeline          Branch", "7231    failed    deploy-platform   main"];
+}
+
+export function azPipelinesBuildShow(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "azureDevOpsPipelineWrongVariableGroup") {
+    return ["No Azure DevOps pipeline build found."];
+  }
+  if (runtime.flags.runPassing) {
+    return [
+      "Pipeline: deploy-platform",
+      "Build ID: 7231",
+      "Status: succeeded",
+      "Result: Deploy stage completed. Variable group production-secrets resolved.",
+    ];
+  }
+  return [
+    "Pipeline: deploy-platform",
+    "Build ID: 7231",
+    "Status: failed",
+    "Stage: Deploy",
+    "Error: Variable group prod-secrets was not found in this project.",
+  ];
+}
+
+export function azPipelinesRun(runtime: Scenario, scenarioId: string, activeFileName: string): string[] {
+  if (scenarioId !== "azureDevOpsPipelineWrongVariableGroup") {
+    return ["No Azure DevOps pipeline configured for this scenario."];
+  }
+  if (azureDevOpsFixApplied(runtime)) {
+    runtime.flags.workflowFixed = true;
+    runtime.flags.runPassing = true;
+    setFirstResource(runtime, "success", "Pipeline resolves production-secrets and deploy stage completes successfully.");
+    return ["Queueing pipeline deploy-platform...", "Run succeeded."];
+  }
+  setFirstResource(runtime, "failed", "Pipeline still references prod-secrets instead of production-secrets.");
+  return ["Queueing pipeline deploy-platform...", "Run failed: variable group prod-secrets was not found."];
+}
+
+export function azPipelinesVariableGroupList(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "azureDevOpsPipelineWrongVariableGroup") {
+    return ["No Azure DevOps variable groups configured for this scenario."];
+  }
+  return [
+    "ID        Name                 Variables",
+    "3         production-secrets   SQL_PASSWORD, API_KEY, DB_HOST",
+    "7         staging-config       LOG_LEVEL, DEBUG_MODE",
+  ];
+}
+
+function ansibleFixApplied(runtime: Scenario): boolean {
+  const file = runtime.files["playbook.yml"] ?? "";
+  return file.includes("hosts: web-servers") && !file.includes("hosts: app-servers");
+}
+
+export function ansibleInventoryList(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "ansiblePlaybookWrongHostGroup") {
+    return ["No Ansible inventory configured for this scenario."];
+  }
+  return [
+    "Inventory groups:",
+    "  web-servers (2 hosts)",
+    "  - web-01  ansible_host=10.0.1.10",
+    "  - web-02  ansible_host=10.0.1.11",
+  ];
+}
+
+export function ansiblePlaybookCheck(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "ansiblePlaybookWrongHostGroup") {
+    return ["No Ansible playbook configured for this scenario."];
+  }
+  if (ansibleFixApplied(runtime)) {
+    return [
+      "PLAY [web-servers]",
+      "TASK [Install nginx] ok",
+      "TASK [Start nginx] ok",
+      "PLAY RECAP: 2 ok, 0 changed, 0 unreachable, all passed",
+    ];
+  }
+  return [
+    "PLAY [app-servers]",
+    "skipping: no hosts matched",
+    "PLAY RECAP: 0 ok, 0 changed, 0 unreachable, 0 failures",
+    "Error: target host group app-servers not found in inventory.",
+  ];
+}
+
+export function ansiblePlaybookRun(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "ansiblePlaybookWrongHostGroup") {
+    return ["No Ansible playbook configured for this scenario."];
+  }
+  if (ansibleFixApplied(runtime)) {
+    runtime.flags.workflowFixed = true;
+    runtime.flags.runPassing = true;
+    setFirstResource(runtime, "success", "Playbook runs against web-servers. nginx installed and started on both hosts.");
+    return [
+      "PLAY [web-servers]",
+      "TASK [Install nginx] changed: [web-01], [web-02]",
+      "TASK [Start nginx] ok: [web-01], [web-02]",
+      "PLAY RECAP: 2 ok, 2 changed, 0 unreachable, all passed",
+    ];
+  }
+  setFirstResource(runtime, "failed", "Playbook still targets app-servers instead of web-servers.");
+  return [
+    "PLAY [app-servers]",
+    "skipping: no hosts matched",
+    "PLAY RECAP: 0 ok, 0 changed, 0 unreachable, 0 failures",
+    "Run failed: target host group app-servers not found in inventory.",
+  ];
 }

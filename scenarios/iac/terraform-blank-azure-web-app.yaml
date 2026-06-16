@@ -10,7 +10,7 @@ tips:
   - The Linux Web App must run on a Linux App Service Plan.
   - The web app must force HTTPS with https_only = true.
 files:
-  "main.tf": "# Write your Azure Terraform configuration here.\n"
+  "main.tf": "# Write your Azure Terraform configuration here."
   "requirements.md": |
     # Azure Web App Infrastructure Requirements
 

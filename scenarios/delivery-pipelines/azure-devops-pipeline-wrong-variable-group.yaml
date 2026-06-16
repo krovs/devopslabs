@@ -1,0 +1,82 @@
+id: azureDevOpsPipelineWrongVariableGroup
+kind: cicd
+title: Azure DevOps Pipeline Wrong Variable Group
+description: An Azure DevOps YAML pipeline fails to deploy because it references a variable group named prod-secrets while the actual group is named production-secrets.
+primaryFile: azure-pipelines.yml
+tips:
+  - Inspect the failed pipeline run with az pipelines build list.
+  - Run az pipelines build show --id 7231 to see the build details.
+  - The error mentions the variable group name.
+  - Run az pipelines variable-group list to find available groups.
+  - Cross-check the group name in azure-pipelines.yml against the available groups.
+  - Rerun the pipeline after the fix.
+files:
+  "azure-pipelines.yml": |
+    trigger:
+      branches:
+        include:
+          - main
+
+    variables:
+      - group: prod-secrets
+
+    stages:
+      - stage: Build
+        jobs:
+          - job: BuildJob
+            steps:
+              - script: echo "Building application..."
+      - stage: Deploy
+        dependsOn: Build
+        jobs:
+          - job: DeployJob
+            steps:
+              - script: |
+                  echo "Deploying to production..."
+                  echo "Using SQL_PASSWORD from variable group: $SQL_PASSWORD"
+solution:
+  summary: |
+    The pipeline references a variable group named prod-secrets that does not exist. The actual variable group is named production-secrets.
+  steps:
+    - Run az pipelines build list to inspect recent pipeline runs.
+    - Review the pipeline YAML to check the variable group reference.
+    - Change the group name from prod-secrets to production-secrets in azure-pipelines.yml.
+    - Rerun the pipeline with az pipelines run.
+  explanation: |
+    Azure DevOps variable groups are referenced by name in the pipeline YAML. If the name does not match an existing group, the pipeline fails at job start with a variable group resolution error.
+
+    The fix updates the group name to match the configured production-secrets group, allowing the deploy stage to access SQL_PASSWORD and other production variables.
+  outcome: |
+    The pipeline resolves production-secrets and the Deploy stage completes successfully.
+  focusFileName: azure-pipelines.yml
+  replacements:
+    - fileName: azure-pipelines.yml
+      search: |
+        group: prod-secrets
+      replace: |
+        group: production-secrets
+  commands:
+    - az pipelines build list
+    - az pipelines build show --id 7231
+    - az pipelines variable-group list
+    - az pipelines run
+backend:
+  bucket: azure-devops
+  key: azure-pipelines.yml
+  table: pipeline-runs
+  locked: false
+  lockId: null
+awsResources:
+  - type: pipeline
+    name: deploy-platform
+    id: build-7231
+    status: failed
+    note: Variable group prod-secrets was not found in this project.
+stateResources:
+  - address: variable-group.prod-secrets
+    id: not-found
+  - address: variable-group.production-secrets
+    id: SQL_PASSWORD, API_KEY, DB_HOST
+flags:
+  workflowFixed: false
+  runPassing: false

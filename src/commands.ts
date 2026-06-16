@@ -21,6 +21,13 @@ export type CommandHandlers = {
   githubSecretSet: (name?: string) => string[];
   jenkinsBuildLog: () => string[];
   jenkinsRebuild: () => string[];
+  azPipelinesBuildList: () => string[];
+  azPipelinesBuildShow: () => string[];
+  azPipelinesRun: () => string[];
+  azPipelinesVariableGroupList: () => string[];
+  ansibleInventoryList: () => string[];
+  ansiblePlaybookCheck: () => string[];
+  ansiblePlaybookRun: () => string[];
   argocdAppGet: () => string[];
   fluxReconcileKustomization: () => string[];
   terragruntInit: () => string[];
@@ -78,6 +85,7 @@ export type CommandHandlers = {
   kubectlRolloutRestart: () => string[];
   kubectlRolloutStatus: () => string[];
   kubectlScaleDeployment: () => string[];
+  kubernetesBlankDryRun: () => string[];
   helmLint: () => string[];
   helmTemplate: () => string[];
   helmUpgrade: () => string[];
@@ -156,6 +164,13 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (args[0] === "gh" && args[1] === "secret" && args[2] === "set") return handlers.githubSecretSet(args[3]);
     if (input === "jenkins build log") return handlers.jenkinsBuildLog();
     if (input === "jenkins rebuild") return handlers.jenkinsRebuild();
+    if (input === "az pipelines build list") return handlers.azPipelinesBuildList();
+    if (input === "az pipelines build show --id 7231") return handlers.azPipelinesBuildShow();
+    if (input === "az pipelines run") return handlers.azPipelinesRun();
+    if (input === "az pipelines variable-group list") return handlers.azPipelinesVariableGroupList();
+    if (input === "ansible-inventory --list") return handlers.ansibleInventoryList();
+    if (input === "ansible-playbook playbook.yml --check") return handlers.ansiblePlaybookCheck();
+    if (input === "ansible-playbook playbook.yml") return handlers.ansiblePlaybookRun();
   }
 
   if (runtime.kind === "linux") {
@@ -192,6 +207,7 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "kubectl rollout restart deployment checkout-api") return handlers.kubectlRolloutRestart();
     if (input === "kubectl rollout status deployment checkout-api") return handlers.kubectlRolloutStatus();
     if (input === "kubectl scale deployment checkout-api --replicas=2") return handlers.kubectlScaleDeployment();
+    if (input === "kubectl apply --dry-run=server -f deployment.yaml") return handlers.kubernetesBlankDryRun();
     if (input === "helm lint checkout ./chart") return handlers.helmLint();
     if (input === "helm template checkout ./chart") return handlers.helmTemplate();
     if (input === "helm upgrade checkout ./chart") return handlers.helmUpgrade();
@@ -331,7 +347,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "cicd") {
-    return ["Available commands:", "  gh run view", "  gh run rerun", "  gh secret list", "  gh secret set <name>", "  jenkins build log", "  jenkins rebuild", "  check", "  help"];
+    return ["Available commands:", "  gh run view", "  gh run rerun", "  gh secret list", "  gh secret set <name>", "  jenkins build log", "  jenkins rebuild", "  az pipelines build list", "  az pipelines build show --id <id>", "  az pipelines variable-group list", "  az pipelines run", "  ansible-inventory --list", "  ansible-playbook playbook.yml --check", "  ansible-playbook playbook.yml", "  check", "  help"];
   }
 
   if (runtime.kind === "gitops") {
@@ -359,7 +375,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "kubernetes") {
-    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe deployment checkout-api", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl get hpa checkout-api", "  kubectl describe hpa checkout-api", "  kubectl get pdb checkout-api", "  kubectl apply -f hpa.yaml", "  kubectl apply -f pdb.yaml", "  kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws iam list-roles", "  aws iam get-role --role-name <name>", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
+    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe deployment checkout-api", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl get hpa checkout-api", "  kubectl describe hpa checkout-api", "  kubectl get pdb checkout-api", "  kubectl apply -f hpa.yaml", "  kubectl apply -f pdb.yaml", "  kubectl apply --dry-run=server -f deployment.yaml", "  kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws iam list-roles", "  aws iam get-role --role-name <name>", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
   }
 
   if (runtime.kind === "appsec") {

@@ -7,6 +7,12 @@ export function parseSimpleYaml(text: string): unknown {
   const lines = text.replace(/\r/g, "").split("\n");
   const first = nextYamlContentLine(lines, 0);
   if (!first) return {};
+  if (first.text.trim().startsWith("- ")) {
+    const parsed = parseYamlArray(lines, first.index, first.indent);
+    const remaining = nextYamlContentLine(lines, parsed.index);
+    if (remaining) throw new Error(`Invalid YAML line: ${remaining.text.trim()}`);
+    return parsed.value;
+  }
   const parsed = parseYamlObject(lines, first.index, first.indent);
   const remaining = nextYamlContentLine(lines, parsed.index);
   if (remaining) throw new Error(`Invalid YAML line: ${remaining.text.trim()}`);

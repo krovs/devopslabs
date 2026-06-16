@@ -1,0 +1,100 @@
+id: kubernetesBlankDeploymentService
+kind: kubernetes
+title: Kubernetes From Scratch: Deployment and Service
+description: Build a complete Kubernetes Deployment and Service YAML from an empty file, including labels, container port, replicas, and a ClusterIP service.
+primaryFile: deployment.yaml
+tips:
+  - The Deployment must use a container image of nginx:1.25.
+  - The container must expose port 80.
+  - The Deployment must run 2 replicas with the label app: web.
+  - The Service must expose port 80 and target port 80.
+  - Use a ClusterIP Service type.
+  - Validate with kubectl apply --dry-run=server -f deployment.yaml.
+files:
+  "deployment.yaml": "# Write your Kubernetes Deployment and Service YAML here."
+  "requirements.md": |
+    # Web Deployment Requirements
+
+    ## Deployment
+    - Image: nginx:1.25
+    - Container port: 80
+    - Replicas: 2
+    - Labels: app: web
+
+    ## Service
+    - Type: ClusterIP
+    - Port: 80
+    - Target port: 80
+    - Selector: app: web
+solution:
+  summary: |
+    The Kubernetes YAML was built from an empty file. The Deployment and Service now form a complete, deployable web application configuration.
+  steps:
+    - Read requirements.md for the deployment specifications.
+    - Build a Deployment with the nginx:1.25 image, port 80, 2 replicas, and app: web labels.
+    - Build a ClusterIP Service exposing port 80 and targeting app: web pods.
+    - Run kubectl apply --dry-run=server -f deployment.yaml to validate.
+    - Run check to complete the scenario.
+  explanation: |
+    Building Kubernetes manifests from scratch teaches the core workload model: a Deployment manages replicas and a Pod template with containers and ports. A Service exposes those Pods using label selectors. Every resource needs apiVersion, kind, metadata, and spec sections.
+  outcome: |
+    Kubernetes From Scratch: Deployment and Service is a complete, valid configuration with a Deployment and ClusterIP Service.
+  focusFileName: deployment.yaml
+  files:
+    "deployment.yaml": |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: web
+        labels:
+          app: web
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: web
+        template:
+          metadata:
+            labels:
+              app: web
+          spec:
+            containers:
+              - name: nginx
+                image: nginx:1.25
+                ports:
+                  - containerPort: 80
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: web
+        labels:
+          app: web
+      spec:
+        type: ClusterIP
+        selector:
+          app: web
+        ports:
+          - port: 80
+            targetPort: 80
+  commands:
+    - kubectl apply --dry-run=server -f deployment.yaml
+    - check
+backend:
+  bucket: kubernetes
+  key: web
+  table: workloads
+  locked: false
+  lockId: null
+awsResources:
+  - type: deployment
+    name: web
+    id: default/web
+    status: failed
+    note: YAML is empty. Build a Deployment and ClusterIP Service with nginx, port 80, and 2 replicas.
+stateResources:
+  - address: deployment.web
+    id: not-created
+flags:
+  initialized: false
+  kubernetesValidated: false

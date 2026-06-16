@@ -237,6 +237,20 @@ export const scenarioManifest = [
     "path": "../scenarios/delivery-pipelines/jenkins-missing-credentials-binding.yaml"
   },
   {
+    "id": "azureDevOpsPipelineWrongVariableGroup",
+    "kind": "cicd",
+    "title": "Azure DevOps Pipeline Wrong Variable Group",
+    "description": "An Azure DevOps YAML pipeline fails to deploy because it references a variable group named prod-secrets while the actual group is named production-secrets.",
+    "path": "../scenarios/delivery-pipelines/azure-devops-pipeline-wrong-variable-group.yaml"
+  },
+  {
+    "id": "ansiblePlaybookWrongHostGroup",
+    "kind": "cicd",
+    "title": "Ansible Playbook Wrong Host Group",
+    "description": "An Ansible playbook fails because it targets a host group named app-servers, but the inventory only defines a group named web-servers.",
+    "path": "../scenarios/delivery-pipelines/ansible-playbook-wrong-host-group.yaml"
+  },
+  {
     "id": "gitopsArgoCdTargetRevisionDrift",
     "kind": "gitops",
     "title": "Argo CD Target Revision Drift",
@@ -319,6 +333,13 @@ export const scenarioManifest = [
     "title": "Kubernetes EKS RBAC And IRSA Triage",
     "description": "An EKS workload uses the wrong service account IAM role and is not bound to the namespace Role; fix the ServiceAccount annotation and RBAC subject before rolling out.",
     "path": "../scenarios/kubernetes-basics/kubernetes-eks-rbac-irsa.yaml"
+  },
+  {
+    "id": "kubernetesBlankDeploymentService",
+    "kind": "kubernetes",
+    "title": "Kubernetes From Scratch: Deployment and Service",
+    "description": "Build a complete Kubernetes Deployment and Service YAML from an empty file, including labels, container port, replicas, and a ClusterIP service.",
+    "path": "../scenarios/kubernetes-basics/kubernetes-blank-deployment-service.yaml"
   },
   {
     "id": "semgrepBasicCommandInjection",

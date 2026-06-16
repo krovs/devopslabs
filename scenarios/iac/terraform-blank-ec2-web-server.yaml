@@ -8,7 +8,7 @@ tips:
   - The web server must accept HTTP traffic from the public internet.
   - The web server should use a t3.micro instance with the Amazon Linux 2 AMI ami-0c55b159cbfafe1f0.
 files:
-  "main.tf": "# Write your Terraform configuration here.\n"
+  "main.tf": "# Write your Terraform configuration here."
   "requirements.md": |
     # Web Server Infrastructure Requirements
 
