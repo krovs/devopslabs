@@ -1072,15 +1072,16 @@ a:focus-visible {
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel) 88%, transparent);
   text-align: left;
-  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition: background-color 2s ease, border-color 2s ease, box-shadow 2s ease, transform 160ms ease;
 }
 
 .lab-index-card:hover,
 .lab-index-card:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
   background: color-mix(in srgb, var(--panel) 94%, var(--accent) 6%);
-  box-shadow: 0 10px 28px rgb(17 17 27 / 0.22);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 50%, transparent), 0 10px 28px rgb(17 17 27 / 0.22);
   transform: translateY(-2px);
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .lab-index-icon {
