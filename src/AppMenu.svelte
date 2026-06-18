@@ -74,9 +74,9 @@
   const labNavSections: { id: string; title: string; groupIds: MenuGroupId[] }[] = [
     { id: "infrastructure", title: "Infrastructure", groupIds: ["terraform", "awsconfig", "terragrunt", "networking"] },
     { id: "delivery", title: "Delivery", groupIds: ["cicd", "gitops"] },
-    { id: "runtime", title: "Runtime", groupIds: ["linux", "kubernetes", "observability"] },
-    { id: "security", title: "Security", groupIds: ["appsec", "threatmodel", "cloudsec", "iam", "scp", "policy", "secrets"] },
-    { id: "cloud-ops", title: "Cloud Ops", groupIds: ["dns", "finops", "mlops", "pr"] },
+    { id: "runtime", title: "Runtime", groupIds: ["linux", "kubernetes", "observability", "messaging"] },
+    { id: "security", title: "Security", groupIds: ["appsec", "threatmodel", "cloudsec", "iam", "scp", "policy", "secrets", "supplychain"] },
+    { id: "cloud-ops", title: "Cloud Ops", groupIds: ["dns", "finops", "mlops", "pr", "incident", "dr", "database", "sre"] },
   ];
 
   let totalScenarioIds = $derived(labGroups.flatMap((group) => group.ids));

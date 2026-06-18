@@ -1394,6 +1394,12 @@ const referenceSectionByKind: Record<NonNullable<Scenario["kind"]>, string> = {
   finops: "wiki-operations",
   pr: "wiki-pr",
   networking: "wiki-networking",
+  incident: "wiki-operations",
+  dr: "wiki-operations",
+  database: "wiki-operations",
+  supplychain: "wiki-appsec",
+  sre: "wiki-operations",
+  messaging: "wiki-operations",
 };
 
 export function contextualDocumentationSections(kind: Scenario["kind"]): DocSection[] {

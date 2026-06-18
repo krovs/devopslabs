@@ -1,0 +1,67 @@
+id: incidentSev1CommandTriage
+kind: incident
+title: SEV1 Incident Command Triage
+description: A production checkout-api 5xx spike is open without an incident commander or severity; assign command, set SEV1, and move to detected.
+primaryFile: incident.json
+tips:
+  - A SEV1 needs a named incident commander before anything else.
+  - The service is user-facing checkout-api with a 5xx spike.
+  - Set severity to SEV1 and move status from investigating to detected.
+  - Assign commander priya@acme.com.
+files:
+  "incident.json": |
+    {
+      "incidentId": "INC-2041",
+      "service": "checkout-api",
+      "commander": "",
+      "severity": "SEV3",
+      "status": "investigating"
+    }
+  "timeline.txt": |
+    09:03 PagerDuty: checkout-api 5xx rate 12%.
+    09:05 On-call acknowledged but no commander named.
+    09:08 Customer reports failed checkouts.
+solution:
+  summary: |
+    The incident is open without a commander or correct severity. Assign the commander, raise to SEV1, and move status to detected.
+  steps:
+    - Confirm the service is user-facing checkout-api with a 5xx spike.
+    - Assign commander priya@acme.com.
+    - Raise severity from SEV3 to SEV1.
+    - Move status from investigating to detected.
+  explanation: |
+    A SEV1 incident requires a named incident commander before coordination can proceed. The user-facing checkout-api 5xx spike warrants SEV1, and moving status to detected signals that the impact is confirmed and triage can begin.
+  outcome: |
+    INC-2041 has a commander, SEV1 severity, and detected status, so incident command can proceed.
+  focusFileName: incident.json
+  replacements:
+    - fileName: incident.json
+      search: '"commander": "",'
+      replace: '"commander": "priya@acme.com",'
+    - fileName: incident.json
+      search: '"severity": "SEV3",'
+      replace: '"severity": "SEV1",'
+    - fileName: incident.json
+      search: '"status": "investigating"'
+      replace: '"status": "detected"'
+  commands:
+    - incident validate
+backend:
+  bucket: incident-response
+  key: inc-2041-command
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: incident
+    name: INC-2041
+    id: INC-2041
+    status: failed
+    note: Incident has no commander, severity is SEV3, and status is investigating.
+stateResources:
+  - address: incident.commander
+    id: empty
+  - address: incident.severity
+    id: SEV3
+flags:
+  incidentValidated: false

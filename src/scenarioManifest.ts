@@ -342,6 +342,13 @@ export const scenarioManifest = [
     "path": "../scenarios/kubernetes-basics/kubernetes-blank-deployment-service.yaml"
   },
   {
+    "id": "kubernetesEksRbacWrongRules",
+    "kind": "kubernetes",
+    "title": "Kubernetes EKS RBAC Wrong Rules",
+    "description": "An EKS workload's service account has a RoleBinding but the Role grants access to secrets instead of configmaps, and the pod cannot read its configuration.",
+    "path": "../scenarios/kubernetes-basics/kubernetes-eks-rbac-wrong-rules.yaml"
+  },
+  {
     "id": "semgrepBasicCommandInjection",
     "kind": "appsec",
     "title": "Semgrep Basic Command Injection",
@@ -725,6 +732,223 @@ export const scenarioManifest = [
     "title": "Networking Direct Connect Multi-VPC Routing",
     "description": "Connect a company network to multiple AWS VPCs through Direct Connect, a DX gateway, and a transit gateway.",
     "path": "../scenarios/network-design/networking-direct-connect-multi-vpc.yaml"
+  },
+  {
+    "id": "incidentSev1CommandTriage",
+    "kind": "incident",
+    "title": "SEV1 Incident Command Triage",
+    "description": "A production checkout-api 5xx spike is open without an incident commander or severity; assign command, set SEV1, and move to detected.",
+    "path": "../scenarios/incident-response/incident-sev1-command-triage.yaml"
+  },
+  {
+    "id": "incidentPostmortemBlameless",
+    "kind": "incident",
+    "title": "Blameless Postmortem Draft",
+    "description": "Draft a blameless postmortem from a raw incident timeline: fill the root cause and action items and remove blame language.",
+    "path": "../scenarios/incident-response/incident-postmortem-blameless.yaml"
+  },
+  {
+    "id": "incidentRunbookExecutionGap",
+    "kind": "incident",
+    "title": "Runbook Execution Gap",
+    "description": "On-call follows a stale runbook whose steps diverge from the live service port; flag the drift and patch the runbook.",
+    "path": "../scenarios/incident-response/incident-runbook-execution-gap.yaml"
+  },
+  {
+    "id": "incidentAlertStormTriage",
+    "kind": "incident",
+    "title": "Alert Storm Triage",
+    "description": "Two hundred correlated alerts flood the pager; identify the root alert and suppress the noise.",
+    "path": "../scenarios/incident-response/incident-alert-storm-triage.yaml"
+  },
+  {
+    "id": "incidentCustomerFacingCommsDraft",
+    "kind": "incident",
+    "title": "Customer-Facing Status Comms",
+    "description": "Draft status page updates at t+0, t+15, and t+60 that balance transparency with SLA wording.",
+    "path": "../scenarios/incident-response/incident-customer-facing-comms-draft.yaml"
+  },
+  {
+    "id": "drRdsFailoverVerify",
+    "kind": "dr",
+    "title": "RDS Multi-AZ Failover and Verify",
+    "description": "Promote the RDS standby, verify the application reconnects, and confirm replica health before cutover.",
+    "path": "../scenarios/disaster-recovery/dr-rds-failover-verify.yaml"
+  },
+  {
+    "id": "drRegionFailoverDrill",
+    "kind": "dr",
+    "title": "Region Failover Drill Runbook",
+    "description": "Shift Route 53 weighted routing to the DR region and verify database, cache, and queue state after failover.",
+    "path": "../scenarios/disaster-recovery/dr-region-failover-drill.yaml"
+  },
+  {
+    "id": "drBackupRestoreIntegrity",
+    "kind": "dr",
+    "title": "Backup Restore Integrity Check",
+    "description": "Restore the nightly PostgreSQL backup to staging and verify row-count and checksum diffs against the production snapshot.",
+    "path": "../scenarios/disaster-recovery/dr-backup-restore-integrity.yaml"
+  },
+  {
+    "id": "drRpoRtoCalculation",
+    "kind": "dr",
+    "title": "RPO/RTO Calculation From Metrics",
+    "description": "Given the backup cadence and replication lag logs, compute the achieved RPO and RTO against the SLO.",
+    "path": "../scenarios/disaster-recovery/dr-rpo-rto-calculation.yaml"
+  },
+  {
+    "id": "drCrossRegionReplicationLag",
+    "kind": "dr",
+    "title": "Cross-Region Replication Lag Triage",
+    "description": "S3 cross-region replication lag exceeds the RPO; find the bucket with paused replication and the wrong scope.",
+    "path": "../scenarios/disaster-recovery/dr-cross-region-replication-lag.yaml"
+  },
+  {
+    "id": "dbRdsFailoverStuck",
+    "kind": "database",
+    "title": "RDS Failover Stuck",
+    "description": "A Multi-AZ failover is stuck; diagnose the event log, DNS, and standby health before forcing failover.",
+    "path": "../scenarios/database-ops/db-rds-failover-stuck.yaml"
+  },
+  {
+    "id": "dbReplicationLagSpike",
+    "kind": "database",
+    "title": "Read Replica Replication Lag Spike",
+    "description": "Read replica lag is climbing; identify the long-running transaction on the primary and the stalled checkpoint.",
+    "path": "../scenarios/database-ops/db-replication-lag-spike.yaml"
+  },
+  {
+    "id": "dbSlowQueryPlanRegression",
+    "kind": "database",
+    "title": "Slow Query Plan Regression",
+    "description": "A query plan flipped to a sequential scan after a statistics refresh; analyze the explain and add the missing index.",
+    "path": "../scenarios/database-ops/db-slow-query-plan-regression.yaml"
+  },
+  {
+    "id": "dbConnectionPoolExhaustion",
+    "kind": "database",
+    "title": "Connection Pool Exhaustion",
+    "description": "PgBouncer is saturated; identify the leaky client, tune the pool mode, and raise the client connection limit.",
+    "path": "../scenarios/database-ops/db-connection-pool-exhaustion.yaml"
+  },
+  {
+    "id": "dbPitrRestoreToPoint",
+    "kind": "database",
+    "title": "PITR Restore to Specific Timestamp",
+    "description": "Restore RDS to 30 minutes before a bad migration; verify the target time is inside the retention window.",
+    "path": "../scenarios/database-ops/db-pitr-restore-to-point.yaml"
+  },
+  {
+    "id": "dbDynamoThrottledOnHotKey",
+    "kind": "database",
+    "title": "DynamoDB Hot Key Throttling",
+    "description": "A single partition key absorbs almost all traffic; diagnose the WCU skew and fix the key distribution.",
+    "path": "../scenarios/database-ops/db-dynamo-throttled-on-hot-key.yaml"
+  },
+  {
+    "id": "supplyChainSbomGenerationGate",
+    "kind": "supplychain",
+    "title": "SBOM Generation Gate",
+    "description": "A release is blocked because the CI job does not emit a CycloneDX SBOM; generate the SBOM and unblock the gate.",
+    "path": "../scenarios/supply-chain/supply-chain-sbom-generation-gate.yaml"
+  },
+  {
+    "id": "supplyChainCosignVerifyProvenance",
+    "kind": "supplychain",
+    "title": "Cosign Verify Image Provenance",
+    "description": "A Kubernetes admission controller rejects a pod because the image lacks a cosign signature; verify the signing identity.",
+    "path": "../scenarios/supply-chain/supply-chain-cosign-verify-provenance.yaml"
+  },
+  {
+    "id": "supplyChainSyftGrypeVulnGate",
+    "kind": "supplychain",
+    "title": "Syft Grype Vulnerability Gate",
+    "description": "An image scan finds a CVE; rebuild on a distroless base image and add a narrow, justified scanner exception.",
+    "path": "../scenarios/supply-chain/supply-chain-syft-grype-vuln-gate.yaml"
+  },
+  {
+    "id": "supplyChainSlsaLevel3Provenance",
+    "kind": "supplychain",
+    "title": "SLSA Level 3 Provenance Check",
+    "description": "Build provenance attestation is missing the builder identity; fix the workflow and verify with slsa-verifier.",
+    "path": "../scenarios/supply-chain/supply-chain-slsa-level3-provenance.yaml"
+  },
+  {
+    "id": "supplyChainDependencyConfusion",
+    "kind": "supplychain",
+    "title": "Dependency Confusion Poisoning",
+    "description": "A private package name was registered publicly and pip pulls the malicious public version; pin to the private index.",
+    "path": "../scenarios/supply-chain/supply-chain-dependency-confusion.yaml"
+  },
+  {
+    "id": "sreSliFormulationFromSignal",
+    "kind": "sre",
+    "title": "SLI Formulation From Signal",
+    "description": "Given service metrics and a user journey, define the good-events and total-events SLI with the availability threshold.",
+    "path": "../scenarios/sre-slo/sre-sli-formulation-from-signal.yaml"
+  },
+  {
+    "id": "sreErrorBudgetBurnRate",
+    "kind": "sre",
+    "title": "Error Budget Burn Rate Alert",
+    "description": "A multi-window burn rate alert is misconfigured; fix the fast-burn and slow-burn windows and thresholds.",
+    "path": "../scenarios/sre-slo/sre-error-budget-burn-rate.yaml"
+  },
+  {
+    "id": "sreSloTierMismatch",
+    "kind": "sre",
+    "title": "SLO Tier Mismatch",
+    "description": "A tier-1 service inherits a tier-3 SLO; tighten the tier, availability target, and error budget policy.",
+    "path": "../scenarios/sre-slo/sre-slo-tier-mismatch.yaml"
+  },
+  {
+    "id": "sreToilBudgetExceeded",
+    "kind": "sre",
+    "title": "Toil Budget Exceeded",
+    "description": "Team toil is above 50% of the sprint; classify the repeat offender and propose automation to bring it under budget.",
+    "path": "../scenarios/sre-slo/sre-toil-budget-exceeded.yaml"
+  },
+  {
+    "id": "sreAlertSloBasedReplacement",
+    "kind": "sre",
+    "title": "Alert SLO-Based Replacement",
+    "description": "Replace a CPU threshold alert with an SLO burn-rate alert that maps user impact to burn rate.",
+    "path": "../scenarios/sre-slo/sre-alert-slo-based-replacement.yaml"
+  },
+  {
+    "id": "msgSqsDlqRedrivePolicy",
+    "kind": "messaging",
+    "title": "SQS DLQ Redrive Policy",
+    "description": "A DLQ is filling with poison messages; fix the redrive target, maxReceiveCount, and add an idempotency check.",
+    "path": "../scenarios/messaging/msg-sqs-dlq-redrive-policy.yaml"
+  },
+  {
+    "id": "msgKafkaConsumerRebalanceStorm",
+    "kind": "messaging",
+    "title": "Kafka Consumer Rebalance Storm",
+    "description": "Consumers are stuck in a rebalance loop; fix the session timeout, heartbeat, and static membership strategy.",
+    "path": "../scenarios/messaging/msg-kafka-consumer-rebalance-storm.yaml"
+  },
+  {
+    "id": "msgSnsFanoutFilterPolicy",
+    "kind": "messaging",
+    "title": "SNS Fan-out Filter Policy",
+    "description": "Subscribers receive the wrong messages; fix the SNS subscription FilterPolicy on message attributes.",
+    "path": "../scenarios/messaging/msg-sns-fanout-filter-policy.yaml"
+  },
+  {
+    "id": "msgOrderedDeliveryPartitionKey",
+    "kind": "messaging",
+    "title": "Ordered Delivery Partition Key",
+    "description": "Ordering is broken and one partition is hot; fix the partition key strategy and rebalance the hot partition.",
+    "path": "../scenarios/messaging/msg-ordered-delivery-partition-key.yaml"
+  },
+  {
+    "id": "msgIdempotencyDuplicateConsume",
+    "kind": "messaging",
+    "title": "Idempotency Duplicate Consume",
+    "description": "At-least-once delivery causes double charges; add an idempotency key and a dedupe table to the consumer.",
+    "path": "../scenarios/messaging/msg-idempotency-duplicate-consume.yaml"
   }
 ] as const satisfies readonly ScenarioSummary[];
 

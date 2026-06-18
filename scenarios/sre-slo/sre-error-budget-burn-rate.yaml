@@ -1,0 +1,73 @@
+id: sreErrorBudgetBurnRate
+kind: sre
+title: Error Budget Burn Rate Alert
+description: A multi-window burn rate alert is misconfigured; fix the fast-burn and slow-burn windows and thresholds.
+primaryFile: alert.json
+tips:
+  - Multi-window burn rate needs a fast and a slow window.
+  - The fast window is 5m and the slow window is 1h for 99.9% SLO.
+  - The fast-burn threshold is 14.4 and the slow-burn threshold is 6.
+  - Set both windows and both thresholds.
+files:
+  "alert.json": |
+    {
+      "alert": "error-budget-burn",
+      "fastBurnWindow": "",
+      "slowBurnWindow": "",
+      "fastThreshold": 0,
+      "slowThreshold": 0
+    }
+  "burn-policy.txt": |
+    slo: 99.9% availability
+    fastBurnWindow: 5m
+    slowBurnWindow: 1h
+    fastThreshold: 14.4
+    slowThreshold: 6
+    current: windows and thresholds unset
+solution:
+  summary: |
+    The burn rate alert has no windows or thresholds. Set the 5m fast window, the 1h slow window, and the 14.4 and 6 thresholds for a 99.9% SLO.
+  steps:
+    - Set fastBurnWindow to 5m.
+    - Set slowBurnWindow to 1h.
+    - Set fastThreshold to 14.4 for a 1-hour fast burn.
+    - Set slowThreshold to 6 for a 6-hour slow burn.
+  explanation: |
+    Multi-window burn rate alerts pair a short and a long window so a fast burn pages quickly while a slow burn catches sustained degradation. For a 99.9% SLO, 14.4 over 5m and 6 over 1h are the standard thresholds.
+  outcome: |
+    The alert uses a 5m fast window, a 1h slow window, and the 14.4 and 6 burn-rate thresholds.
+  focusFileName: alert.json
+  replacements:
+    - fileName: alert.json
+      search: '"fastBurnWindow": "",'
+      replace: '"fastBurnWindow": "5m",'
+    - fileName: alert.json
+      search: '"slowBurnWindow": "",'
+      replace: '"slowBurnWindow": "1h",'
+    - fileName: alert.json
+      search: '"fastThreshold": 0,'
+      replace: '"fastThreshold": 14.4,'
+    - fileName: alert.json
+      search: '"slowThreshold": 0'
+      replace: '"slowThreshold": 6'
+  commands:
+    - sre validate
+backend:
+  bucket: sre-slo
+  key: error-budget-burn-rate
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: burn_rate_alert
+    name: error-budget-burn
+    id: error-budget-burn
+    status: failed
+    note: Burn rate alert has no windows or thresholds configured.
+stateResources:
+  - address: alert.fastBurnWindow
+    id: empty
+  - address: alert.slowBurnWindow
+    id: empty
+flags:
+  sreValidated: false

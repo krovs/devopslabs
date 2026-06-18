@@ -132,6 +132,12 @@ import {
   terraformValidate as runTerraformValidate,
 } from "./simulators/terraform";
 import { threatModelReview as runThreatModelReview } from "./simulators/threatmodel";
+import { incidentValidate as runIncidentValidate } from "./simulators/incident";
+import { drValidate as runDrValidate } from "./simulators/dr";
+import { databaseValidate as runDatabaseValidate } from "./simulators/database";
+import { supplyChainValidate as runSupplyChainValidate } from "./simulators/supplychain";
+import { sreValidate as runSreValidate } from "./simulators/sre";
+import { messagingValidate as runMessagingValidate } from "./simulators/messaging";
 import type { Scenario } from "./types";
 
 export type CommandHandlerContext = {
@@ -274,6 +280,12 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     mlPipelineRun: () => withRuntimeRefresh(() => runMlPipelineRun(runtime(), scenarioId())),
     mlModelDescribe: () => withRuntimeRefresh(() => runMlModelDescribe(runtime(), scenarioId())),
     mlModelPromote: () => withRuntimeRefresh(() => runMlModelPromote(runtime(), scenarioId())),
+    incidentValidate: () => withRuntimeRefresh(() => runIncidentValidate(runtime(), scenarioId())),
+    drValidate: () => withRuntimeRefresh(() => runDrValidate(runtime(), scenarioId())),
+    databaseValidate: () => withRuntimeRefresh(() => runDatabaseValidate(runtime(), scenarioId())),
+    supplyChainValidate: () => withRuntimeRefresh(() => runSupplyChainValidate(runtime(), scenarioId())),
+    sreValidate: () => withRuntimeRefresh(() => runSreValidate(runtime(), scenarioId())),
+    messagingValidate: () => withRuntimeRefresh(() => runMessagingValidate(runtime(), scenarioId())),
     checkScenario: () => withRuntimeRefresh(() => checkScenarioCompletion(runtime(), scenarioId(), activeFileName())),
   };
 }

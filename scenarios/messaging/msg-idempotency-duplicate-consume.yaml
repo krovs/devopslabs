@@ -1,0 +1,68 @@
+id: msgIdempotencyDuplicateConsume
+kind: messaging
+title: Idempotency Duplicate Consume
+description: At-least-once delivery causes double charges; add an idempotency key and a dedupe table to the consumer.
+primaryFile: consumer.json
+tips:
+  - At-least-once delivery redelivers messages.
+  - The consumer has no idempotency key and no dedupe table.
+  - Use orderId as the idempotency key.
+  - Add a dedupe table so redelivered messages are skipped.
+files:
+  "consumer.json": |
+    {
+      "consumer": "checkout-payment",
+      "idempotencyKey": "",
+      "dedupeTable": false,
+      "duplicateChargeRisk": true
+    }
+  "consume-audit.txt": |
+    consumer: checkout-payment
+    delivery: at-least-once
+    symptom: duplicate charges on redelivery
+    idempotencyKey: empty
+    dedupeTable: false
+    recommendation: orderId key + dedupe table
+solution:
+  summary: |
+    At-least-once delivery causes double charges because the consumer is not idempotent. Add orderId as the idempotency key and a dedupe table.
+  steps:
+    - Set idempotencyKey to orderId so each order is processed once.
+    - Enable a dedupe table to skip redelivered messages.
+    - Duplicate charge risk is removed.
+  explanation: |
+    At-least-once delivery guarantees redelivery, so consumers must be idempotent. An idempotency key plus a dedupe table lets the consumer recognize and skip a redelivered message, preventing duplicate charges.
+  outcome: |
+    The consumer dedupes on orderId and duplicate charge risk is removed.
+  focusFileName: consumer.json
+  replacements:
+    - fileName: consumer.json
+      search: '"idempotencyKey": "",'
+      replace: '"idempotencyKey": "orderId",'
+    - fileName: consumer.json
+      search: '"dedupeTable": false,'
+      replace: '"dedupeTable": true,'
+    - fileName: consumer.json
+      search: '"duplicateChargeRisk": true'
+      replace: '"duplicateChargeRisk": false'
+  commands:
+    - msg validate
+backend:
+  bucket: messaging
+  key: idempotency-duplicate-consume
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: message_consumer
+    name: checkout-payment
+    id: checkout-payment
+    status: failed
+    note: Consumer not idempotent; no idempotency key and no dedupe table, causing duplicate charges.
+stateResources:
+  - address: consumer.idempotencyKey
+    id: empty
+  - address: consumer.dedupeTable
+    id: "false"
+flags:
+  messagingValidated: false

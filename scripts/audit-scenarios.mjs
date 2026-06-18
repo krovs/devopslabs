@@ -30,6 +30,12 @@ const expectedDirectoryByKind = {
   finops: "finops",
   pr: "change-review",
   networking: "network-design",
+  incident: "incident-response",
+  dr: "disaster-recovery",
+  database: "database-ops",
+  supplychain: "supply-chain",
+  sre: "sre-slo",
+  messaging: "messaging",
 };
 
 const commandsByKind = {
@@ -51,10 +57,10 @@ const commandsByKind = {
     "help",
   ],
   awsconfig: ["terraform init", "checkov -f main.tf", "terraform plan", "check", "help"],
-  cicd: ["gh run view", "gh run rerun", "gh secret list", "gh secret set", "jenkins build log", "jenkins rebuild", "check", "help"],
+  cicd: ["gh run view", "gh run rerun", "gh secret list", "gh secret set", "jenkins build log", "jenkins rebuild", "az pipelines build list", "az pipelines build show", "az pipelines run", "az pipelines variable-group list", "ansible-inventory --list", "ansible-playbook playbook.yml --check", "ansible-playbook playbook.yml", "check", "help"],
   gitops: ["argocd app get checkout", "flux reconcile kustomization platform --with-source", "check", "help"],
   linux: ["ls -la", "cat app.log", "grep ERROR app.log", "journalctl -u web -n 20", "systemctl status web", "df -h", "free -m", "ps aux", "top -b -n1", "ss -tulpn", "sudo systemctl restart web", "check", "help"],
-  kubernetes: ["kubectl get pods", "kubectl get events", "kubectl describe deployment checkout-api", "kubectl describe pod checkout-api", "kubectl logs checkout-api", "kubectl get hpa checkout-api", "kubectl describe hpa checkout-api", "kubectl get pdb checkout-api", "kubectl apply -f", "kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "kubectl auth can-i", "aws iam list-roles", "aws iam get-role", "aws sts assume-role-with-web-identity", "kubectl rollout restart deployment checkout-api", "kubectl rollout status deployment checkout-api", "kubectl scale deployment checkout-api --replicas=2", "helm lint checkout ./chart", "helm template checkout ./chart", "helm upgrade checkout ./chart", "check", "help"],
+  kubernetes: ["kubectl get pods", "kubectl get events", "kubectl describe deployment checkout-api", "kubectl describe pod checkout-api", "kubectl logs checkout-api", "kubectl get hpa checkout-api", "kubectl describe hpa checkout-api", "kubectl get pdb checkout-api", "kubectl apply -f", "kubectl apply --dry-run=server -f deployment.yaml", "kubectl apply --dry-run=server -f rbac.yaml", "kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "kubectl auth can-i", "aws iam list-roles", "aws iam get-role", "aws sts assume-role-with-web-identity", "kubectl rollout restart deployment checkout-api", "kubectl rollout status deployment checkout-api", "kubectl scale deployment checkout-api --replicas=2", "helm lint checkout ./chart", "helm template checkout ./chart", "helm upgrade checkout ./chart", "check", "help"],
   appsec: ["mvn test", "mvn org.owasp:dependency-check-maven:check", "semgrep scan", "gitleaks detect", "trivy config .", "gh run view", "trivy image checkout-api:pr-184", "docker history checkout-api:pr-184", "npm audit --production", "check", "help"],
   threatmodel: ["threatmodel review", "check", "help"],
   cloudsec: ["aws guardduty list-findings", "aws guardduty get-findings", "aws cloudtrail lookup-events", "aws logs filter-log-events", "aws configservice get-resource-config-history", "aws iam simulate-principal-policy", "check", "help"],
@@ -70,6 +76,12 @@ const commandsByKind = {
   pr: ["check", "help"],
   networking: ["check", "help"],
   secrets: ["aws secretsmanager describe-secret", "aws ssm get-parameter", "vault policy read checkout-api", "vault token capabilities secret/data/staging/checkout/db", "vault kv get secret/staging/checkout/db", "check", "help"],
+  incident: ["incident validate", "check", "help"],
+  dr: ["dr validate", "check", "help"],
+  database: ["db validate", "check", "help"],
+  supplychain: ["supply-chain validate", "check", "help"],
+  sre: ["sre validate", "check", "help"],
+  messaging: ["msg validate", "check", "help"],
 };
 
 const genericPhrases = [

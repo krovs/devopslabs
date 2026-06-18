@@ -1,0 +1,63 @@
+id: dbReplicationLagSpike
+kind: database
+title: Read Replica Replication Lag Spike
+description: Read replica lag is climbing; identify the long-running transaction on the primary and the stalled checkpoint.
+primaryFile: replica.json
+tips:
+  - Replica lag is climbing past 5 minutes.
+  - A long-running transaction on the primary is blocking WAL replication.
+  - The checkpoint status is stalled.
+  - Kill the largest transaction and let the checkpoint complete.
+files:
+  "replica.json": |
+    {
+      "replica": "checkout-read-1",
+      "lagSeconds": 320,
+      "killLargestTxn": false,
+      "checkpointStatus": "stalled"
+    }
+  "pg-snapshot.txt": |
+    replica: checkout-read-1
+    lagSeconds: 320
+    largestTxn: idle-in-transaction holding locks
+    checkpoint: stalled
+solution:
+  summary: |
+    Replica lag is driven by a long-running transaction and a stalled checkpoint. Kill the largest transaction and let the checkpoint complete.
+  steps:
+    - Identify the long-running transaction on the primary.
+    - Kill the largest transaction to release WAL replication.
+    - Let the checkpoint complete to flush WAL to the replica.
+  explanation: |
+    Read replica lag spikes when a long-running transaction holds WAL and a stalled checkpoint cannot flush. Killing the offending transaction and completing the checkpoint lets replication drain.
+  outcome: |
+    The largest transaction is killed and the checkpoint completes, so replica lag drains.
+  focusFileName: replica.json
+  replacements:
+    - fileName: replica.json
+      search: '"killLargestTxn": false,'
+      replace: '"killLargestTxn": true,'
+    - fileName: replica.json
+      search: '"checkpointStatus": "stalled"'
+      replace: '"checkpointStatus": "completed"'
+  commands:
+    - db validate
+backend:
+  bucket: database-ops
+  key: replication-lag-spike
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: rds_replica
+    name: checkout-read-1
+    id: checkout-read-1
+    status: failed
+    note: Replica lag climbing; largest transaction not killed and checkpoint stalled.
+stateResources:
+  - address: replica.killLargestTxn
+    id: "false"
+  - address: replica.checkpointStatus
+    id: stalled
+flags:
+  databaseValidated: false

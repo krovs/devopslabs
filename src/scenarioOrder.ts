@@ -40,6 +40,8 @@ export const scenarioOrderByGroup = {
     "githubActionsOverbroadPermissions",
     "githubActionsAwsOidcTrust",
     "jenkinsMissingCredentialsBinding",
+    "azureDevOpsPipelineWrongVariableGroup",
+    "ansiblePlaybookWrongHostGroup",
   ],
   gitops: [
     "gitopsArgoCdTargetRevisionDrift",
@@ -58,6 +60,8 @@ export const scenarioOrderByGroup = {
     "kubernetesHpaScalingPolicy",
     "kubernetesPdbNodeDrain",
     "kubernetesEksRbacIrsa",
+    "kubernetesBlankDeploymentService",
+    "kubernetesEksRbacWrongRules",
   ],
   applicationSecurity: [
     "semgrepBasicCommandInjection",
@@ -138,6 +142,49 @@ export const scenarioOrderByGroup = {
     "networkingSiteToSiteVpn",
     "networkingWafAlbProtection",
     "networkingDirectConnectMultiVpc",
+  ],
+  incidentResponse: [
+    "incidentSev1CommandTriage",
+    "incidentPostmortemBlameless",
+    "incidentRunbookExecutionGap",
+    "incidentAlertStormTriage",
+    "incidentCustomerFacingCommsDraft",
+  ],
+  disasterRecovery: [
+    "drRdsFailoverVerify",
+    "drRegionFailoverDrill",
+    "drBackupRestoreIntegrity",
+    "drRpoRtoCalculation",
+    "drCrossRegionReplicationLag",
+  ],
+  databaseOps: [
+    "dbRdsFailoverStuck",
+    "dbReplicationLagSpike",
+    "dbSlowQueryPlanRegression",
+    "dbConnectionPoolExhaustion",
+    "dbPitrRestoreToPoint",
+    "dbDynamoThrottledOnHotKey",
+  ],
+  supplyChain: [
+    "supplyChainSbomGenerationGate",
+    "supplyChainCosignVerifyProvenance",
+    "supplyChainSyftGrypeVulnGate",
+    "supplyChainSlsaLevel3Provenance",
+    "supplyChainDependencyConfusion",
+  ],
+  sreSlo: [
+    "sreSliFormulationFromSignal",
+    "sreErrorBudgetBurnRate",
+    "sreSloTierMismatch",
+    "sreToilBudgetExceeded",
+    "sreAlertSloBasedReplacement",
+  ],
+  messaging: [
+    "msgSqsDlqRedrivePolicy",
+    "msgKafkaConsumerRebalanceStorm",
+    "msgSnsFanoutFilterPolicy",
+    "msgOrderedDeliveryPartitionKey",
+    "msgIdempotencyDuplicateConsume",
   ],
 } as const;
 

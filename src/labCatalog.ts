@@ -36,6 +36,12 @@ export const labGroupDefinitions: LabGroupDefinition[] = [
   { id: "finops", title: "FinOps", providers: ["AWS"], description: "Cost signals, waste reduction, lifecycle, and NAT spend." },
   { id: "pr", title: "Change Review", providers: ["Generic", "AWS"], description: "Review risky diffs and identify blocking findings." },
   { id: "networking", title: "Network Design", providers: ["AWS"], description: "Routes, subnet design, security controls, and packet paths." },
+  { id: "incident", title: "Incident Response", providers: ["Generic"], description: "Incident command, postmortems, alert triage, and status comms." },
+  { id: "dr", title: "Disaster Recovery", providers: ["AWS"], description: "Failover, restore integrity, RPO/RTO, and replication lag." },
+  { id: "database", title: "Database Ops", providers: ["AWS"], description: "RDS and DynamoDB failover, replication, pooling, and recovery." },
+  { id: "supplychain", title: "Supply Chain", providers: ["Generic"], description: "SBOM, signatures, provenance, SLSA, and dependency confusion." },
+  { id: "sre", title: "SRE & SLO", providers: ["Generic"], description: "SLIs, error budgets, burn-rate alerts, tiers, and toil." },
+  { id: "messaging", title: "Messaging", providers: ["AWS", "K8S"], description: "DLQ, rebalances, filter policies, ordering, and idempotency." },
 ];
 
 export const menuGroupIds = labGroupDefinitions.map((group) => group.id);
@@ -90,6 +96,7 @@ export const scenarioDifficultyTiers: Partial<Record<string, DifficultyTier>> = 
   kubernetesHpaScalingPolicy: "hard",
   kubernetesPdbNodeDrain: "hard",
   kubernetesEksRbacIrsa: "hard",
+  kubernetesEksRbacWrongRules: "hard",
   kubernetesBlankDeploymentService: "legendary",
   semgrepBasicCommandInjection: "easy",
   javaDependencySecretsContainerAudit: "normal",
@@ -146,6 +153,37 @@ export const scenarioDifficultyTiers: Partial<Record<string, DifficultyTier>> = 
   networkingSiteToSiteVpn: "hard",
   networkingWafAlbProtection: "hard",
   networkingDirectConnectMultiVpc: "legendary",
+  incidentSev1CommandTriage: "easy",
+  incidentPostmortemBlameless: "normal",
+  incidentRunbookExecutionGap: "easy",
+  incidentAlertStormTriage: "normal",
+  incidentCustomerFacingCommsDraft: "normal",
+  drRdsFailoverVerify: "easy",
+  drRegionFailoverDrill: "hard",
+  drBackupRestoreIntegrity: "normal",
+  drRpoRtoCalculation: "normal",
+  drCrossRegionReplicationLag: "normal",
+  dbRdsFailoverStuck: "hard",
+  dbReplicationLagSpike: "hard",
+  dbSlowQueryPlanRegression: "normal",
+  dbConnectionPoolExhaustion: "hard",
+  dbPitrRestoreToPoint: "normal",
+  dbDynamoThrottledOnHotKey: "hard",
+  supplyChainSbomGenerationGate: "easy",
+  supplyChainCosignVerifyProvenance: "normal",
+  supplyChainSyftGrypeVulnGate: "normal",
+  supplyChainSlsaLevel3Provenance: "hard",
+  supplyChainDependencyConfusion: "normal",
+  sreSliFormulationFromSignal: "normal",
+  sreErrorBudgetBurnRate: "hard",
+  sreSloTierMismatch: "normal",
+  sreToilBudgetExceeded: "easy",
+  sreAlertSloBasedReplacement: "normal",
+  msgSqsDlqRedrivePolicy: "normal",
+  msgKafkaConsumerRebalanceStorm: "hard",
+  msgSnsFanoutFilterPolicy: "easy",
+  msgOrderedDeliveryPartitionKey: "normal",
+  msgIdempotencyDuplicateConsume: "normal",
 };
 
 const scenarioKindLabels: Record<MenuGroupId, string> = Object.fromEntries(
@@ -174,6 +212,12 @@ const incidentDescriptions: Record<MenuGroupId, string> = {
   observability: "Monitoring is missing or misleading. Inspect alarms, logs, dimensions, retention, and the smallest telemetry fix.",
   finops: "Cloud spend has drifted. Inspect the cost signal, identify the waste source, and apply the smallest cost control.",
   pr: "A pull request needs review. Inspect the diff, identify the risky lines, and submit the correct review decision.",
+  incident: "An incident is open or under review. Assign command, triage alerts, draft comms, or patch the runbook.",
+  dr: "A disaster recovery path needs verification. Run the failover, restore, or RPO/RTO check against the SLO.",
+  database: "A database is unhealthy or recovering. Diagnose failover, replication, query, pool, or throughput state before fixing.",
+  supplychain: "A release gate is blocked on supply-chain evidence. Emit the SBOM, verify signatures, or pin the package source.",
+  sre: "An SLO or alert is misconfigured. Formulate the SLI, tune burn-rate windows, or replace threshold alerts with user-impact alerts.",
+  messaging: "A messaging path is misbehaving. Fix the redrive, rebalance, filter, ordering, or idempotency configuration.",
 };
 
 const commandOptionsByKind: Record<NonNullable<Scenario["kind"]>, string[]> = {
@@ -198,7 +242,7 @@ const commandOptionsByKind: Record<NonNullable<Scenario["kind"]>, string[]> = {
   cicd: ["gh run view", "gh run rerun", "gh secret list", "gh secret set AWS_ROLE_ARN", "jenkins build log", "jenkins rebuild", "az pipelines build list", "az pipelines build show --id <id>", "az pipelines variable-group list", "az pipelines run", "ansible-inventory --list", "ansible-playbook playbook.yml --check", "ansible-playbook playbook.yml", "check", "help"],
   gitops: ["argocd app get checkout", "flux reconcile kustomization platform --with-source", "check", "help"],
   linux: ["ls -la", "cat app.log", "grep ERROR app.log", "journalctl -u web -n 20", "systemctl status web", "df -h", "free -m", "ps aux", "top -b -n1", "ss -tulpn", "sudo systemctl restart web", "check", "help"],
-  kubernetes: ["kubectl get pods", "kubectl get events", "kubectl describe deployment checkout-api", "kubectl describe pod checkout-api", "kubectl logs checkout-api", "kubectl get hpa checkout-api", "kubectl describe hpa checkout-api", "kubectl get pdb checkout-api", "kubectl apply -f hpa.yaml", "kubectl apply -f pdb.yaml", "kubectl apply --dry-run=server -f deployment.yaml", "kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "aws iam list-roles", "aws iam get-role --role-name eks-checkout-api-payments", "aws sts assume-role-with-web-identity", "kubectl rollout restart deployment checkout-api", "kubectl rollout status deployment checkout-api", "kubectl scale deployment checkout-api --replicas=2", "helm lint checkout ./chart", "helm template checkout ./chart", "helm upgrade checkout ./chart", "check", "help"],
+  kubernetes: ["kubectl get pods", "kubectl get events", "kubectl describe deployment checkout-api", "kubectl describe pod checkout-api", "kubectl logs checkout-api", "kubectl get hpa checkout-api", "kubectl describe hpa checkout-api", "kubectl get pdb checkout-api", "kubectl apply -f hpa.yaml", "kubectl apply -f pdb.yaml", "kubectl apply --dry-run=server -f deployment.yaml", "kubectl apply --dry-run=server -f rbac.yaml", "kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "aws iam list-roles", "aws iam get-role --role-name eks-checkout-api-payments", "aws sts assume-role-with-web-identity", "kubectl rollout restart deployment checkout-api", "kubectl rollout status deployment checkout-api", "kubectl scale deployment checkout-api --replicas=2", "helm lint checkout ./chart", "helm template checkout ./chart", "helm upgrade checkout ./chart", "check", "help"],
   appsec: ["mvn test", "mvn org.owasp:dependency-check-maven:check", "semgrep scan", "gitleaks detect", "trivy config .", "gh run view", "trivy image checkout-api:pr-184", "docker history checkout-api:pr-184", "npm audit --production", "check", "help"],
   threatmodel: ["threatmodel review", "check", "help"],
   cloudsec: ["aws guardduty list-findings", "aws guardduty get-findings", "aws cloudtrail lookup-events", "aws logs filter-log-events", "aws configservice get-resource-config-history", "aws iam simulate-principal-policy", "check", "help"],
@@ -214,6 +258,12 @@ const commandOptionsByKind: Record<NonNullable<Scenario["kind"]>, string[]> = {
   finops: ["aws ce get-cost-and-usage", "aws ec2 describe-volumes", "check", "help"],
   pr: ["check", "help"],
   networking: ["check", "help"],
+  incident: ["incident validate", "check", "help"],
+  dr: ["dr validate", "check", "help"],
+  database: ["db validate", "check", "help"],
+  supplychain: ["supply-chain validate", "check", "help"],
+  sre: ["sre validate", "check", "help"],
+  messaging: ["msg validate", "check", "help"],
 };
 
 const simpleHealthLabels: Partial<Record<MenuGroupId, { solved: string; unsolved: string }>> = {
@@ -235,6 +285,12 @@ const simpleHealthLabels: Partial<Record<MenuGroupId, { solved: string; unsolved
   observability: { solved: "Observability: healthy", unsolved: "Observability: failing" },
   finops: { solved: "Cost: optimized", unsolved: "Cost: review" },
   pr: { solved: "Review: accepted", unsolved: "Review: pending" },
+  incident: { solved: "Incident: resolved", unsolved: "Incident: open" },
+  dr: { solved: "DR: verified", unsolved: "DR: failing" },
+  database: { solved: "Database: healthy", unsolved: "Database: failing" },
+  supplychain: { solved: "Supply chain: passed", unsolved: "Supply chain: blocked" },
+  sre: { solved: "SLO: healthy", unsolved: "SLO: burning" },
+  messaging: { solved: "Messaging: healthy", unsolved: "Messaging: failing" },
 };
 
 export function scenarioMenuGroupId(kind?: Scenario["kind"]): MenuGroupId {

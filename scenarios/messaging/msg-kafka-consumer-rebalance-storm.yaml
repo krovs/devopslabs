@@ -1,0 +1,66 @@
+id: msgKafkaConsumerRebalanceStorm
+kind: messaging
+title: Kafka Consumer Rebalance Storm
+description: Consumers are stuck in a rebalance loop; fix the session timeout, heartbeat, and static membership strategy.
+primaryFile: consumer.yaml
+tips:
+  - Consumers are stuck in a rebalance loop.
+  - The session timeout is too short at 10000ms.
+  - There is no static group membership.
+  - Raise the session timeout, set a group instance id, and use cooperative-sticky assignment.
+files:
+  "consumer.yaml": |
+    consumer:
+      sessionTimeoutMs: 10000
+      groupInstanceId: ""
+      partitionAssignmentStrategy: range
+  "rebalance-log.txt": |
+    group: checkout-worker
+    symptom: rebalance loop
+    sessionTimeoutMs: 10000
+    groupInstanceId: empty
+    strategy: range
+    recommendation: raise session timeout, static membership, cooperative-sticky
+solution:
+  summary: |
+    Consumers rebalance in a loop because the session timeout is too short and there is no static membership. Raise the timeout, set a group instance id, and switch to cooperative-sticky.
+  steps:
+    - Raise sessionTimeoutMs from 10000 to 45000 to tolerate pauses.
+    - Set groupInstanceId to checkout-worker-1 for static membership.
+    - Switch partitionAssignmentStrategy from range to cooperative-sticky.
+  explanation: |
+    Rebalance storms happen when consumers drop out of the session window or all partitions reshuffle on every membership change. A longer session timeout, static group membership, and cooperative-sticky assignment stop the cascading rebalances.
+  outcome: |
+    Consumers use a 45s session timeout, static membership, and cooperative-sticky assignment with no rebalance loop.
+  focusFileName: consumer.yaml
+  replacements:
+    - fileName: consumer.yaml
+      search: 'sessionTimeoutMs: 10000'
+      replace: 'sessionTimeoutMs: 45000'
+    - fileName: consumer.yaml
+      search: 'groupInstanceId: ""'
+      replace: 'groupInstanceId: checkout-worker-1'
+    - fileName: consumer.yaml
+      search: 'partitionAssignmentStrategy: range'
+      replace: 'partitionAssignmentStrategy: cooperative-sticky'
+  commands:
+    - msg validate
+backend:
+  bucket: messaging
+  key: kafka-consumer-rebalance-storm
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: kafka_consumer_group
+    name: checkout-worker
+    id: checkout-worker
+    status: failed
+    note: Consumer group in a rebalance loop; short session timeout and no static membership.
+stateResources:
+  - address: consumer.sessionTimeoutMs
+    id: "10000"
+  - address: consumer.partitionAssignmentStrategy
+    id: range
+flags:
+  messagingValidated: false

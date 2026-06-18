@@ -1,0 +1,64 @@
+id: supplyChainSlsaLevel3Provenance
+kind: supplychain
+title: SLSA Level 3 Provenance Check
+description: Build provenance attestation is missing the builder identity; fix the workflow and verify with slsa-verifier.
+primaryFile: provenance.json
+tips:
+  - The provenance attestation is missing the builder identity.
+  - The expected builder is the GitHub Actions workflow.
+  - Set builderId to github-actions.
+  - Set slsaLevel to 3 so slsa-verifier accepts the attestation.
+files:
+  "provenance.json": |
+    {
+      "artifact": "checkout-api:2.5.0",
+      "builderId": "",
+      "slsaLevel": 0,
+      "verifier": "slsa-verifier"
+    }
+  "provenance-policy.txt": |
+    artifact: checkout-api:2.5.0
+    requiredBuilderId: github-actions
+    requiredSlsaLevel: 3
+    verifier: slsa-verifier
+    current: builderId empty, slsaLevel 0
+solution:
+  summary: |
+    The provenance attestation is missing the builder identity and SLSA level. Set the builder to github-actions and the level to 3 so slsa-verifier accepts it.
+  steps:
+    - Set builderId to github-actions to identify the build platform.
+    - Set slsaLevel to 3 to meet the provenance requirement.
+    - slsa-verifier now accepts the attestation.
+  explanation: |
+    SLSA level 3 requires a provenance attestation with a verified builder identity. Without the builderId, slsa-verifier cannot confirm the artifact came from the trusted workflow, so the release is rejected.
+  outcome: |
+    The attestation carries builder github-actions and SLSA level 3 and slsa-verifier accepts it.
+  focusFileName: provenance.json
+  replacements:
+    - fileName: provenance.json
+      search: '"builderId": "",'
+      replace: '"builderId": "github-actions",'
+    - fileName: provenance.json
+      search: '"slsaLevel": 0'
+      replace: '"slsaLevel": 3'
+  commands:
+    - supply-chain validate
+backend:
+  bucket: supply-chain
+  key: slsa-level3-provenance
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: provenance
+    name: checkout-api-2.5.0
+    id: checkout-api-2.5.0
+    status: failed
+    note: Provenance attestation missing builderId and SLSA level below 3.
+stateResources:
+  - address: provenance.builderId
+    id: empty
+  - address: provenance.slsaLevel
+    id: "0"
+flags:
+  supplyChainValidated: false

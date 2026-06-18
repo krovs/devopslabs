@@ -1,0 +1,60 @@
+id: msgSnsFanoutFilterPolicy
+kind: messaging
+title: SNS Fan-out Filter Policy
+description: Subscribers receive the wrong messages; fix the SNS subscription FilterPolicy on message attributes.
+primaryFile: subscription.json
+tips:
+  - Subscribers receive every message on the fan-out topic.
+  - The order-service subscription should only receive order.created events.
+  - The FilterPolicy is empty.
+  - Add a FilterPolicy on the event attribute.
+files:
+  "subscription.json": |
+    {
+      "topic": "checkout-events",
+      "subscription": "order-service",
+      "filterPolicy": {}
+    }
+  "fanout.txt": |
+    topic: checkout-events
+    subscribers: order-service, inventory-service, billing-service
+    messageAttributes: event
+    expectedForOrderService: event=order.created
+    current: no FilterPolicy, receives all events
+solution:
+  summary: |
+    The order-service subscription receives every fan-out message because the FilterPolicy is empty. Add a FilterPolicy on the event attribute.
+  steps:
+    - Confirm the subscription receives all topic messages.
+    - Add a FilterPolicy that matches the event attribute.
+    - Restrict the order-service subscription to event order.created.
+  explanation: |
+    SNS fan-out sends every message to every subscriber by default. A FilterPolicy on message attributes routes only the relevant events to each subscriber, so order-service receives order.created and not inventory or billing events.
+  outcome: |
+    The order-service subscription only receives messages with event order.created.
+  focusFileName: subscription.json
+  replacements:
+    - fileName: subscription.json
+      search: |
+        "filterPolicy": {}
+      replace: |
+        "filterPolicy": {"event": ["order.created"]}
+  commands:
+    - msg validate
+backend:
+  bucket: messaging
+  key: sns-fanout-filter-policy
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: sns_subscription
+    name: order-service
+    id: order-service
+    status: failed
+    note: Subscription has no FilterPolicy and receives every fan-out message.
+stateResources:
+  - address: subscription.filterPolicy
+    id: empty
+flags:
+  messagingValidated: false

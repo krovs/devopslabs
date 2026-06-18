@@ -6,7 +6,13 @@ export type OperationalValidationFlag =
   | "observabilityValidated"
   | "finopsValidated"
   | "policyValidated"
-  | "gitopsValidated";
+  | "gitopsValidated"
+  | "incidentValidated"
+  | "drValidated"
+  | "databaseValidated"
+  | "supplyChainValidated"
+  | "sreValidated"
+  | "messagingValidated";
 
 export function markOperationalScenarioSolved(runtime: Scenario, flag: OperationalValidationFlag, note: string): void {
   runtime.flags[flag] = true;

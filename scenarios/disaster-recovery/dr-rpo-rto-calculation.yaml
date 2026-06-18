@@ -1,0 +1,66 @@
+id: drRpoRtoCalculation
+kind: dr
+title: RPO/RTO Calculation From Metrics
+description: Given the backup cadence and replication lag logs, compute the achieved RPO and RTO against the SLO.
+primaryFile: slo.json
+tips:
+  - RPO is bounded by the backup cadence for non-replicated data.
+  - RTO is the failover plus verification time.
+  - The backup cadence is 15 minutes.
+  - The failover plus verification took 60 minutes.
+  - Compute the achieved RPO and RTO.
+files:
+  "slo.json": |
+    {
+      "backupCadenceMinutes": 15,
+      "replicationLagSeconds": 45,
+      "achievedRpoMinutes": 0,
+      "achievedRtoMinutes": 0
+    }
+  "metrics.txt": |
+    backupCadence: 15 minutes
+    replicationLag: 45 seconds
+    failoverPlusVerification: 60 minutes
+    sloRpo: 15 minutes
+    sloRto: 60 minutes
+solution:
+  summary: |
+    The achieved RPO and RTO are not computed. Derive RPO from the backup cadence and RTO from the failover plus verification time.
+  steps:
+    - RPO is bounded by the 15-minute backup cadence.
+    - RTO is the 60-minute failover plus verification time.
+    - Set achievedRpoMinutes to 15.
+    - Set achievedRtoMinutes to 60.
+  explanation: |
+    RPO is the maximum data loss window, bounded by the backup cadence when replication is not continuous. RTO is the time to restore service, measured from failover start to verification complete. Both must be computed from real metrics to compare against the SLO.
+  outcome: |
+    Achieved RPO is 15 minutes and RTO is 60 minutes, matching the SLO.
+  focusFileName: slo.json
+  replacements:
+    - fileName: slo.json
+      search: '"achievedRpoMinutes": 0,'
+      replace: '"achievedRpoMinutes": 15,'
+    - fileName: slo.json
+      search: '"achievedRtoMinutes": 0'
+      replace: '"achievedRtoMinutes": 60'
+  commands:
+    - dr validate
+backend:
+  bucket: disaster-recovery
+  key: rpo-rto-calculation
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: dr_slo
+    name: checkout-dr-slo
+    id: checkout-dr-slo
+    status: failed
+    note: Achieved RPO and RTO are not computed from the cadence and failover metrics.
+stateResources:
+  - address: dr.rpo
+    id: "0"
+  - address: dr.rto
+    id: "0"
+flags:
+  drValidated: false

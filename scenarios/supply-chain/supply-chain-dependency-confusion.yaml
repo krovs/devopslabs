@@ -1,0 +1,62 @@
+id: supplyChainDependencyConfusion
+kind: supplychain
+title: Dependency Confusion Poisoning
+description: A private package name was registered publicly and pip pulls the malicious public version; pin to the private index.
+primaryFile: requirements.txt
+tips:
+  - A private package name was registered on the public PyPI index.
+  - pip currently pulls from the public index.
+  - Pin the internal package to a version and point at the private index.
+  - The private index is https://pypi.acme.internal/simple.
+files:
+  "requirements.txt": |
+    --index-url https://pypi.org/simple
+    acme-internal-utils
+    fastapi==0.110.0
+  "audit.txt": |
+    package: acme-internal-utils
+    publicVersion: 9.9.9 (malicious)
+    internalVersion: 1.2.3
+    privateIndex: https://pypi.acme.internal/simple
+    current: pulling from public pypi.org
+solution:
+  summary: |
+    pip pulls a malicious public version of an internal package. Point at the private index and pin the internal package version.
+  steps:
+    - Point the index URL at the private registry https://pypi.acme.internal/simple.
+    - Pin acme-internal-utils to 1.2.3 so the private version is resolved.
+    - Confirm the public pypi.org index is no longer used.
+  explanation: |
+    Dependency confusion exploits private package names that are also registered publicly. Pinning the internal package version and pointing pip at the private index ensures the trusted version is installed.
+  outcome: |
+    pip resolves acme-internal-utils==1.2.3 from the private index and the public package is no longer used.
+  focusFileName: requirements.txt
+  replacements:
+    - fileName: requirements.txt
+      search: |
+        --index-url https://pypi.org/simple
+        acme-internal-utils
+      replace: |
+        --index-url https://pypi.acme.internal/simple
+        acme-internal-utils==1.2.3
+  commands:
+    - supply-chain validate
+backend:
+  bucket: supply-chain
+  key: dependency-confusion
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: dependency_confusion
+    name: acme-internal-utils
+    id: acme-internal-utils
+    status: failed
+    note: pip pulls malicious public version; private index not configured and package unpinned.
+stateResources:
+  - address: deps.indexUrl
+    id: pypi.org
+  - address: deps.acme-internal-utils
+    id: unpinned
+flags:
+  supplyChainValidated: false

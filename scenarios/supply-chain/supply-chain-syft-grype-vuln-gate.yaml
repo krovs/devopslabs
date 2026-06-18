@@ -1,0 +1,67 @@
+id: supplyChainSyftGrypeVulnGate
+kind: supplychain
+title: Syft Grype Vulnerability Gate
+description: An image scan finds a CVE; rebuild on a distroless base image and add a narrow, justified scanner exception.
+primaryFile: scan.json
+tips:
+  - The image scan finds a CVE on the ubuntu base image.
+  - Rebuild on a distroless base image to remove the vulnerable packages.
+  - Add a narrow, justified exception for the accepted finding.
+  - The gate passes once the base image and exception are correct.
+files:
+  "scan.json": |
+    {
+      "image": "checkout-api:2.5.0",
+      "baseImage": "ubuntu:22.04",
+      "ignoreJustified": false,
+      "gate": "blocked"
+    }
+  "scan-result.txt": |
+    image: checkout-api:2.5.0
+    baseImage: ubuntu:22.04
+    finding: CVE in shell utilities
+    recommendation: distroless base + narrow justified ignore
+    gate: blocked
+solution:
+  summary: |
+    The scan gate is blocked by a CVE in the ubuntu base image. Rebuild on a distroless base and add a narrow, justified exception so the gate passes.
+  steps:
+    - Rebuild on a distroless base image to remove vulnerable packages.
+    - Add a narrow, justified scanner exception for the accepted finding.
+    - The gate moves from blocked to passed.
+  explanation: |
+    Fat base images carry packages that trigger vulnerability gates. A distroless base removes unused attack surface, and a narrow, justified exception documents the accepted residual risk so the gate can pass honestly.
+  outcome: |
+    The image is rebuilt on distroless with a justified exception and the gate passes.
+  focusFileName: scan.json
+  replacements:
+    - fileName: scan.json
+      search: '"baseImage": "ubuntu:22.04",'
+      replace: '"baseImage": "distroless",'
+    - fileName: scan.json
+      search: '"ignoreJustified": false,'
+      replace: '"ignoreJustified": true,'
+    - fileName: scan.json
+      search: '"gate": "blocked"'
+      replace: '"gate": "passed"'
+  commands:
+    - supply-chain validate
+backend:
+  bucket: supply-chain
+  key: syft-grype-vuln-gate
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: image_scan
+    name: checkout-api-2.5.0
+    id: checkout-api-2.5.0
+    status: failed
+    note: CVE in ubuntu base image; no justified exception and gate blocked.
+stateResources:
+  - address: scan.baseImage
+    id: ubuntu:22.04
+  - address: scan.gate
+    id: blocked
+flags:
+  supplyChainValidated: false

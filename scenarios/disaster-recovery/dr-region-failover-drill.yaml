@@ -1,0 +1,74 @@
+id: drRegionFailoverDrill
+kind: dr
+title: Region Failover Drill Runbook
+description: Shift Route 53 weighted routing to the DR region and verify database, cache, and queue state after failover.
+primaryFile: failover.yaml
+tips:
+  - Route 53 weighted routing still sends all traffic to the primary region.
+  - Shift traffic to the DR region for the drill.
+  - Verify database, cache, and queue checks pass after failover.
+files:
+  "failover.yaml": |
+    route53:
+      weighted:
+        primary: 100
+        dr: 0
+    checks:
+      db: pending
+      cache: pending
+      queue: pending
+  "dr-region.txt": |
+    drRegion: eu-west-2
+    primaryRegion: eu-west-1
+    expected: dr receives 100% during drill
+solution:
+  summary: |
+    The drill has not shifted traffic. Move Route 53 weighted routing to the DR region and verify all post-failover checks pass.
+  steps:
+    - Shift Route 53 weighted routing from primary to DR.
+    - Set primary weight to 0 and dr weight to 100.
+    - Verify the database check passes.
+    - Verify the cache check passes.
+    - Verify the queue check passes.
+  explanation: |
+    A region failover drill proves the DR path works. Route 53 weighted routing shifts traffic to the DR region, and the database, cache, and queue checks confirm the DR stack is serving correctly before the drill ends.
+  outcome: |
+    Route 53 sends all traffic to the DR region and all post-failover checks pass.
+  focusFileName: failover.yaml
+  replacements:
+    - fileName: failover.yaml
+      search: 'primary: 100'
+      replace: 'primary: 0'
+    - fileName: failover.yaml
+      search: 'dr: 0'
+      replace: 'dr: 100'
+    - fileName: failover.yaml
+      search: 'db: pending'
+      replace: 'db: passed'
+    - fileName: failover.yaml
+      search: 'cache: pending'
+      replace: 'cache: passed'
+    - fileName: failover.yaml
+      search: 'queue: pending'
+      replace: 'queue: passed'
+  commands:
+    - dr validate
+backend:
+  bucket: disaster-recovery
+  key: region-failover-drill
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: route53_weighted
+    name: checkout-failover
+    id: checkout-failover
+    status: failed
+    note: Traffic still routes to primary; DR checks are pending.
+stateResources:
+  - address: route53.weighted.dr
+    id: "0"
+  - address: dr.checks
+    id: pending
+flags:
+  drValidated: false

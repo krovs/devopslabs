@@ -1,0 +1,68 @@
+id: dbConnectionPoolExhaustion
+kind: database
+title: Connection Pool Exhaustion
+description: PgBouncer is saturated; identify the leaky client, tune the pool mode, and raise the client connection limit.
+primaryFile: pool.json
+tips:
+  - PgBouncer is saturated and rejecting connections.
+  - A leaky client is holding sessions open.
+  - Session mode keeps connections pinned; transaction mode reuses them.
+  - Raise maxClientConn and switch to transaction pool mode.
+files:
+  "pool.json": |
+    {
+      "pooler": "pgbouncer",
+      "maxClientConn": 100,
+      "poolMode": "session",
+      "leakyClientUnfixed": true
+    }
+  "pool-status.txt": |
+    pooler: pgbouncer
+    activeConnections: 100
+    poolMode: session
+    leakyClient: checkout-batch holding sessions
+    rejected: new connections denied
+solution:
+  summary: |
+    PgBouncer is exhausted in session mode by a leaky client. Fix the leak, switch to transaction mode, and raise the client connection limit.
+  steps:
+    - Identify the leaky client holding sessions open.
+    - Switch poolMode from session to transaction to reuse connections.
+    - Raise maxClientConn from 100 to 1000.
+    - Mark the leaky client as fixed.
+  explanation: |
+    Session mode pins a backend connection per client, so a leaky client exhausts the pool. Transaction mode returns connections between transactions, and raising maxClientConn absorbs burst traffic while the leak is fixed.
+  outcome: |
+    The leaky client is fixed, pool mode is transaction, and maxClientConn is 1000.
+  focusFileName: pool.json
+  replacements:
+    - fileName: pool.json
+      search: '"maxClientConn": 100,'
+      replace: '"maxClientConn": 1000,'
+    - fileName: pool.json
+      search: '"poolMode": "session",'
+      replace: '"poolMode": "transaction",'
+    - fileName: pool.json
+      search: '"leakyClientUnfixed": true'
+      replace: '"leakyClientUnfixed": false'
+  commands:
+    - db validate
+backend:
+  bucket: database-ops
+  key: connection-pool-exhaustion
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: db_pooler
+    name: pgbouncer
+    id: pgbouncer
+    status: failed
+    note: PgBouncer saturated in session mode; leaky client unfixed and maxClientConn too low.
+stateResources:
+  - address: pool.poolMode
+    id: session
+  - address: pool.maxClientConn
+    id: "100"
+flags:
+  databaseValidated: false

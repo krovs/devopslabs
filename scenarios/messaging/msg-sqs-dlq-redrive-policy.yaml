@@ -1,0 +1,67 @@
+id: msgSqsDlqRedrivePolicy
+kind: messaging
+title: SQS DLQ Redrive Policy
+description: A DLQ is filling with poison messages; fix the redrive target, maxReceiveCount, and add an idempotency check.
+primaryFile: queue.json
+tips:
+  - The DLQ is filling with poison messages.
+  - The source queue has no redrive policy and maxReceiveCount is 0.
+  - Set the redrive target to the DLQ ARN.
+  - Set maxReceiveCount to 5 and add an idempotency check.
+files:
+  "queue.json": |
+    {
+      "queue": "checkout-orders",
+      "maxReceiveCount": 0,
+      "redrivePolicy": "",
+      "idempotencyCheck": false
+    }
+  "dlq-status.txt": |
+    queue: checkout-orders
+    dlq: checkout-orders-dlq
+    dlqArn: arn:aws:sqs:eu-west-1:123456789012:checkout-orders-dlq
+    maxReceiveCount: 0
+    poisonMessages: growing
+solution:
+  summary: |
+    The DLQ is filling because the source queue has no redrive policy. Set the redrive target, maxReceiveCount, and add an idempotency check.
+  steps:
+    - Set redrivePolicy to the DLQ ARN.
+    - Set maxReceiveCount to 5 before moving messages to the DLQ.
+    - Enable an idempotency check so redelivered messages are not reprocessed.
+  explanation: |
+    A redrive policy moves poison messages to a DLQ after a bounded number of receives, and an idempotency check stops at-least-once redeliveries from double-processing. Together they keep the queue healthy and the DLQ meaningful.
+  outcome: |
+    The queue redrives to the DLQ after 5 receives with idempotency enabled.
+  focusFileName: queue.json
+  replacements:
+    - fileName: queue.json
+      search: '"maxReceiveCount": 0,'
+      replace: '"maxReceiveCount": 5,'
+    - fileName: queue.json
+      search: '"redrivePolicy": "",'
+      replace: '"redrivePolicy": "arn:aws:sqs:eu-west-1:123456789012:checkout-orders-dlq",'
+    - fileName: queue.json
+      search: '"idempotencyCheck": false'
+      replace: '"idempotencyCheck": true'
+  commands:
+    - msg validate
+backend:
+  bucket: messaging
+  key: sqs-dlq-redrive-policy
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: sqs_queue
+    name: checkout-orders
+    id: checkout-orders
+    status: failed
+    note: No redrive policy; maxReceiveCount 0 and no idempotency check.
+stateResources:
+  - address: queue.maxReceiveCount
+    id: "0"
+  - address: queue.redrivePolicy
+    id: empty
+flags:
+  messagingValidated: false

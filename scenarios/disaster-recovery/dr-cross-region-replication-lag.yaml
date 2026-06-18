@@ -1,0 +1,65 @@
+id: drCrossRegionReplicationLag
+kind: dr
+title: Cross-Region Replication Lag Triage
+description: S3 cross-region replication lag exceeds the RPO; find the bucket with paused replication and the wrong scope.
+primaryFile: crr.json
+tips:
+  - Cross-region replication lag exceeds the RPO.
+  - Replication is paused on the bucket.
+  - The replication scope is prefix-only instead of all objects.
+  - Resume replication and set the scope to all.
+files:
+  "crr.json": |
+    {
+      "bucket": "checkout-artifacts-prod",
+      "status": "paused",
+      "scope": "prefix-only",
+      "lagSeconds": 4200
+    }
+  "crr-status.txt": |
+    bucket: checkout-artifacts-prod
+    status: paused
+    scope: prefix-only
+    rpoSloSeconds: 900
+    lagSeconds: 4200
+solution:
+  summary: |
+    Replication is paused and scoped to a single prefix, so lag exceeds the RPO. Resume replication and set the scope to all objects.
+  steps:
+    - Confirm replication is paused on the bucket.
+    - Confirm the scope is prefix-only instead of all.
+    - Resume replication by setting status to active.
+    - Set scope to all.
+  explanation: |
+    Cross-region replication only meets the RPO when it is active and covers all objects. A paused rule or prefix-only scope leaves objects unprotected and inflates lag beyond the SLO.
+  outcome: |
+    Replication is active with scope all and lag will drain within the RPO.
+  focusFileName: crr.json
+  replacements:
+    - fileName: crr.json
+      search: '"status": "paused",'
+      replace: '"status": "active",'
+    - fileName: crr.json
+      search: '"scope": "prefix-only"'
+      replace: '"scope": "all"'
+  commands:
+    - dr validate
+backend:
+  bucket: disaster-recovery
+  key: cross-region-replication-lag
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: s3_crr
+    name: checkout-artifacts-prod
+    id: checkout-artifacts-prod
+    status: failed
+    note: Replication is paused and scoped to a single prefix; lag exceeds the RPO.
+stateResources:
+  - address: crr.status
+    id: paused
+  - address: crr.scope
+    id: prefix-only
+flags:
+  drValidated: false

@@ -114,6 +114,12 @@ export type CommandHandlers = {
   mlPipelineRun: () => string[];
   mlModelDescribe: () => string[];
   mlModelPromote: () => string[];
+  incidentValidate: () => string[];
+  drValidate: () => string[];
+  databaseValidate: () => string[];
+  supplyChainValidate: () => string[];
+  sreValidate: () => string[];
+  messagingValidate: () => string[];
   checkScenario: () => string[];
 };
 
@@ -208,6 +214,7 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "kubectl rollout status deployment checkout-api") return handlers.kubectlRolloutStatus();
     if (input === "kubectl scale deployment checkout-api --replicas=2") return handlers.kubectlScaleDeployment();
     if (input === "kubectl apply --dry-run=server -f deployment.yaml") return handlers.kubernetesBlankDryRun();
+    if (input === "kubectl apply --dry-run=server -f rbac.yaml") return handlers.kubernetesBlankDryRun();
     if (input === "helm lint checkout ./chart") return handlers.helmLint();
     if (input === "helm template checkout ./chart") return handlers.helmTemplate();
     if (input === "helm upgrade checkout ./chart") return handlers.helmUpgrade();
@@ -262,6 +269,42 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "ml pipeline run") return handlers.mlPipelineRun();
     if (input === "ml model describe") return handlers.mlModelDescribe();
     if (input === "ml model promote") return handlers.mlModelPromote();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "incident") {
+    if (input === "incident validate") return handlers.incidentValidate();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "dr") {
+    if (input === "dr validate") return handlers.drValidate();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "database") {
+    if (input === "db validate") return handlers.databaseValidate();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "supplychain") {
+    if (input === "supply-chain validate") return handlers.supplyChainValidate();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "sre") {
+    if (input === "sre validate") return handlers.sreValidate();
+    if (input === "check") return handlers.checkScenario();
+    return unknownCommand(command);
+  }
+
+  if (runtime.kind === "messaging") {
+    if (input === "msg validate") return handlers.messagingValidate();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -375,7 +418,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "kubernetes") {
-    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe deployment checkout-api", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl get hpa checkout-api", "  kubectl describe hpa checkout-api", "  kubectl get pdb checkout-api", "  kubectl apply -f hpa.yaml", "  kubectl apply -f pdb.yaml", "  kubectl apply --dry-run=server -f deployment.yaml", "  kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws iam list-roles", "  aws iam get-role --role-name <name>", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
+    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe deployment checkout-api", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl get hpa checkout-api", "  kubectl describe hpa checkout-api", "  kubectl get pdb checkout-api", "  kubectl apply -f hpa.yaml", "  kubectl apply -f pdb.yaml", "  kubectl apply --dry-run=server -f deployment.yaml", "  kubectl apply --dry-run=server -f rbac.yaml", "  kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws iam list-roles", "  aws iam get-role --role-name <name>", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
   }
 
   if (runtime.kind === "appsec") {
@@ -396,6 +439,30 @@ function commandHelp(runtime: Scenario): string[] {
 
   if (runtime.kind === "mlops") {
     return ["Available commands:", "  ml pipeline status", "  ml artifacts list", "  ml pipeline run", "  ml model describe", "  ml model promote", "  check", "  help"];
+  }
+
+  if (runtime.kind === "incident") {
+    return ["Available commands:", "  incident validate", "  check", "  help"];
+  }
+
+  if (runtime.kind === "dr") {
+    return ["Available commands:", "  dr validate", "  check", "  help"];
+  }
+
+  if (runtime.kind === "database") {
+    return ["Available commands:", "  db validate", "  check", "  help"];
+  }
+
+  if (runtime.kind === "supplychain") {
+    return ["Available commands:", "  supply-chain validate", "  check", "  help"];
+  }
+
+  if (runtime.kind === "sre") {
+    return ["Available commands:", "  sre validate", "  check", "  help"];
+  }
+
+  if (runtime.kind === "messaging") {
+    return ["Available commands:", "  msg validate", "  check", "  help"];
   }
 
   return [

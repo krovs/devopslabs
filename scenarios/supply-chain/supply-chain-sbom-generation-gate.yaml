@@ -1,0 +1,65 @@
+id: supplyChainSbomGenerationGate
+kind: supplychain
+title: SBOM Generation Gate
+description: A release is blocked because the CI job does not emit a CycloneDX SBOM; generate the SBOM and unblock the gate.
+primaryFile: release.json
+tips:
+  - The release gate is blocked because no SBOM is emitted.
+  - The required SBOM format is CycloneDX.
+  - Generate the SBOM so sbomPresent is true.
+  - The gate passes once the SBOM is present.
+files:
+  "release.json": |
+    {
+      "release": "checkout-api-2.5.0",
+      "sbomFormat": "",
+      "sbomPresent": false,
+      "gate": "blocked"
+    }
+  "gate-policy.txt": |
+    requiredSbomFormat: CycloneDX
+    gate: blocked when sbomPresent is false
+    release: checkout-api-2.5.0
+solution:
+  summary: |
+    The release is blocked because no SBOM is generated. Emit a CycloneDX SBOM so the gate passes.
+  steps:
+    - Set sbomFormat to CycloneDX.
+    - Set sbomPresent to true.
+    - The gate moves from blocked to passed.
+  explanation: |
+    A release gate that requires an SBOM blocks deploys until a CycloneDX document is produced. Generating the SBOM satisfies the gate and gives downstream consumers a verifiable inventory.
+  outcome: |
+    A CycloneDX SBOM is present and the release gate passes.
+  focusFileName: release.json
+  replacements:
+    - fileName: release.json
+      search: '"sbomFormat": "",'
+      replace: '"sbomFormat": "CycloneDX",'
+    - fileName: release.json
+      search: '"sbomPresent": false,'
+      replace: '"sbomPresent": true,'
+    - fileName: release.json
+      search: '"gate": "blocked"'
+      replace: '"gate": "passed"'
+  commands:
+    - supply-chain validate
+backend:
+  bucket: supply-chain
+  key: sbom-generation-gate
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: release_gate
+    name: checkout-api-2.5.0
+    id: checkout-api-2.5.0
+    status: failed
+    note: Release blocked; no CycloneDX SBOM generated.
+stateResources:
+  - address: release.sbomPresent
+    id: "false"
+  - address: release.gate
+    id: blocked
+flags:
+  supplyChainValidated: false

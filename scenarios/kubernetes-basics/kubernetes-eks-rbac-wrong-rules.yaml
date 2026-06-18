@@ -1,0 +1,129 @@
+id: kubernetesEksRbacWrongRules
+kind: kubernetes
+title: Kubernetes EKS RBAC Wrong Rules
+description: An EKS workload's service account has a RoleBinding but the Role grants access to secrets instead of configmaps, and the pod cannot read its configuration.
+primaryFile: rbac.yaml
+tips:
+  - Run kubectl get pods to find the running pod.
+  - Run kubectl logs checkout-api to see the RBAC authorization error.
+  - Run kubectl auth can-i get configmaps --as the service account in the payments namespace.
+  - Run kubectl auth can-i get secrets --as the service account to discover what IS allowed.
+  - The Role currently grants access to secrets but the workload reads configmaps.
+  - Fix the Role rules, reapply, and restart the deployment.
+files:
+  "rbac.yaml": |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: checkout-api-reader
+      namespace: payments
+    rules:
+      - apiGroups: [""]
+        resources: ["secrets"]
+        verbs: ["get", "list"]
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: checkout-api-reader
+      namespace: payments
+    subjects:
+      - kind: ServiceAccount
+        name: checkout-api
+        namespace: payments
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: checkout-api-reader
+  "serviceaccount.yaml": |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: checkout-api
+      namespace: payments
+  "deployment.yaml": |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: checkout-api
+      namespace: payments
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: checkout-api
+      template:
+        metadata:
+          labels:
+            app: checkout-api
+        spec:
+          serviceAccountName: checkout-api
+          containers:
+            - name: checkout-api
+              image: ghcr.io/acme/checkout-api:1.4.2
+              env:
+                - name: CONFIGMAP_NAME
+                  value: checkout-settings
+  "runbook.md": |
+    Goal:
+    - Restore checkout-api ability to read its ConfigMap.
+
+    Constraints:
+    - Do not grant cluster-admin or bind the default service account.
+    - The Role must grant the minimum verbs (get, list) on configmaps.
+    - Keep the RoleBinding and ServiceAccount as-is; only change the Role rules.
+    - Reapply the RBAC manifest and restart the deployment.
+solution:
+  summary: |
+    The Role checkout-api-reader grants access to secrets, but checkout-api reads configmaps. Fix the Role to grant get and list on configmaps.
+  steps:
+    - Run kubectl get pods to see checkout-api is running.
+    - Run kubectl logs checkout-api to see RBAC AccessDenied when reading the ConfigMap.
+    - Run kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments to confirm the denial.
+    - Run kubectl auth can-i get secrets --as system:serviceaccount:payments:checkout-api -n payments to see what IS allowed.
+    - Change the Role rules from resources: ["secrets"] to resources: ["configmaps"].
+    - Run kubectl apply --dry-run=server -f rbac.yaml to validate.
+    - Restart the deployment and verify rollout status.
+  explanation: |
+    Kubernetes RBAC Roles grant access to specific API resources and verbs within a namespace. A RoleBinding connects a Role to a ServiceAccount. If the Role lists the wrong resource, the ServiceAccount is authorized for something it does not need and denied for what it does need.
+
+    The fix narrows the Role to configmaps with get and list verbs, matching the workload's actual requirements.
+  outcome: |
+    checkout-api can read configmaps through its service account, the RBAC manifest is valid, and the pod starts successfully.
+  focusFileName: rbac.yaml
+  replacements:
+    - fileName: rbac.yaml
+      search: |
+        resources: ["secrets"]
+      replace: |
+        resources: ["configmaps"]
+  commands:
+    - kubectl get pods
+    - kubectl logs checkout-api
+    - kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments
+    - kubectl auth can-i get secrets --as system:serviceaccount:payments:checkout-api -n payments
+    - kubectl apply --dry-run=server -f rbac.yaml
+    - kubectl rollout restart deployment checkout-api
+    - kubectl rollout status deployment checkout-api
+backend:
+  bucket: kubernetes
+  key: checkout-api-eks-rbac
+  table: workloads
+  locked: false
+  lockId: null
+awsResources:
+  - type: service_account
+    name: checkout-api
+    id: payments/checkout-api
+    status: failed
+    note: The Role grants secrets access but the pod needs configmaps.
+stateResources:
+  - address: role.payments.checkout-api-reader.rules
+    id: secrets
+  - address: deployment.checkout-api.configmap
+    id: AccessDenied
+  - address: serviceaccount.payments.checkout-api
+    id: checkout-api
+flags:
+  initialized: false
+  kubernetesValidated: false

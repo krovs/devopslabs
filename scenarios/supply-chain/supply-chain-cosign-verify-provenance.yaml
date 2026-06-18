@@ -1,0 +1,61 @@
+id: supplyChainCosignVerifyProvenance
+kind: supplychain
+title: Cosign Verify Image Provenance
+description: A Kubernetes admission controller rejects a pod because the image lacks a cosign signature; verify the signing identity.
+primaryFile: admission.yaml
+tips:
+  - The admission policy rejects unsigned images.
+  - Verification is currently disabled.
+  - The expected signing identity is acme-signer.
+  - Enable verification and set the signing identity.
+files:
+  "admission.yaml": |
+    policy: verify-image-signature
+    verify: false
+    signingIdentity: ""
+  "admission-log.txt": |
+    policy: verify-image-signature
+    image: ghcr.io/acme/checkout-api:2.5.0
+    rejection: no verified signature
+    expectedSigningIdentity: acme-signer
+solution:
+  summary: |
+    The admission policy rejects the pod because image signature verification is disabled. Enable verification and set the signing identity to acme-signer.
+  steps:
+    - Enable verify on the admission policy.
+    - Set signingIdentity to acme-signer.
+    - The admission controller now verifies the cosign signature.
+  explanation: |
+    Cosign verification enforces that only images signed by a trusted identity run in the cluster. Enabling verify and pinning the signing identity makes the admission controller reject unsigned or wrongly-signed images.
+  outcome: |
+    Image verification is enabled with signing identity acme-signer and the pod is admitted.
+  focusFileName: admission.yaml
+  replacements:
+    - fileName: admission.yaml
+      search: |
+        verify: false
+        signingIdentity: ""
+      replace: |
+        verify: true
+        signingIdentity: acme-signer
+  commands:
+    - supply-chain validate
+backend:
+  bucket: supply-chain
+  key: cosign-verify-provenance
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: admission_policy
+    name: verify-image-signature
+    id: verify-image-signature
+    status: failed
+    note: Verification disabled; signing identity empty so pod is rejected.
+stateResources:
+  - address: admission.verify
+    id: "false"
+  - address: admission.signingIdentity
+    id: empty
+flags:
+  supplyChainValidated: false

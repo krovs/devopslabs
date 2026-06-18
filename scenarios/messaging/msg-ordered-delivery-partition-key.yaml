@@ -1,0 +1,67 @@
+id: msgOrderedDeliveryPartitionKey
+kind: messaging
+title: Ordered Delivery Partition Key
+description: Ordering is broken and one partition is hot; fix the partition key strategy and rebalance the hot partition.
+primaryFile: producer.json
+tips:
+  - Ordering is broken because the partition key is empty.
+  - One partition is hot because of poor key distribution.
+  - Use orderId as the partition key to keep order per order.
+  - Enable hot partition rebalance and switch to key-sharding.
+files:
+  "producer.json": |
+    {
+      "stream": "checkout-events",
+      "partitionKey": "",
+      "hotPartitionRebalance": false,
+      "strategy": "random"
+    }
+  "ordering-audit.txt": |
+    stream: checkout-events
+    symptom: out-of-order events per order
+    partitionKey: empty
+    hotPartition: partition-3 absorbs 80% of writes
+    recommendation: orderId key + key-sharding
+solution:
+  summary: |
+    Ordering is broken because the partition key is empty and writes are random. Use orderId as the partition key and switch to key-sharding.
+  steps:
+    - Set partitionKey to orderId to keep events for an order on one partition.
+    - Enable hotPartitionRebalance to spread skewed keys.
+    - Switch strategy from random to key-sharding.
+  explanation: |
+    Ordered delivery needs a stable partition key per entity so its events land on the same partition. Using orderId preserves order, and key-sharding with hot partition rebalance prevents one key from concentrating all writes.
+  outcome: |
+    The producer uses orderId as the partition key with key-sharding and hot partition rebalance.
+  focusFileName: producer.json
+  replacements:
+    - fileName: producer.json
+      search: '"partitionKey": "",'
+      replace: '"partitionKey": "orderId",'
+    - fileName: producer.json
+      search: '"hotPartitionRebalance": false,'
+      replace: '"hotPartitionRebalance": true,'
+    - fileName: producer.json
+      search: '"strategy": "random"'
+      replace: '"strategy": "key-sharding"'
+  commands:
+    - msg validate
+backend:
+  bucket: messaging
+  key: ordered-delivery-partition-key
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: kinesis_stream
+    name: checkout-events
+    id: checkout-events
+    status: failed
+    note: Ordering broken; empty partition key and one hot partition.
+stateResources:
+  - address: producer.partitionKey
+    id: empty
+  - address: producer.strategy
+    id: random
+flags:
+  messagingValidated: false

@@ -1,0 +1,61 @@
+id: incidentAlertStormTriage
+kind: incident
+title: Alert Storm Triage
+description: Two hundred correlated alerts flood the pager; identify the root alert and suppress the noise.
+primaryFile: alerts.json
+tips:
+  - The pager is flooded with correlated alerts.
+  - One alert is the root cause; the rest are downstream symptoms.
+  - db-cpu-100 is the root alert driving the api-latency and queue-depth symptoms.
+  - Set rootAlertId and suppress the downstream noise alerts.
+files:
+  "alerts.json": |
+    {
+      "alerts": ["db-cpu-100", "api-latency-1", "api-latency-2", "queue-depth-1"],
+      "rootAlertId": "",
+      "suppressed": []
+    }
+  "correlation.txt": |
+    root: db-cpu-100
+    symptoms: api-latency-1, api-latency-2, queue-depth-1
+solution:
+  summary: |
+    The alert storm is driven by one root alert. Identify db-cpu-100 as the root and suppress the downstream symptom alerts.
+  steps:
+    - Correlate the fired alerts to find the common root.
+    - db-cpu-100 is the root alert driving api-latency and queue-depth symptoms.
+    - Set rootAlertId to db-cpu-100.
+    - Suppress the three downstream symptom alerts.
+  explanation: |
+    Alert storms happen when one root failure cascades into many symptom alerts. Triaging means identifying the root alert and suppressing the noise so the responder can focus on the cause.
+  outcome: |
+    The root alert db-cpu-100 is identified and the three symptom alerts are suppressed.
+  focusFileName: alerts.json
+  replacements:
+    - fileName: alerts.json
+      search: '"rootAlertId": "",'
+      replace: '"rootAlertId": "db-cpu-100",'
+    - fileName: alerts.json
+      search: '"suppressed": []'
+      replace: '"suppressed": ["api-latency-1", "api-latency-2", "queue-depth-1"]'
+  commands:
+    - incident validate
+backend:
+  bucket: incident-response
+  key: alert-storm-triage
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: alert_storm
+    name: checkout-api-alerts
+    id: storm-2041
+    status: failed
+    note: 200 correlated alerts fired with no root alert identified and no suppressions.
+stateResources:
+  - address: alert.root
+    id: empty
+  - address: alert.suppressed
+    id: empty
+flags:
+  incidentValidated: false

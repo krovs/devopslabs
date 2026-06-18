@@ -88,6 +88,10 @@ function isEksRbacIrsaScenario(scenarioId: string): boolean {
   return scenarioId === "kubernetesEksRbacIrsa";
 }
 
+function isEksRbacScenario(scenarioId: string): boolean {
+  return scenarioId === "kubernetesEksRbacIrsa" || scenarioId === "kubernetesEksRbacWrongRules";
+}
+
 function isMemoryLimitScenario(scenarioId: string): boolean {
   return scenarioId === "kubernetesMemoryLimitOom";
 }
@@ -178,7 +182,7 @@ function pdbAllowsOneDisruption(pdb: string): boolean {
 
 export function runKubectlGetPods(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.initialized = true;
-  if (isEksRbacIrsaScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-5d9f6bbd76-zm9kq   1/1     Running   3"];
+  if (isEksRbacScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS", "checkout-api-5d9f6bbd76-zm9kq   1/1     Running   3"];
   if (isPdbNodeDrainScenario(scenarioId)) return ["NAME                            READY   STATUS    RESTARTS   NODE", "checkout-api-7bd8dfc6d4-2q8xp   1/1     Running   0          ip-10-0-4-21", "checkout-api-7bd8dfc6d4-5jv7m   1/1     Running   0          ip-10-0-5-12", "checkout-api-7bd8dfc6d4-rp9kx   1/1     Running   0          ip-10-0-6-33"];
   if (isHpaScalingScenario(scenarioId)) {
     const hpa = runtime.files["hpa.yaml"] ?? "";
@@ -204,7 +208,7 @@ export function runKubectlGetPods(runtime: Scenario, scenarioId: string): string
 
 export function runKubectlDescribeDeployment(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.validationPassed = true;
-  if (isEksRbacIrsaScenario(scenarioId)) {
+  if (isEksRbacScenario(scenarioId)) {
     return [
       "Name: checkout-api",
       "Namespace: payments",
@@ -223,7 +227,7 @@ export function runKubectlDescribeDeployment(runtime: Scenario, scenarioId: stri
 
 export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.validationPassed = true;
-  if (isEksRbacIrsaScenario(scenarioId)) {
+  if (isEksRbacScenario(scenarioId)) {
     const rbac = runtime.files["rbac.yaml"] ?? "";
     const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
     const output = [
@@ -232,9 +236,14 @@ export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): st
       "Service Account: checkout-api",
       "Status: Running",
     ];
-    if (!eksRbacBindsCheckoutApi(rbac)) output.push("Warning  FailedAuthorization  serviceaccount payments/checkout-api cannot get resource configmaps");
-    if (!eksServiceAccountUsesPaymentsRole(serviceAccount)) output.push("Warning  AccessDenied          IRSA role eks-default-readonly cannot send messages to orders queue");
-    if (output.length === 4) output.push("Authorization checks are clear; restart rollout to refresh pods.");
+    if (scenarioId === "kubernetesEksRbacWrongRules") {
+      if (!rbac.includes('resources: ["configmaps"]')) output.push("Warning  FailedAuthorization  serviceaccount payments/checkout-api cannot get resource configmaps");
+      if (output.length === 4) output.push("Authorization checks are clear; restart rollout to refresh pods.");
+    } else {
+      if (!eksRbacBindsCheckoutApi(rbac)) output.push("Warning  FailedAuthorization  serviceaccount payments/checkout-api cannot get resource configmaps");
+      if (!eksServiceAccountUsesPaymentsRole(serviceAccount)) output.push("Warning  AccessDenied          IRSA role eks-default-readonly cannot send messages to orders queue");
+      if (output.length === 4) output.push("Authorization checks are clear; restart rollout to refresh pods.");
+    }
     return output;
   }
 
@@ -303,14 +312,18 @@ export function runKubectlDescribePod(runtime: Scenario, scenarioId: string): st
 
 export function runKubectlGetEvents(runtime: Scenario, scenarioId: string): string[] {
   runtime.flags.kubernetesEventsChecked = true;
-  if (isEksRbacIrsaScenario(scenarioId)) {
+  if (isEksRbacScenario(scenarioId)) {
     const rbac = runtime.files["rbac.yaml"] ?? "";
     const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
     const output = [
       "LAST SEEN   TYPE      REASON                OBJECT                              MESSAGE",
     ];
-    if (!eksRbacBindsCheckoutApi(rbac)) output.push("3m          Warning   FailedAuthorization   pod/checkout-api-5d9f6bbd76-zm9kq   RBAC denied configmaps get for system:serviceaccount:payments:checkout-api");
-    if (!eksServiceAccountUsesPaymentsRole(serviceAccount)) output.push("2m          Warning   AccessDenied          pod/checkout-api-5d9f6bbd76-zm9kq   AWS role eks-default-readonly cannot access orders queue");
+    if (scenarioId === "kubernetesEksRbacWrongRules") {
+      if (!rbac.includes('resources: ["configmaps"]')) output.push("3m          Warning   FailedAuthorization   pod/checkout-api-5d9f6bbd76-zm9kq   RBAC denied configmaps get: Role allows secrets only");
+    } else {
+      if (!eksRbacBindsCheckoutApi(rbac)) output.push("3m          Warning   FailedAuthorization   pod/checkout-api-5d9f6bbd76-zm9kq   RBAC denied configmaps get for system:serviceaccount:payments:checkout-api");
+      if (!eksServiceAccountUsesPaymentsRole(serviceAccount)) output.push("2m          Warning   AccessDenied          pod/checkout-api-5d9f6bbd76-zm9kq   AWS role eks-default-readonly cannot access orders queue");
+    }
     if (output.length === 1) output.push("1m          Normal    Pulled                pod/checkout-api-5d9f6bbd76-zm9kq   Container image ghcr.io/acme/checkout-api:1.4.2 already present");
     return output;
   }
@@ -364,20 +377,28 @@ export function runKubectlGetEvents(runtime: Scenario, scenarioId: string): stri
 }
 
 export function runKubectlLogs(runtime: Scenario, scenarioId: string): string[] {
-  if (isEksRbacIrsaScenario(scenarioId)) {
-    if (runtime.flags.kubernetesValidated) return ["loaded checkout-config from namespace payments", "sent order message to SQS queue orders"];
+  if (isEksRbacScenario(scenarioId)) {
+    if (runtime.flags.kubernetesValidated) return ["loaded checkout-settings configmap from namespace payments", "checkout-api healthy and ready"];
     const rbac = runtime.files["rbac.yaml"] ?? "";
     const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
     const output = [];
-    if (!eksRbacBindsCheckoutApi(rbac)) {
-      output.push("ERROR kubernetes client: configmaps \"checkout-config\" is forbidden: User \"system:serviceaccount:payments:checkout-api\" cannot get resource \"configmaps\" in namespace \"payments\"");
+    if (scenarioId === "kubernetesEksRbacWrongRules") {
+      if (!rbac.includes('resources: ["configmaps"]')) {
+        output.push("ERROR kubernetes client: configmaps \"checkout-settings\" is forbidden: User \"system:serviceaccount:payments:checkout-api\" cannot get resource \"configmaps\" in namespace \"payments\"");
+      } else {
+        output.push("loaded checkout-settings configmap from namespace payments");
+      }
     } else {
-      output.push("loaded checkout-config from namespace payments");
-    }
-    if (!eksServiceAccountUsesPaymentsRole(serviceAccount)) {
-      output.push("ERROR aws sdk: AccessDenied for sqs:SendMessage using role arn:aws:iam::111122223333:role/eks-default-readonly");
-    } else {
-      output.push("sent order message to SQS queue orders");
+      if (!eksRbacBindsCheckoutApi(rbac)) {
+        output.push("ERROR kubernetes client: configmaps \"checkout-config\" is forbidden: User \"system:serviceaccount:payments:checkout-api\" cannot get resource \"configmaps\" in namespace \"payments\"");
+      } else {
+        output.push("loaded checkout-config from namespace payments");
+      }
+      if (!eksServiceAccountUsesPaymentsRole(serviceAccount)) {
+        output.push("ERROR aws sdk: AccessDenied for sqs:SendMessage using role arn:aws:iam::111122223333:role/eks-default-readonly");
+      } else {
+        output.push("sent order message to SQS queue orders");
+      }
     }
     return output;
   }
@@ -498,6 +519,14 @@ export function runKubectlAuthCanI(runtime: Scenario, scenarioId: string): strin
 
   runtime.flags.validationPassed = true;
   const rbac = runtime.files["rbac.yaml"] ?? "";
+
+  if (scenarioId === "kubernetesEksRbacWrongRules") {
+    if (rbac.includes('resources: ["configmaps"]')) {
+      return ["yes", "system:serviceaccount:payments:checkout-api can get configmaps in namespace payments"];
+    }
+    return ["no", "RBAC: Role grants access to secrets, not configmaps"];
+  }
+
   if (eksRbacBindsCheckoutApi(rbac)) {
     return ["yes", "system:serviceaccount:payments:checkout-api can get configmaps in namespace payments"];
   }
@@ -623,6 +652,15 @@ export function runKubectlRolloutRestart(runtime: Scenario, scenarioId: string):
   if (isEksRbacIrsaScenario(scenarioId)) {
     const rbac = runtime.files["rbac.yaml"] ?? "";
     const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
+    if (scenarioId === "kubernetesEksRbacWrongRules") {
+      if (runtime.flags.validationPassed && rbac.includes('resources: ["configmaps"]')) {
+        runtime.flags.cleanPlan = true;
+        setFirstResource(runtime, "drifted", "Rollout restarted after RBAC rules were fixed to configmaps.");
+        return ["deployment.apps/checkout-api restarted"];
+      }
+      setFirstResource(runtime, "failed", "Rollout still has the wrong RBAC rules or diagnostic checks were not run first.");
+      return ["deployment.apps/checkout-api restarted", "rollout status: authorization checks still failing"];
+    }
     if (runtime.flags.validationPassed && runtime.flags.securityPassed && eksRbacBindsCheckoutApi(rbac) && eksServiceAccountUsesPaymentsRole(serviceAccount)) {
       runtime.flags.cleanPlan = true;
       setFirstResource(runtime, "drifted", "Rollout restarted after RBAC and IRSA were aligned to checkout-api.");
@@ -681,6 +719,19 @@ export function runKubectlRolloutStatus(runtime: Scenario, scenarioId: string): 
   const deployment = runtime.files["deployment.yaml"] ?? "";
   if (isEksRbacIrsaScenario(scenarioId)) {
     const rbac = runtime.files["rbac.yaml"] ?? "";
+    if (scenarioId === "kubernetesEksRbacWrongRules") {
+      if (runtime.flags.cleanPlan && runtime.flags.validationPassed && rbac.includes('resources: ["configmaps"]')) {
+        runtime.flags.kubernetesValidated = true;
+        setFirstResource(runtime, "success", "RBAC rules now grant configmaps access to the checkout-api service account.");
+        runtime.stateResources = runtime.stateResources.map((resource) => {
+          if (resource.address === "role.payments.checkout-api-reader.rules") return { ...resource, id: "configmaps" };
+          if (resource.address === "deployment.checkout-api.configmap") return { ...resource, id: "Authorized" };
+          return resource;
+        });
+        return ["Waiting for deployment checkout-api rollout to finish...", "deployment \"checkout-api\" successfully rolled out"];
+      }
+      return ["Waiting for deployment checkout-api rollout to finish...", "rollout status: pending. Fix RBAC rules and restart the deployment."];
+    }
     const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
     if (runtime.flags.cleanPlan && runtime.flags.validationPassed && runtime.flags.securityPassed && eksRbacBindsCheckoutApi(rbac) && eksServiceAccountUsesPaymentsRole(serviceAccount)) {
       runtime.flags.kubernetesValidated = true;
@@ -835,6 +886,19 @@ export function runHelmUpgrade(runtime: Scenario, scenarioId: string): string[] 
 }
 
 export function kubernetesBlankValidate(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId === "kubernetesEksRbacWrongRules") {
+    const file = runtime.files["rbac.yaml"] ?? "";
+    const hasConfigmaps = file.includes('resources: ["configmaps"]');
+    if (hasConfigmaps) {
+      return [
+        "role.rbac.authorization.k8s.io/checkout-api-reader created (server dry run)",
+        "rolebinding.rbac.authorization.k8s.io/checkout-api-reader created (server dry run)",
+        "Validation passed: Role allows get and list on configmaps.",
+      ];
+    }
+    return ["Error from server (dry run): Role still allows secrets. Change resources to configmaps."];
+  }
+
   if (scenarioId !== "kubernetesBlankDeploymentService") {
     return ["No blank Kubernetes scenario configured."];
   }

@@ -1,0 +1,64 @@
+id: sreToilBudgetExceeded
+kind: sre
+title: Toil Budget Exceeded
+description: Team toil is above 50% of the sprint; classify the repeat offender and propose automation to bring it under budget.
+primaryFile: toil.json
+tips:
+  - SRE teams should keep toil under 50% of a sprint.
+  - Current toil is 70%.
+  - The repeat offender is manual-db-restart.
+  - Propose automation to bring toil under budget.
+files:
+  "toil.json": |
+    {
+      "team": "platform",
+      "toilPercent": 70,
+      "automationProposed": false,
+      "repeatOffender": "manual-db-restart"
+    }
+  "toil-audit.txt": |
+    team: platform
+    toilPercent: 70
+    budget: 50
+    repeatOffender: manual-db-restart
+    recommendation: automate the restart runbook
+solution:
+  summary: |
+    Toil is at 70%, above the 50% budget. Classify the repeat offender and propose automation to bring toil under budget.
+  steps:
+    - Identify the repeat offender as manual-db-restart.
+    - Propose automation to remove the toil.
+    - Bring toilPercent down to 45, under the 50% budget.
+  explanation: |
+    SRE teams cap toil to preserve engineering time. When a repeat offender drives toil above budget, automating it brings the team back under the cap and removes the manual burden.
+  outcome: |
+    Toil drops to 45% with automation proposed for the manual-db-restart repeat offender.
+  focusFileName: toil.json
+  replacements:
+    - fileName: toil.json
+      search: '"toilPercent": 70,'
+      replace: '"toilPercent": 45,'
+    - fileName: toil.json
+      search: '"automationProposed": false'
+      replace: '"automationProposed": true'
+  commands:
+    - sre validate
+backend:
+  bucket: sre-slo
+  key: toil-budget-exceeded
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: toil_budget
+    name: platform-toil
+    id: platform-toil
+    status: failed
+    note: Toil at 70% exceeds the 50% budget; no automation proposed.
+stateResources:
+  - address: toil.toilPercent
+    id: "70"
+  - address: toil.automationProposed
+    id: "false"
+flags:
+  sreValidated: false

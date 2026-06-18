@@ -1,0 +1,67 @@
+id: sreSliFormulationFromSignal
+kind: sre
+title: SLI Formulation From Signal
+description: Given service metrics and a user journey, define the good-events and total-events SLI with the availability threshold.
+primaryFile: sli.json
+tips:
+  - An SLI is good events divided by total events.
+  - Total events is every HTTP request to checkout-api.
+  - Good events are requests that did not return a 5xx.
+  - The availability target is 99.9%.
+files:
+  "sli.json": |
+    {
+      "service": "checkout-api",
+      "goodEvents": "",
+      "totalEvents": "",
+      "availabilityThreshold": 0
+    }
+  "journey.txt": |
+    service: checkout-api
+    metric: http_requests_total
+    success: status not in 5xx range
+    total: all http_requests_total
+    target: 99.9% availability
+solution:
+  summary: |
+    The SLI is not formulated. Define good events as non-5xx requests, total events as all requests, and the availability threshold as 0.999.
+  steps:
+    - Set totalEvents to http_requests_total.
+    - Set goodEvents to http_requests_total with status not matching 5xx.
+    - Set availabilityThreshold to 0.999 for 99.9% availability.
+  explanation: |
+    An SLI turns raw metrics into a reliability signal by dividing good events by total events. Non-5xx responses over all responses captures user-visible availability, and 0.999 encodes the 99.9% target.
+  outcome: |
+    The SLI is good non-5xx requests over all requests with a 99.9% availability threshold.
+  focusFileName: sli.json
+  replacements:
+    - fileName: sli.json
+      search: '"goodEvents": "",'
+      replace: '"goodEvents": "http_requests_total{status!~5..}",'
+    - fileName: sli.json
+      search: '"totalEvents": "",'
+      replace: '"totalEvents": "http_requests_total",'
+    - fileName: sli.json
+      search: '"availabilityThreshold": 0'
+      replace: '"availabilityThreshold": 0.999'
+  commands:
+    - sre validate
+backend:
+  bucket: sre-slo
+  key: sli-formulation
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: sli
+    name: checkout-api-sli
+    id: checkout-api-sli
+    status: failed
+    note: SLI not formulated; good and total events empty and threshold 0.
+stateResources:
+  - address: sli.goodEvents
+    id: empty
+  - address: sli.totalEvents
+    id: empty
+flags:
+  sreValidated: false
