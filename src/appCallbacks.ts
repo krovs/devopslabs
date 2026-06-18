@@ -46,6 +46,9 @@ export function createAppCallbacks(options: AppCallbacksOptions) {
     labMenuTitle(id: string): string {
       return options.labMenuFilters.labMenuTitle(id, options.incidentMode(), options.completedScenarioIds());
     },
+    subgroupedScenarioIds(groupId: MenuGroupId, ids: string[], query: string): { kind: string; label: string; ids: string[] }[] {
+      return options.labMenuFilters.subgroupedScenarioIds(groupId, ids, query);
+    },
     revealTip(): void {
       options.tipsSession.reveal(options.scenarioTips());
     },

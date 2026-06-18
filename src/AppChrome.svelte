@@ -57,5 +57,6 @@
   groupcompletionstate={app.callbacks.groupCompletionState}
   menugroupvisible={app.callbacks.menuGroupVisible}
   filteredscenarioids={app.callbacks.filteredScenarioIds}
+  subgrouplabids={app.callbacks.subgroupedScenarioIds}
   labmenutitle={app.callbacks.labMenuTitle}
 />

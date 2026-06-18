@@ -34,6 +34,7 @@
     groupcompletionstate: (ids: string[]) => "complete" | "partial" | "empty";
     menugroupvisible: (ids: string[], query: string) => boolean;
     filteredscenarioids: (ids: string[], query: string) => string[];
+    subgrouplabids: (groupId: MenuGroupId, ids: string[], query: string) => { kind: string; label: string; ids: string[] }[];
     labmenutitle: (id: string) => string;
   }
 
@@ -62,6 +63,7 @@
     groupcompletionstate,
     menugroupvisible,
     filteredscenarioids,
+    subgrouplabids,
     labmenutitle,
   }: Props = $props();
 
@@ -71,12 +73,28 @@
     { id: "dracula", label: "Dracula theme" },
     { id: "cyberpunk", label: "Cyber theme" },
   ];
-  const labNavSections: { id: string; title: string; groupIds: MenuGroupId[] }[] = [
-    { id: "infrastructure", title: "Infrastructure", groupIds: ["terraform", "awsconfig", "terragrunt", "networking"] },
-    { id: "delivery", title: "Delivery", groupIds: ["cicd", "gitops"] },
-    { id: "runtime", title: "Runtime", groupIds: ["linux", "kubernetes", "observability", "messaging"] },
-    { id: "security", title: "Security", groupIds: ["appsec", "threatmodel", "cloudsec", "iam", "scp", "policy", "secrets", "supplychain"] },
-    { id: "cloud-ops", title: "Cloud Ops", groupIds: ["dns", "finops", "mlops", "pr", "incident", "dr", "database", "sre"] },
+  const labNavSections: { id: string; title: string; subsections: { label?: string; groupIds: MenuGroupId[] }[] }[] = [
+    { id: "infrastructure", title: "Infrastructure", subsections: [
+      { groupIds: ["terraform", "awsconfig"] },
+      { label: "Networking", groupIds: ["networking"] },
+    ]},
+    { id: "delivery", title: "Delivery", subsections: [
+      { groupIds: ["cicd", "gitops"] },
+    ]},
+    { id: "runtime", title: "Runtime", subsections: [
+      { groupIds: ["linux", "kubernetes"] },
+      { label: "Observability & Messaging", groupIds: ["observability", "messaging"] },
+    ]},
+    { id: "security", title: "Security", subsections: [
+      { groupIds: ["appsec", "threatmodel", "cloudsec"] },
+      { label: "Access & Guardrails", groupIds: ["iam", "scp"] },
+      { groupIds: ["supplychain"] },
+    ]},
+    { id: "cloud-ops", title: "Cloud Ops", subsections: [
+      { label: "Resilience", groupIds: ["incident", "dr"] },
+      { label: "Data & ML", groupIds: ["mlops", "database"] },
+      { groupIds: ["sre"] },
+    ]},
   ];
 
   let totalScenarioIds = $derived(labGroups.flatMap((group) => group.ids));
@@ -94,19 +112,23 @@
     return labGroups.find((group) => group.id === groupId);
   }
 
-  function sectionIds(section: { groupIds: MenuGroupId[] }): string[] {
-    return section.groupIds.flatMap((groupId) => labGroupById(groupId)?.ids ?? []);
+  function sectionAllGroupIds(section: { subsections: { groupIds: MenuGroupId[] }[] }): MenuGroupId[] {
+    return section.subsections.flatMap((sub) => sub.groupIds);
   }
 
-  function sectionVisible(section: { groupIds: MenuGroupId[] }): boolean {
-    return section.groupIds.some((groupId) => {
+  function sectionIds(section: { subsections: { groupIds: MenuGroupId[] }[] }): string[] {
+    return sectionAllGroupIds(section).flatMap((groupId) => labGroupById(groupId)?.ids ?? []);
+  }
+
+  function sectionVisible(section: { subsections: { groupIds: MenuGroupId[] }[] }): boolean {
+    return sectionAllGroupIds(section).some((groupId) => {
       const group = labGroupById(groupId);
       return group ? menugroupvisible(group.ids, menuSearchQuery) : false;
     });
   }
 
-  function sectionContainsSelected(section: { groupIds: MenuGroupId[] }): boolean {
-    return Boolean(highlightedMenuGroup && section.groupIds.includes(highlightedMenuGroup));
+  function sectionContainsSelected(section: { subsections: { groupIds: MenuGroupId[] }[] }): boolean {
+    return Boolean(highlightedMenuGroup && sectionAllGroupIds(section).includes(highlightedMenuGroup));
   }
 
   function sectionOpen(sectionId: string): boolean {
@@ -156,7 +178,7 @@
 
   $effect(() => {
     if (open && highlightedMenuGroup) {
-      const section = labNavSections.find((item) => item.groupIds.includes(highlightedMenuGroup));
+      const section = labNavSections.find((item) => sectionAllGroupIds(item).includes(highlightedMenuGroup));
       if (section && !openLabNavSections.has(section.id)) {
         openLabNavSections = new Set([...openLabNavSections, section.id]);
       }
@@ -267,7 +289,11 @@
             </button>
             {#if sectionOpen(section.id)}
               <div class="menu-nav-section-groups">
-                {#each section.groupIds as groupId}
+                {#each section.subsections as subsection, subIdx}
+                  {#if subIdx > 0 && subsection.label}
+                    <span class="menu-subsection-label">{subsection.label}</span>
+                  {/if}
+                  {#each subsection.groupIds as groupId}
                   {@const group = labGroupById(groupId)}
                   {#if group && menugroupvisible(group.ids, menuSearchQuery)}
                     {@const groupState = groupcompletionstate(group.ids)}
@@ -300,43 +326,51 @@
                       </div>
                       {#if openMenuGroups.includes(group.id) || menuSearchQuery.trim()}
                         {#key incidentMode}
+                          {@const subgroups = subgrouplabids(group.id, group.ids, menuSearchQuery)}
+                          {@const showLabels = subgroups.length > 1}
                           <div class="scenario-list">
-                            {#each filteredscenarioids(group.ids, menuSearchQuery) as id}
-                              <button
-                                type="button"
-                                class={`scenario-difficulty ${scenarioDifficultyClass(id)}`}
-                                class:active={id === currentScenarioId}
-                                class:completed={completedScenarioIds.includes(id)}
-                                aria-current={id === currentScenarioId ? "page" : undefined}
-                                onclick={() => onselectscenario(id)}
-                              >
-                                <span class="scenario-title">{labmenutitle(id)}</span>
-                                {#if completedScenarioIds.includes(id)}
-                                  <span
-                                    class="scenario-check"
-                                    role="button"
-                                    tabindex="0"
-                                    aria-label="Mark incomplete"
-                                    onclick={(event) => ontogglecompletion(id, event)}
-                                    onkeydown={(event) => toggleCompletionWithKeyboard(id, event)}
-                                  >✓</span>
-                                {:else}
-                                  <span
-                                    class="scenario-check scenario-check-empty"
-                                    role="button"
-                                    tabindex="0"
-                                    aria-label="Mark complete"
-                                    onclick={(event) => ontogglecompletion(id, event)}
-                                    onkeydown={(event) => toggleCompletionWithKeyboard(id, event)}
-                                  ></span>
-                                {/if}
-                              </button>
+                            {#each subgroups as subgroup}
+                              {#if showLabels}
+                                <span class="menu-subsection-label">{subgroup.label}</span>
+                              {/if}
+                              {#each subgroup.ids as id}
+                                <button
+                                  type="button"
+                                  class={`scenario-difficulty ${scenarioDifficultyClass(id)}`}
+                                  class:active={id === currentScenarioId}
+                                  class:completed={completedScenarioIds.includes(id)}
+                                  aria-current={id === currentScenarioId ? "page" : undefined}
+                                  onclick={() => onselectscenario(id)}
+                                >
+                                  <span class="scenario-title">{labmenutitle(id)}</span>
+                                  {#if completedScenarioIds.includes(id)}
+                                    <span
+                                      class="scenario-check"
+                                      role="button"
+                                      tabindex="0"
+                                      aria-label="Mark incomplete"
+                                      onclick={(event) => ontogglecompletion(id, event)}
+                                      onkeydown={(event) => toggleCompletionWithKeyboard(id, event)}
+                                    >✓</span>
+                                  {:else}
+                                    <span
+                                      class="scenario-check scenario-check-empty"
+                                      role="button"
+                                      tabindex="0"
+                                      aria-label="Mark complete"
+                                      onclick={(event) => ontogglecompletion(id, event)}
+                                      onkeydown={(event) => toggleCompletionWithKeyboard(id, event)}
+                                    ></span>
+                                  {/if}
+                                </button>
+                              {/each}
                             {/each}
                           </div>
                         {/key}
                       {/if}
                     </div>
                   {/if}
+                {/each}
                 {/each}
               </div>
             {/if}

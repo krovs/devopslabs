@@ -16,32 +16,26 @@ export type LabGroup = LabGroupDefinition & {
 };
 
 export const labGroupDefinitions: LabGroupDefinition[] = [
-  { id: "terraform", title: "IaC", providers: ["Generic", "AWS", "Azure"], description: "Terraform state, modules, drift, imports, plans, and CloudFormation templates." },
-  { id: "awsconfig", title: "IaC Security Baselines", providers: ["AWS"], description: "Cloud guardrails, encryption, backup, and audit baselines." },
-  { id: "cicd", title: "Delivery Pipelines", providers: ["GitHub", "AWS"], description: "Pipeline failures, gates, secrets, and deploy flow." },
-  { id: "gitops", title: "GitOps", providers: ["K8S"], description: "Reconciliation drift, sync policy, and source paths." },
-  { id: "linux", title: "Linux Basics", providers: ["Generic"], description: "Files, logs, services, memory, disk, processes, and sockets." },
-  { id: "kubernetes", title: "Kubernetes Basics", providers: ["K8S"], description: "Pods, events, logs, rollout state, scaling, and repair." },
-  { id: "appsec", title: "Application Security", providers: ["Java"], description: "Dependencies, secrets, containers, authorization, and injection risk." },
-  { id: "threatmodel", title: "Threat Modeling", providers: ["Generic"], description: "Data flows, trust boundaries, STRIDE risks, and mitigations." },
-  { id: "cloudsec", title: "Cloud Security Audit", providers: ["AWS"], description: "GuardDuty, CloudTrail, Config, logs, and effective permissions." },
-  { id: "mlops", title: "MLOps", providers: ["Generic", "AWS"], description: "Training pipelines, model registry gates, artifacts, metrics, and promotion." },
-  { id: "terragrunt", title: "Stack Orchestration", providers: ["Generic"], description: "Stack wiring, source paths, dependencies, and formatting." },
-  { id: "iam", title: "Identity & Access", providers: ["AWS", "Azure"], description: "Least privilege policies, role assignments, trust, and KMS access." },
-  { id: "scp", title: "Organization Policy", providers: ["AWS"], description: "Organization guardrails, explicit denies, and exceptions." },
-  { id: "policy", title: "Policy as Code", providers: ["K8S"], description: "Admission, workload, and network policies tested as code." },
-  { id: "secrets", title: "Secrets Management", providers: ["AWS", "HashiCorp"], description: "Secret paths, rotation, KMS keys, and resource policies." },
-  { id: "dns", title: "DNS & TLS", providers: ["AWS"], description: "Aliases, certificate validation, and edge regions." },
-  { id: "observability", title: "Observability", providers: ["AWS"], description: "Alarms, logs, dimensions, and retention." },
-  { id: "finops", title: "FinOps", providers: ["AWS"], description: "Cost signals, waste reduction, lifecycle, and NAT spend." },
-  { id: "pr", title: "Change Review", providers: ["Generic", "AWS"], description: "Review risky diffs and identify blocking findings." },
-  { id: "networking", title: "Network Design", providers: ["AWS"], description: "Routes, subnet design, security controls, and packet paths." },
-  { id: "incident", title: "Incident Response", providers: ["Generic"], description: "Incident command, postmortems, alert triage, and status comms." },
-  { id: "dr", title: "Disaster Recovery", providers: ["AWS"], description: "Failover, restore integrity, RPO/RTO, and replication lag." },
-  { id: "database", title: "Database Ops", providers: ["AWS"], description: "RDS and DynamoDB failover, replication, pooling, and recovery." },
-  { id: "supplychain", title: "Supply Chain", providers: ["Generic"], description: "SBOM, signatures, provenance, SLSA, and dependency confusion." },
-  { id: "sre", title: "SRE & SLO", providers: ["Generic"], description: "SLIs, error budgets, burn-rate alerts, tiers, and toil." },
-  { id: "messaging", title: "Messaging", providers: ["AWS", "K8S"], description: "DLQ, rebalances, filter policies, ordering, and idempotency." },
+  { id: "terraform", title: "IaC", providers: ["Generic", "AWS", "Azure"], description: "Terraform troubleshooting, from-scratch builds, Terragrunt stacks, and CloudFormation templates." },
+  { id: "awsconfig", title: "IaC Security Baselines", providers: ["AWS"], description: "Cloud guardrails, S3 encryption, RDS backup, CloudTrail, and Checkov scanning." },
+  { id: "cicd", title: "Delivery Pipelines", providers: ["Generic", "GitHub", "AWS"], description: "GitHub Actions, Jenkins, Azure DevOps, Ansible pipelines, and pull request review." },
+  { id: "gitops", title: "GitOps", providers: ["K8S"], description: "Argo CD reconciliation, Flux Kustomizations, sync policies, and source paths." },
+  { id: "linux", title: "Linux Basics", providers: ["Generic"], description: "Service triage, journalctl, systemctl, disk, memory, processes, and sockets." },
+  { id: "kubernetes", title: "Kubernetes Basics", providers: ["K8S"], description: "Pod troubleshooting, RBAC, Helm, HPA, PDB, and admission network policies." },
+  { id: "appsec", title: "Application Security", providers: ["Generic", "Java"], description: "Dependency scanning, secrets detection, container hardening, code injection, and CVE gates." },
+  { id: "threatmodel", title: "Threat Modeling", providers: ["Generic"], description: "Data flows, trust boundaries, STRIDE risks, and mitigations for API and deployment designs." },
+  { id: "cloudsec", title: "Cloud Security Audit", providers: ["AWS"], description: "GuardDuty investigation, CloudTrail integrity, CloudWatch Logs, and IAM permission simulation." },
+  { id: "mlops", title: "MLOps", providers: ["Generic", "AWS"], description: "Training pipelines, dataset versioning, model registry gates, and promotion workflows." },
+  { id: "iam", title: "Identity & Access", providers: ["AWS", "Azure", "HashiCorp"], description: "Least-privilege policies, secret rotation, Azure RBAC, KMS encryption, and OIDC trust." },
+  { id: "scp", title: "Organization Policy", providers: ["AWS"], description: "SCP guardrails, region restrictions, root-user denial, IMDSv2 enforcement, and break-glass roles." },
+  { id: "observability", title: "Observability", providers: ["Generic", "AWS"], description: "CloudWatch alarms, log retention, Prometheus scrape targets, OTel exporters, and cost signals." },
+  { id: "networking", title: "Network Design", providers: ["AWS"], description: "VPC design, DNS and TLS certificates, NACLs, site-to-site VPN, Direct Connect, and WAF." },
+  { id: "incident", title: "Incident Response", providers: ["Generic", "AWS"], description: "Incident command, blameless postmortems, alert storm triage, runbook audits, and status comms." },
+  { id: "dr", title: "Disaster Recovery", providers: ["AWS"], description: "RDS failover, region failover drills, backup restore integrity, and RPO/RTO calculation." },
+  { id: "database", title: "Database Ops", providers: ["AWS"], description: "RDS failover troubleshooting, replication lag, query plan regressions, pooling, PITR, and DynamoDB hot keys." },
+  { id: "supplychain", title: "Supply Chain", providers: ["Generic"], description: "SBOM generation, cosign image verification, vulnerability gates, SLSA provenance, and dependency confusion." },
+  { id: "sre", title: "SRE & SLO", providers: ["Generic"], description: "SLI formulation, burn-rate alert tuning, SLO tier alignment, toil budgeting, and alert replacement." },
+  { id: "messaging", title: "Messaging", providers: ["AWS", "K8S"], description: "SQS DLQ redrive, Kafka rebalance loops, SNS filter policies, ordered delivery, and idempotency." },
 ];
 
 export const menuGroupIds = labGroupDefinitions.map((group) => group.id);
@@ -295,6 +289,12 @@ const simpleHealthLabels: Partial<Record<MenuGroupId, { solved: string; unsolved
 
 export function scenarioMenuGroupId(kind?: Scenario["kind"]): MenuGroupId {
   if (kind === "cloudformation") return "terraform";
+  if (kind === "dns") return "networking";
+  if (kind === "terragrunt") return "terraform";
+  if (kind === "pr") return "cicd";
+  if (kind === "secrets") return "iam";
+  if (kind === "policy") return "kubernetes";
+  if (kind === "finops") return "observability";
   return kind && menuGroupIds.includes(kind) ? kind : "terraform";
 }
 

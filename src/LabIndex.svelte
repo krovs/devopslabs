@@ -55,7 +55,7 @@
             <span class={providerClass(provider)}>{provider}</span>
           {/each}
         </span>
-        <small>{labGroupDetails[group.id].description}</small>
+        <small title={labGroupDetails[group.id].description}>{labGroupDetails[group.id].description}</small>
       </span>
       <span class="lab-index-count">{groupcompletionlabel(group.ids)}</span>
     </button>

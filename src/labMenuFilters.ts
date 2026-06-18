@@ -1,6 +1,22 @@
 import { getIncidentDisplayTitle } from "./appUi";
 import { scenarioKindLabel, scenarioMenuGroupId, type LabGroup, type MenuGroupId, type ScenarioCatalogItem } from "./labCatalog";
 
+const kindSubLabels: Partial<Record<NonNullable<ScenarioCatalogItem["kind"]>, string>> = {
+  terraform: "Terraform",
+  terragrunt: "Terragrunt",
+  cloudformation: "CloudFormation",
+  cicd: "CI/CD",
+  pr: "Pull Request Review",
+  kubernetes: "Kubernetes",
+  policy: "Policy as Code",
+  iam: "IAM",
+  secrets: "Secrets",
+  observability: "Observability",
+  finops: "FinOps",
+  networking: "Networking",
+  dns: "DNS & TLS",
+};
+
 export type LabMenuFilterOptions = {
   scenarios: Record<string, ScenarioCatalogItem>;
   labGroups: LabGroup[];
@@ -36,6 +52,19 @@ export function createLabMenuFilters({ scenarios, labGroups }: LabMenuFilterOpti
     filteredScenarioIds,
     menuGroupVisible(ids: string[], query: string): boolean {
       return filteredScenarioIds(ids, query).length > 0;
+    },
+    subgroupedScenarioIds(groupId: MenuGroupId, ids: string[], query: string): { kind: string; label: string; ids: string[] }[] {
+      const filtered = filteredScenarioIds(ids, query);
+      const grouped = new Map<string, string[]>();
+      for (const id of filtered) {
+        const kind = scenarios[id].kind ?? "terraform";
+        const list = grouped.get(kind) ?? [];
+        list.push(id);
+        grouped.set(kind, list);
+      }
+      const entries = [...grouped.entries()];
+      if (entries.length <= 1) return entries.map(([kind, ids]) => ({ kind, label: kindSubLabels[kind as keyof typeof kindSubLabels] ?? kind, ids }));
+      return entries.map(([kind, ids]) => ({ kind, label: kindSubLabels[kind as keyof typeof kindSubLabels] ?? kind, ids }));
     },
     labMenuTitle(id: string, incidentMode: boolean, completedScenarioIds: string[]): string {
       if (incidentMode && !completedScenarioIds.includes(id)) return incidentDisplayTitle(id);

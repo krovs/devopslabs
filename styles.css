@@ -703,6 +703,16 @@ a:focus-visible {
   gap: 4px;
 }
 
+.menu-subsection-label {
+  padding: 6px 6px 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
 .menu-lab-group {
   display: grid;
   gap: 5px;
@@ -1103,6 +1113,9 @@ a:focus-visible {
   display: -webkit-box;
   overflow: hidden;
   max-height: calc(15px * 1.55 * 2);
+  margin-left: -46px;
+  margin-right: -46px;
+  padding-top: 3px;
   color: var(--muted);
   font-size: 15px;
   line-height: 1.55;
@@ -1128,8 +1141,8 @@ a:focus-visible {
 }
 
 .lab-index-providers span.provider-aws {
-  border-color: color-mix(in srgb, var(--warn) 62%, transparent);
-  color: var(--warn);
+  border-color: color-mix(in srgb, #FFB066 62%, transparent);
+  color: #FFB066;
 }
 
 .lab-index-providers span.provider-generic {
@@ -1138,18 +1151,28 @@ a:focus-visible {
 }
 
 .lab-index-providers span.provider-azure {
-  border-color: color-mix(in srgb, var(--accent) 62%, transparent);
-  color: var(--accent);
+  border-color: color-mix(in srgb, #5DAEDB 62%, transparent);
+  color: #5DAEDB;
 }
 
 .lab-index-providers span.provider-k8s {
-  border-color: color-mix(in srgb, #326ce5 62%, transparent);
-  color: #326ce5;
+  border-color: color-mix(in srgb, #7B8FEB 62%, transparent);
+  color: #7B8FEB;
 }
 
 .lab-index-providers span.provider-github {
-  border-color: color-mix(in srgb, #6b7280 64%, transparent);
-  color: #9ca3af;
+  border-color: color-mix(in srgb, #9B7ED5 62%, transparent);
+  color: #9B7ED5;
+}
+
+.lab-index-providers span.provider-java {
+  border-color: color-mix(in srgb, #F5A94D 62%, transparent);
+  color: #F5A94D;
+}
+
+.lab-index-providers span.provider-hashicorp {
+  border-color: color-mix(in srgb, #A87EC9 62%, transparent);
+  color: #A87EC9;
 }
 
 .lab-index-count {
