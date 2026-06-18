@@ -1,0 +1,89 @@
+id: linuxSystemdUnitFailed
+kind: linux
+title: Linux Systemd Unit Failed Start
+description: A systemd service fails at boot because the unit file has the wrong ExecStart path, runs as root, and has no Restart policy.
+primaryFile: web.service
+tips:
+  - Start with systemctl status web to confirm the service is failed.
+  - Run journalctl -u web -n 20 to find the failure cause.
+  - The ExecStart path points at a script that does not exist.
+  - The service runs as root instead of the app user.
+  - There is no Restart policy, so the service stays down after a crash.
+files:
+  "web.service": |
+    [Unit]
+    Description=checkout-api web service
+    After=network.target
+
+    [Service]
+    ExecStart=/opt/web/start.sh
+    User=root
+    WorkingDirectory=/srv/web
+
+    [Install]
+    WantedBy=multi-user.target
+  "runbook.md": |
+    Goal:
+    - Fix the web.service unit so it starts successfully.
+
+    Constraints:
+    - The application binary is at /srv/web/server.js.
+    - The service must run as the app user, not root.
+    - The service must restart on failure.
+    - Reload systemd after fixing the unit file.
+solution:
+  summary: |
+    The web.service unit fails because ExecStart points at a non-existent script, the service runs as root, and there is no Restart policy.
+  steps:
+    - Run systemctl status web to confirm the service is failed.
+    - Run journalctl -u web -n 20 to find the ExecStart failure.
+    - Fix ExecStart to point at /srv/web/server.js.
+    - Change User from root to app.
+    - Add Restart=on-failure.
+    - Run sudo systemctl daemon-reload to reload the unit.
+    - Run sudo systemctl restart web to start the service.
+  explanation: |
+    A systemd unit must point ExecStart at a real executable, run as a least-privileged user, and define a Restart policy so the service recovers from crashes. Running as root is a security risk, and a missing Restart policy means a single crash takes the service down permanently.
+  outcome: |
+    web.service starts successfully with the correct ExecStart path, runs as app, and restarts on failure.
+  focusFileName: web.service
+  replacements:
+    - fileName: web.service
+      search: ExecStart=/opt/web/start.sh
+      replace: ExecStart=/srv/web/server.js
+    - fileName: web.service
+      search: User=root
+      replace: User=app
+    - fileName: web.service
+      search: WorkingDirectory=/srv/web
+      replace: Restart=on-failure\n    WorkingDirectory=/srv/web
+  commands:
+    - systemctl status web
+    - journalctl -u web -n 20
+    - sudo systemctl daemon-reload
+    - sudo systemctl restart web
+    - check
+backend:
+  bucket: linux
+  key: systemd-unit-failed
+  table: services
+  locked: false
+  lockId: null
+awsResources:
+  - type: service
+    name: web.service
+    id: web
+    status: failed
+    note: web.service fails at boot: wrong ExecStart path, runs as root, no Restart policy.
+stateResources:
+  - address: unit.web.service.ExecStart
+    id: /opt/web/start.sh
+  - address: unit.web.service.User
+    id: root
+  - address: unit.web.service.Restart
+    id: absent
+flags:
+  initialized: false
+  validationPassed: false
+  linuxResourcesChecked: false
+  linuxValidated: false

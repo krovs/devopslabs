@@ -51,6 +51,8 @@ export const scenarioOrderByGroup = {
   ],
   linuxBasics: [
     "linuxServiceLogTriage",
+    "linuxDiskInodeFull",
+    "linuxSystemdUnitFailed",
   ],
   kubernetesBasics: [
     "kubernetesImagePullBackOffTriage",
@@ -68,6 +70,8 @@ export const scenarioOrderByGroup = {
     "javaDependencySecretsContainerAudit",
     "containerImageCveGate",
     "javaCodeAuthSqlAudit",
+    "pythonSemgrepHardcodedSecret",
+    "npmTransitiveCveAudit",
   ],
   threatModeling: [
     "strideCheckoutThreatModel",
@@ -76,6 +80,8 @@ export const scenarioOrderByGroup = {
   cloudSecurityAudit: [
     "awsGuardDutyCloudTrailIamAudit",
     "awsCloudTrailLogIntegrityAudit",
+    "secHubFindingsTriageSuppress",
+    "accessAnalyzerExternalFinding",
   ],
   mlops: [
     "mlopsTrainingDatasetVersion",

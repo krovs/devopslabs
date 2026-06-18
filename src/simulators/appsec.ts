@@ -52,6 +52,26 @@ function semgrepBasicCommandInjectionFixed(runtime: Scenario): boolean {
     && !route.includes("eval(");
 }
 
+function pythonSemgrepHardcodedSecretFixed(runtime: Scenario): boolean {
+  const config = runtime.files["config.py"] ?? "";
+  return (
+    config.includes("os.environ") &&
+    config.includes('AWS_SECRET_ACCESS_KEY') &&
+    !config.includes("AKIAIOSFODNN7EXAMPLE") &&
+    !config.includes("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
+  );
+}
+
+function npmTransitiveCveAuditFixed(runtime: Scenario): boolean {
+  const audit = runtime.files["audit.json"] ?? "";
+  return (
+    audit.includes('"override": "minimatch@3.0.4"') &&
+    audit.includes('"cve": "CVE-2024-19387"') &&
+    audit.includes('"gate": "passed"') &&
+    !audit.includes('"gate": "blocked"')
+  );
+}
+
 function trivyIgnoreEntries(trivyIgnore: string): string[] {
   return trivyIgnore
     .split("\n")
@@ -120,6 +140,8 @@ export function appsecFixApplied(runtime: Scenario, scenarioId: string): boolean
   if (scenarioId === "javaCodeAuthSqlAudit") return authAuditFixed(runtime) && sqlAuditFixed(runtime);
   if (scenarioId === "semgrepBasicCommandInjection") return semgrepBasicCommandInjectionFixed(runtime);
   if (scenarioId === "containerImageCveGate") return containerImageGateFixed(runtime);
+  if (scenarioId === "pythonSemgrepHardcodedSecret") return pythonSemgrepHardcodedSecretFixed(runtime);
+  if (scenarioId === "npmTransitiveCveAudit") return npmTransitiveCveAuditFixed(runtime);
   return false;
 }
 
@@ -169,6 +191,23 @@ export function semgrepScan(runtime: Scenario, scenarioId: string): string[] {
       "semgrep scan completed",
       "ERROR javascript.lang.security.audit.eval-detected.eval-detected: eval used with request-controlled input.",
       "src/routes/discount.js:2",
+    ];
+  }
+
+  if (scenarioId === "pythonSemgrepHardcodedSecret") {
+    if (pythonSemgrepHardcodedSecretFixed(runtime)) {
+      runtime.flags.securityPassed = true;
+      runtime.stateResources = runtime.stateResources.map((resource) =>
+        resource.address === "semgrep.finding.aws-secret" ? { ...resource, id: "resolved" } : resource,
+      );
+      return ["semgrep scan completed", "0 blocking findings"];
+    }
+
+    markFirstResource(runtime, "failed", "Semgrep still finds a hardcoded AWS secret in config.py.");
+    return [
+      "semgrep scan completed",
+      "HIGH python.lang.security.audit.aws-hardcoded-secret: AWS secret access key hardcoded in config.py.",
+      "config.py:3",
     ];
   }
 
@@ -253,6 +292,28 @@ export function dockerHistory(runtime: Scenario, scenarioId: string): string[] {
 }
 
 export function npmAuditProduction(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId === "npmTransitiveCveAudit") {
+    if (npmTransitiveCveAuditFixed(runtime)) {
+      runtime.flags.runPassing = true;
+      runtime.stateResources = runtime.stateResources.map((resource) =>
+        resource.address === "npm.override.minimatch" ? { ...resource, id: "3.0.4" } : resource,
+      );
+      return [
+        "npm audit --production",
+        "found 0 vulnerabilities",
+        "override minimatch@3.0.4 applied, CVE-2024-19387 remediated",
+      ];
+    }
+
+    markFirstResource(runtime, "failed", "npm audit still finds critical CVE-2024-19387 in transitive minimatch dependency.");
+    return [
+      "npm audit --production",
+      "found 1 high severity vulnerability",
+      "high  CVE-2024-19387  minimatch  <3.0.4  ReDoS via crafted glob pattern",
+      "Fix: add an npm override to pin minimatch to 3.0.4 or newer.",
+    ];
+  }
+
   if (scenarioId !== "containerImageCveGate") return ["npm audit --production completed", "found 0 vulnerabilities"];
 
   runtime.flags.runPassing = true;

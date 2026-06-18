@@ -33,9 +33,31 @@ function cloudTrailLogIntegrityFixed(runtime: Scenario): boolean {
   );
 }
 
+function securityHubTriageFixed(runtime: Scenario): boolean {
+  const file = runtime.files["findings.json"] ?? "";
+  return (
+    file.includes('"suppressed": ["ahasd-LOW-001", "ahasd-LOW-002"]') &&
+    file.includes('"escalated": ["ahasd-CRITICAL-010"]') &&
+    file.includes('"owner": "security-oncall@acme.com"')
+  );
+}
+
+function accessAnalyzerExternalFixed(runtime: Scenario): boolean {
+  const policy = runtime.files["analyzer-policy.json"] ?? "";
+  return (
+    policy.includes('"Principal": {"AWS": "arn:aws:iam::123456789012:root"}') &&
+    !policy.includes('"Principal": "*"') &&
+    !policy.includes('210987654321') &&
+    policy.includes('"Action": "s3:GetObject"') &&
+    policy.includes('"Resource": "arn:aws:s3:::prod-checkout-artifacts/*"')
+  );
+}
+
 export function cloudsecFixApplied(runtime: Scenario, scenarioId: string): boolean {
   if (scenarioId === "awsGuardDutyCloudTrailIamAudit") return scopedDeveloperSupportPolicy(runtime);
   if (scenarioId === "awsCloudTrailLogIntegrityAudit") return cloudTrailLogIntegrityFixed(runtime);
+  if (scenarioId === "secHubFindingsTriageSuppress") return securityHubTriageFixed(runtime);
+  if (scenarioId === "accessAnalyzerExternalFinding") return accessAnalyzerExternalFixed(runtime);
   return false;
 }
 
@@ -188,6 +210,29 @@ export function cloudsecSimulatePrincipalPolicy(runtime: Scenario, scenarioId: s
     ];
   }
 
+  if (scenarioId === "accessAnalyzerExternalFinding") {
+    if (accessAnalyzerExternalFixed(runtime)) {
+      runtime.flags.securityPassed = true;
+      runtime.stateResources = runtime.stateResources.map((resource) =>
+        resource.address === "s3.bucket.prod-checkout-artifacts.principal" ? { ...resource, id: "same-account" } : resource,
+      );
+      markFirstResource(runtime, "drifted", "Bucket policy principal tightened to same account; external access removed.");
+      return [
+        "Simulating: s3:GetObject on arn:aws:s3:::prod-checkout-artifacts/* as arn:aws:iam::123456789012:root",
+        "Decision: allowed (same account)",
+        "Simulating: s3:GetObject on arn:aws:s3:::prod-checkout-artifacts/* as arn:aws:iam::210987654321:root",
+        "Decision: explicitDeny",
+        "Result: external account access removed, same-account access preserved.",
+      ];
+    }
+    markFirstResource(runtime, "failed", "Bucket policy still allows an external account principal. Tighten Principal to arn:aws:iam::123456789012:root in analyzer-policy.json.");
+    return [
+      "Simulating: s3:GetObject on arn:aws:s3:::prod-checkout-artifacts/* as arn:aws:iam::210987654321:root",
+      "Decision: allowed",
+      "Finding: external account 210987654321 can still read the artifacts bucket.",
+    ];
+  }
+
   if (scenarioId !== "awsGuardDutyCloudTrailIamAudit") return ["IAM simulation is not configured for this lab."];
   if (scopedDeveloperSupportPolicy(runtime)) {
     runtime.flags.securityPassed = true;
@@ -212,6 +257,61 @@ export function cloudsecSimulatePrincipalPolicy(runtime: Scenario, scenarioId: s
     "EvalActionName: s3:DeleteObject Resource: arn:aws:s3:::prod-customer-data/exports/full-customer-list.csv Decision: allowed",
     "EvalActionName: iam:PassRole Resource: arn:aws:iam::123456789012:role/AdminBreakGlass Decision: allowed",
     "Finding: DeveloperSupportRole is still over-permissive.",
+  ];
+}
+
+export function securityHubGetFindings(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "secHubFindingsTriageSuppress") return ["Security Hub is not configured for this lab."];
+  runtime.flags.initialized = true;
+  runtime.flags.validationPassed = true;
+  runtime.flags.cleanPlan = true;
+  return [
+    "StandardsSubscriptionArn: arn:aws:securityhub:eu-west-1:123456789012:subscription/aws-foundational-security-best-practices",
+    "Findings:",
+    "  Id: ahasd-LOW-001    Severity: LOW    Title: S3.2 S3 buckets should have bucket policies that require MFA delete",
+    "  Id: ahasd-LOW-002    Severity: LOW    Title: EC2.6 VPC flow logs should be enabled",
+    "  Id: ahasd-CRITICAL-010  Severity: CRITICAL  Title: IAM.7 Password policy must require uppercase",
+    "  Id: ahasd-MEDIUM-003   Severity: MEDIUM    Title: CloudTrail.1 CloudTrail should be multi-region",
+    "WorkflowState: NEW for all findings",
+    "Note: 5 findings, 2 LOW are accepted risks, 1 CRITICAL needs immediate owner escalation.",
+  ];
+}
+
+export function securityHubBatchUpdateFindings(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "secHubFindingsTriageSuppress") return ["Security Hub batch update is not configured for this lab."];
+  if (securityHubTriageFixed(runtime)) {
+    runtime.flags.securityPassed = true;
+    markFirstResource(runtime, "drifted", "Security Hub findings triaged: LOW suppressed, CRITICAL escalated to on-call owner.");
+    return [
+      "ProcessedFindings: 4",
+      "  ahasd-LOW-001 -> WorkflowState: SUPPRESSED  Note: accepted risk, MFA delete enforced at bucket level",
+      "  ahasd-LOW-002 -> WorkflowState: SUPPRESSED  Note: accepted risk, flow logs on transit gateway instead",
+      "  ahasd-CRITICAL-010 -> WorkflowState: ESCALATED  Owner: security-oncall@acme.com",
+      "  ahasd-MEDIUM-003 -> WorkflowState: NEW  Note: triaged, scheduled for next sprint",
+    ];
+  }
+  markFirstResource(runtime, "failed", "Security Hub findings still untriaged. Suppress accepted LOW findings and escalate the CRITICAL finding in findings.json.");
+  return [
+    "ProcessedFindings: 0",
+    "Finding: findings.json does not mark ahasd-LOW-001/002 as suppressed or escalate ahasd-CRITICAL-010 with an owner.",
+  ];
+}
+
+export function accessAnalyzerListFindings(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "accessAnalyzerExternalFinding") return ["Access Analyzer is not configured for this lab."];
+  runtime.flags.initialized = true;
+  runtime.flags.validationPassed = true;
+  runtime.flags.cleanPlan = true;
+  return [
+    "AnalyzerArn: arn:aws:accessanalyzer:eu-west-1:123456789012:analyzer/account-analyzer",
+    "Status: ACTIVE",
+    "Findings:",
+    "  Id: aa-7f2c1d8e    Resource: arn:aws:s3:::prod-checkout-artifacts    ResourceType: AWS::S3::Bucket",
+    "  Principal: arn:aws:iam::210987654321:root (EXTERNAL)",
+    "  Action: s3:GetObject on arn:aws:s3:::prod-checkout-artifacts/*",
+    "  IsPublic: false    Status: ACTIVE",
+    "  CreatedAt: 2026-06-14T09:12:33Z",
+    "  Note: bucket policy grants read to an external account. Tighten to same account only.",
   ];
 }
 

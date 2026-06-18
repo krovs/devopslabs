@@ -72,8 +72,77 @@ export function runLinuxSystemctlRestart(runtime: Scenario): string[] {
     return ["Restarting web.service...", "web.service is active (running)."];
   }
 
+  if (runtime.id === "linuxSystemdUnitFailed") {
+    const unit = runtime.files["web.service"] ?? "";
+    if (linuxSystemdUnitFixed(unit) && runtime.flags.validationPassed) {
+      runtime.flags.linuxValidated = true;
+      setFirstResource(runtime, "success", "web.service starts after fixing ExecStart, User, and Restart policy.");
+      return ["Restarting web.service...", "web.service is active (running)."];
+    }
+    setFirstResource(runtime, "failed", "web.service still fails. Fix ExecStart path, User, and Restart in web.service.");
+    return ["Restarting web.service...", "web.service failed. Inspect the unit file and journalctl for the failure cause."];
+  }
+
   setFirstResource(runtime, "failed", "Service restart still fails because PORT is missing or basic system checks were skipped.");
   return ["Restarting web.service...", "web.service failed. Check logs plus memory, disk, processes, and service environment."];
+}
+
+function linuxDiskInodeFixed(diagnosis: string): boolean {
+  return (
+    diagnosis.includes('"culpritDir": "/var/spool/tmp"') &&
+    diagnosis.includes('"action": "cleanup"') &&
+    diagnosis.includes('"inodesFreed": 480000')
+  );
+}
+
+function linuxSystemdUnitFixed(unit: string): boolean {
+  return (
+    unit.includes("ExecStart=/srv/web/server.js") &&
+    unit.includes("User=app") &&
+    unit.includes("Restart=on-failure") &&
+    !unit.includes("ExecStart=/opt/web/start.sh") &&
+    !unit.includes("User=root")
+  );
+}
+
+export function runLinuxDfInodes(runtime: Scenario): string[] {
+  runtime.flags.linuxResourcesChecked = true;
+  if (runtime.id === "linuxDiskInodeFull") {
+    runtime.flags.validationPassed = true;
+    const diagnosis = runtime.files["diagnosis.json"] ?? "";
+    if (linuxDiskInodeFixed(diagnosis)) {
+      runtime.flags.linuxValidated = true;
+      setFirstResource(runtime, "success", "Inodes freed after cleaning /var/spool/tmp; writes succeed again.");
+      return [
+        "Filesystem      Inodes  IUsed  IFree IUse% Mounted on",
+        "/dev/root       512000  64000 448000   13% /",
+        "/dev/nvme1n1    256000  18000 238000    8% /var",
+      ];
+    }
+    setFirstResource(runtime, "failed", "Inodes still exhausted. Identify the culprit directory and clean it up in diagnosis.json.");
+    return [
+      "Filesystem      Inodes  IUsed  IFree IUse% Mounted on",
+      "/dev/root       512000 511998      2  100% /",
+      "/dev/nvme1n1    256000  42000 214000   17% /var",
+      "Finding: root filesystem has 100% inode usage. Use find / -xdev -type f | wc -l to locate the culprit.",
+    ];
+  }
+  return [
+    "Filesystem      Inodes  IUsed  IFree IUse% Mounted on",
+    "/dev/root       512000  64000 448000   13% /",
+    "/dev/nvme1n1    256000  18000 238000    8% /var",
+  ];
+}
+
+export function runLinuxSystemctlDaemonReload(runtime: Scenario): string[] {
+  if (runtime.id !== "linuxSystemdUnitFailed") return ["daemon-reload is not needed for this lab."];
+  const unit = runtime.files["web.service"] ?? "";
+  if (linuxSystemdUnitFixed(unit)) {
+    runtime.flags.validationPassed = true;
+    return ["systemd unit reloaded: web.service"];
+  }
+  setFirstResource(runtime, "failed", "web.service still has wrong ExecStart, User, or Restart. Fix the unit file before reloading.");
+  return ["systemd unit reload failed: web.service has invalid ExecStart, User, or Restart."];
 }
 
 function isReadinessProbeScenario(scenarioId: string): boolean {

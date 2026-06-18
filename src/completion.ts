@@ -139,9 +139,10 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
       if (!runtime.flags.secretsConfigured) return ["Not complete: gitleaks has not passed after externalizing the JWT secret."];
       if (!runtime.flags.lintPassed) return ["Not complete: trivy config has not passed after adding the non-root container user."];
     }
-    if ((scenarioId === "javaCodeAuthSqlAudit" || scenarioId === "semgrepBasicCommandInjection") && !runtime.flags.securityPassed) return ["Not complete: semgrep still needs to pass after the code fixes."];
+    if ((scenarioId === "javaCodeAuthSqlAudit" || scenarioId === "semgrepBasicCommandInjection" || scenarioId === "pythonSemgrepHardcodedSecret") && !runtime.flags.securityPassed) return ["Not complete: semgrep still needs to pass after the code fixes."];
+    if (scenarioId === "npmTransitiveCveAudit" && !runtime.flags.runPassing) return ["Not complete: run npm audit --production to confirm the override remediated the transitive CVE."];
     if (javaAppsecScenario && !runtime.flags.runPassing) return ["Not complete: run mvn test after the Java security fixes."];
-    markAppsecScenarioSolved(runtime, "Java application security audit passed.");
+    markAppsecScenarioSolved(runtime, scenarioId === "pythonSemgrepHardcodedSecret" || scenarioId === "npmTransitiveCveAudit" ? "Application security scan passed." : "Java application security audit passed.");
     return ["Scenario complete."];
   }
 

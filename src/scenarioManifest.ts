@@ -286,6 +286,20 @@ export const scenarioManifest = [
     "path": "../scenarios/linux-basics/linux-service-log-triage.yaml"
   },
   {
+    "id": "linuxDiskInodeFull",
+    "kind": "linux",
+    "title": "Linux Disk Full Inode Exhaustion",
+    "description": "df shows free space but writes fail. df -i shows 100% inode usage. Find the small-file culprit directory and clean it up.",
+    "path": "../scenarios/linux-basics/linux-disk-inode-full.yaml"
+  },
+  {
+    "id": "linuxSystemdUnitFailed",
+    "kind": "linux",
+    "title": "Linux Systemd Unit Failed Start",
+    "description": "A systemd service fails at boot because the unit file has the wrong ExecStart path, runs as root, and has no Restart policy.",
+    "path": "../scenarios/linux-basics/linux-systemd-unit-failed.yaml"
+  },
+  {
     "id": "kubernetesImagePullBackOffTriage",
     "kind": "kubernetes",
     "title": "Kubernetes Rollout And Events Triage",
@@ -377,6 +391,20 @@ export const scenarioManifest = [
     "path": "../scenarios/application-security/java-code-auth-sql-audit.yaml"
   },
   {
+    "id": "pythonSemgrepHardcodedSecret",
+    "kind": "appsec",
+    "title": "Semgrep Python Hardcoded Secret",
+    "description": "A Python config file commits an AWS secret access key. Semgrep blocks the change until the secret is moved to an environment variable.",
+    "path": "../scenarios/application-security/python-semgrep-hardcoded-secret.yaml"
+  },
+  {
+    "id": "npmTransitiveCveAudit",
+    "kind": "appsec",
+    "title": "NPM Transitive CVE Audit",
+    "description": "A critical CVE sits in a deep transitive dependency. Add an npm override to pin the safe version and pass the production audit.",
+    "path": "../scenarios/application-security/npm-transitive-cve-audit.yaml"
+  },
+  {
     "id": "strideCheckoutThreatModel",
     "kind": "threatmodel",
     "title": "STRIDE Checkout Threat Model",
@@ -403,6 +431,20 @@ export const scenarioManifest = [
     "title": "AWS CloudTrail Log Integrity Audit",
     "description": "GuardDuty detects the organization CloudTrail trail was stopped and restarted with log file validation, multi-region, and global service events disabled. Investigate the tampering and restore the approved integrity baseline.",
     "path": "../scenarios/cloud-security-audit/aws-cloudtrail-log-integrity-audit.yaml"
+  },
+  {
+    "id": "secHubFindingsTriageSuppress",
+    "kind": "cloudsec",
+    "title": "Security Hub Findings Triage",
+    "description": "Security Hub floods with LOW and CRITICAL findings. Suppress the accepted LOW findings and escalate the CRITICAL finding to the on-call owner.",
+    "path": "../scenarios/cloud-security-audit/sec-hub-findings-triage-suppress.yaml"
+  },
+  {
+    "id": "accessAnalyzerExternalFinding",
+    "kind": "cloudsec",
+    "title": "IAM Access Analyzer External Access",
+    "description": "Access Analyzer finds an S3 bucket policy that grants read access to an external account. Trace the finding and tighten the principal to the same account.",
+    "path": "../scenarios/cloud-security-audit/access-analyzer-external-finding.yaml"
   },
   {
     "id": "cloudFormationDriftDetection",

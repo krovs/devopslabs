@@ -6,6 +6,7 @@
   import footerFern from "./assets/fern.png";
   import sidebarLogo from "./assets/octopus.png";
   import { scenarioDifficultyClass, type LabGroup, type MenuGroupId } from "./labCatalog";
+  import LabGroupIcon from "./LabGroupIcon.svelte";
 
   type ThemeName = "latte" | "mocha" | "dracula" | "cyberpunk";
 
@@ -296,22 +297,11 @@
                   {#each subsection.groupIds as groupId}
                   {@const group = labGroupById(groupId)}
                   {#if group && menugroupvisible(group.ids, menuSearchQuery)}
-                    {@const groupState = groupcompletionstate(group.ids)}
-                    {@const groupPercent = groupcompletionpercent(group.ids)}
                     <div class="menu-lab-group" class:selected-section={isSelectedLabGroup(group.id)} data-menu-group-id={group.id}>
                       <div class="menu-group-header">
-                        <span
-                          class:scenario-check-empty={groupState !== "complete"}
-                          class:group-check-progress={groupState === "partial"}
-                          class="scenario-check group-check"
-                          role="checkbox"
-                          tabindex="0"
-                          style={`--group-completion-percent: ${groupPercent}%`}
-                          aria-label={groupState === "complete" ? `Mark ${group.title} incomplete` : `Mark ${group.title} complete`}
-                          aria-checked={groupState === "partial" ? "mixed" : groupState === "complete" ? "true" : "false"}
-                          onclick={(event) => ontogglegroupcompletion(group.ids, event)}
-                          onkeydown={(event) => toggleGroupCompletionWithKeyboard(group.ids, event)}
-                        >{groupState === "complete" ? "✓" : ""}</span>
+                        <span class="menu-group-icon" aria-hidden="true">
+                          <LabGroupIcon id={group.id} size={18} />
+                        </span>
                         <button
                           type="button"
                           class="menu-group-button"

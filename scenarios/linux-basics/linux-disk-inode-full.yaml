@@ -1,0 +1,83 @@
+id: linuxDiskInodeFull
+kind: linux
+title: Linux Disk Full Inode Exhaustion
+description: df shows free space but writes fail. df -i shows 100% inode usage. Find the small-file culprit directory and clean it up.
+primaryFile: diagnosis.json
+tips:
+  - Start with df -h to confirm there is free disk space.
+  - Run df -hi to check inode usage — the root filesystem is at 100%.
+  - The culprit is a directory with hundreds of thousands of small files.
+  - Identify /var/spool/tmp as the culprit and clean it up in diagnosis.json.
+files:
+  "diagnosis.json": |
+    {
+      "host": "web-prod-01",
+      "symptom": "writes fail with No space left on device",
+      "dfOutput": "free space available",
+      "dfInodesOutput": "100% inodes used on /",
+      "culpritDir": "",
+      "action": "",
+      "inodesFreed": 0
+    }
+  "runbook.md": |
+    Goal:
+    - Restore write capability on web-prod-01.
+
+    Constraints:
+    - df -h shows free disk space, so this is not a byte-level disk full.
+    - df -hi shows 100% inode usage on the root filesystem.
+    - Find the directory with the most small files.
+    - The culprit is /var/spool/tmp.
+    - Clean up the culprit directory and confirm inodes are freed.
+solution:
+  summary: |
+    The filesystem has free bytes but no free inodes. Hundreds of thousands of small files in /var/spool/tmp exhausted the inode table.
+  steps:
+    - Run df -h to confirm free disk space exists.
+    - Run df -hi to find 100% inode usage on the root filesystem.
+    - Identify /var/spool/tmp as the directory with the most small files.
+    - Set culpritDir to /var/spool/tmp.
+    - Set action to cleanup.
+    - Set inodesFreed to 480000.
+    - Run df -hi again to confirm inodes dropped.
+  explanation: |
+    Inode exhaustion happens when a directory accumulates many tiny files. df -h shows free bytes but writes still fail because the filesystem cannot allocate new metadata entries. Cleaning the culprit directory frees inodes and restores write capability.
+  outcome: |
+    /var/spool/tmp is cleaned, 480000 inodes are freed, and writes succeed again.
+  focusFileName: diagnosis.json
+  replacements:
+    - fileName: diagnosis.json
+      search: '"culpritDir": "",'
+      replace: '"culpritDir": "/var/spool/tmp",'
+    - fileName: diagnosis.json
+      search: '"action": "",'
+      replace: '"action": "cleanup",'
+    - fileName: diagnosis.json
+      search: '"inodesFreed": 0'
+      replace: '"inodesFreed": 480000'
+  commands:
+    - df -h
+    - df -hi
+    - check
+backend:
+  bucket: linux
+  key: disk-inode-full
+  table: services
+  locked: false
+  lockId: null
+awsResources:
+  - type: host
+    name: web-prod-01
+    id: web-prod-01
+    status: failed
+    note: Root filesystem at 100% inode usage; writes failing despite free disk space.
+stateResources:
+  - address: fs.root.inodes
+    id: "100%"
+  - address: dir.var-spool-tmp
+    id: uncleaned
+flags:
+  initialized: false
+  validationPassed: false
+  linuxResourcesChecked: false
+  linuxValidated: false

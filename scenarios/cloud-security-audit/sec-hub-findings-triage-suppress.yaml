@@ -1,0 +1,84 @@
+id: secHubFindingsTriageSuppress
+kind: cloudsec
+title: Security Hub Findings Triage
+description: Security Hub floods with LOW and CRITICAL findings. Suppress the accepted LOW findings and escalate the CRITICAL finding to the on-call owner.
+primaryFile: findings.json
+tips:
+  - Start with aws securityhub get-findings to list all findings.
+  - Two LOW findings are accepted risks and should be suppressed.
+  - One CRITICAL finding must be escalated to the on-call owner.
+  - Update findings.json with the suppressed and escalated lists before running batch-update-findings.
+files:
+  "findings.json": |
+    {
+      "analyzer": "account-analyzer",
+      "suppressed": [],
+      "escalated": [],
+      "owner": ""
+    }
+  "finding-context.txt": |
+    Finding: ahasd-LOW-001    Severity: LOW
+      Title: S3.2 S3 buckets should have bucket policies that require MFA delete
+      Accepted: MFA delete is enforced at the bucket level via CloudTrail + Lambda.
+
+    Finding: ahasd-LOW-002    Severity: LOW
+      Title: EC2.6 VPC flow logs should be enabled
+      Accepted: flow logs are enabled on the transit gateway instead.
+
+    Finding: ahasd-CRITICAL-010  Severity: CRITICAL
+      Title: IAM.7 Password policy must require uppercase
+      Action: escalate to on-call owner security-oncall@acme.com
+solution:
+  summary: |
+    Security Hub produces many findings but not all are actionable. Two LOW findings are accepted risks and should be suppressed, while one CRITICAL finding needs immediate escalation to the on-call owner.
+  steps:
+    - Run aws securityhub get-findings to list all findings and their severities.
+    - Review the finding context: ahasd-LOW-001 and ahasd-LOW-002 are accepted risks.
+    - Suppress the two LOW findings by adding them to the suppressed array.
+    - Escalate ahasd-CRITICAL-010 by adding it to the escalated array.
+    - Set owner to security-oncall@acme.com.
+    - Run aws securityhub batch-update-findings to apply the triage.
+  explanation: |
+    Security Hub triage separates accepted risks from real threats. Suppressing LOW findings that have compensating controls keeps the dashboard clean, while escalating CRITICAL findings ensures the on-call owner acts immediately.
+  outcome: |
+    The two LOW findings are suppressed with accepted-risk notes and the CRITICAL finding is escalated to the on-call owner.
+  focusFileName: findings.json
+  replacements:
+    - fileName: findings.json
+      search: '"suppressed": [],'
+      replace: '"suppressed": ["ahasd-LOW-001", "ahasd-LOW-002"],'
+    - fileName: findings.json
+      search: '"escalated": [],'
+      replace: '"escalated": ["ahasd-CRITICAL-010"],'
+    - fileName: findings.json
+      search: '"owner": ""'
+      replace: '"owner": "security-oncall@acme.com"'
+  commands:
+    - aws securityhub get-findings
+    - aws securityhub batch-update-findings
+    - check
+backend:
+  bucket: cloud-security-audit
+  key: sec-hub-findings-triage
+  table: investigations
+  locked: false
+  lockId: null
+awsResources:
+  - type: security_hub_finding
+    name: ahasd-CRITICAL-010
+    id: ahasd-CRITICAL-010
+    status: failed
+    note: Security Hub findings untriaged; LOW findings not suppressed and CRITICAL not escalated.
+stateResources:
+  - address: securityhub.finding.ahasd-LOW-001
+    id: NEW
+  - address: securityhub.finding.ahasd-LOW-002
+    id: NEW
+  - address: securityhub.finding.ahasd-CRITICAL-010
+    id: NEW
+flags:
+  initialized: false
+  validationPassed: false
+  securityPassed: false
+  cleanPlan: false
+  cloudsecValidated: false

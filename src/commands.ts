@@ -104,6 +104,11 @@ export type CommandHandlers = {
   logsFilterLogEvents: () => string[];
   configResourceHistory: () => string[];
   cloudsecSimulatePrincipalPolicy: () => string[];
+  securityHubGetFindings: () => string[];
+  securityHubBatchUpdateFindings: () => string[];
+  accessAnalyzerListFindings: () => string[];
+  linuxDfInodes: () => string[];
+  linuxSystemctlDaemonReload: () => string[];
   cloudformationValidateTemplate: () => string[];
   cloudformationCreateChangeSet: () => string[];
   cloudformationDescribeStackEvents: () => string[];
@@ -184,12 +189,14 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "cat app.log") return handlers.linuxCatLog();
     if (input === "grep ERROR app.log") return handlers.linuxGrepError();
     if (input === "df -h") return handlers.linuxDf();
+    if (input === "df -hi") return handlers.linuxDfInodes();
     if (input === "free -m") return handlers.linuxFree();
     if (input === "ps aux") return handlers.linuxPs();
     if (input === "top -b -n1") return handlers.linuxTop();
     if (input === "journalctl -u web -n 20") return handlers.linuxJournalctl();
     if (input === "ss -tulpn") return handlers.linuxSs();
     if (input === "systemctl status web") return handlers.linuxSystemctlStatus();
+    if (input === "sudo systemctl daemon-reload") return handlers.linuxSystemctlDaemonReload();
     if (input === "sudo systemctl restart web") return handlers.linuxSystemctlRestart();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
@@ -249,6 +256,9 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "aws logs filter-log-events") return handlers.logsFilterLogEvents();
     if (input === "aws configservice get-resource-config-history") return handlers.configResourceHistory();
     if (input === "aws iam simulate-principal-policy") return handlers.cloudsecSimulatePrincipalPolicy();
+    if (input === "aws securityhub get-findings") return handlers.securityHubGetFindings();
+    if (input === "aws securityhub batch-update-findings") return handlers.securityHubBatchUpdateFindings();
+    if (input === "aws accessanalyzer list-findings") return handlers.accessAnalyzerListFindings();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -414,7 +424,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "linux") {
-    return ["Available commands:", "  ls -la", "  cat app.log", "  grep ERROR app.log", "  journalctl -u web -n 20", "  systemctl status web", "  df -h", "  free -m", "  ps aux", "  top -b -n1", "  ss -tulpn", "  sudo systemctl restart web", "  check", "  help"];
+    return ["Available commands:", "  ls -la", "  cat app.log", "  grep ERROR app.log", "  journalctl -u web -n 20", "  systemctl status web", "  df -h", "  df -hi", "  free -m", "  ps aux", "  top -b -n1", "  ss -tulpn", "  sudo systemctl daemon-reload", "  sudo systemctl restart web", "  check", "  help"];
   }
 
   if (runtime.kind === "kubernetes") {
@@ -430,7 +440,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "cloudsec") {
-    return ["Available commands:", "  aws guardduty list-findings", "  aws guardduty get-findings", "  aws cloudtrail lookup-events", "  aws logs filter-log-events", "  aws configservice get-resource-config-history", "  aws iam simulate-principal-policy", "  check", "  help"];
+    return ["Available commands:", "  aws guardduty list-findings", "  aws guardduty get-findings", "  aws cloudtrail lookup-events", "  aws logs filter-log-events", "  aws configservice get-resource-config-history", "  aws iam simulate-principal-policy", "  aws securityhub get-findings", "  aws securityhub batch-update-findings", "  aws accessanalyzer list-findings", "  check", "  help"];
   }
 
   if (runtime.kind === "cloudformation") {

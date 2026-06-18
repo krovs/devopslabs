@@ -1,0 +1,79 @@
+id: accessAnalyzerExternalFinding
+kind: cloudsec
+title: IAM Access Analyzer External Access
+description: Access Analyzer finds an S3 bucket policy that grants read access to an external account. Trace the finding and tighten the principal to the same account.
+primaryFile: analyzer-policy.json
+tips:
+  - Start with aws accessanalyzer list-findings to find the external access finding.
+  - The bucket policy grants s3:GetObject to an external account principal.
+  - The external account is 210987654321 and should not have access.
+  - Tighten the Principal to the same account root arn:aws:iam::123456789012:root.
+  - Run aws iam simulate-principal-policy to verify external access is removed.
+files:
+  "analyzer-policy.json": |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "ExternalReadAccess",
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::210987654321:root"
+          },
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::prod-checkout-artifacts/*"
+        }
+      ]
+    }
+  "analyzer-finding.txt": |
+    AnalyzerArn: arn:aws:accessanalyzer:eu-west-1:123456789012:analyzer/account-analyzer
+    FindingId: aa-7f2c1d8e
+    Resource: arn:aws:s3:::prod-checkout-artifacts
+    ResourceType: AWS::S3::Bucket
+    Principal: arn:aws:iam::210987654321:root (EXTERNAL)
+    Action: s3:GetObject
+    Status: ACTIVE
+    CreatedAt: 2026-06-14T09:12:33Z
+    Recommendation: tighten Principal to same account arn:aws:iam::123456789012:root
+solution:
+  summary: |
+    Access Analyzer detected that the prod-checkout-artifacts bucket policy grants read access to an external AWS account. The principal must be tightened to the same account.
+  steps:
+    - Run aws accessanalyzer list-findings to find the external access finding.
+    - Confirm the bucket policy grants s3:GetObject to arn:aws:iam::210987654321:root.
+    - Replace the external principal with arn:aws:iam::123456789012:root.
+    - Run aws iam simulate-principal-policy to verify external access is denied.
+  explanation: |
+    Access Analyzer continuously monitors resource policies for external access. An external account principal on an S3 bucket policy is a data exfiltration risk. Tightening the principal to the same account removes the exposure while preserving legitimate internal access.
+  outcome: |
+    The bucket policy principal is restricted to the same account and the external account can no longer read the artifacts bucket.
+  focusFileName: analyzer-policy.json
+  replacements:
+    - fileName: analyzer-policy.json
+      search: '"AWS": "arn:aws:iam::210987654321:root"'
+      replace: '"AWS": "arn:aws:iam::123456789012:root"'
+  commands:
+    - aws accessanalyzer list-findings
+    - aws iam simulate-principal-policy
+    - check
+backend:
+  bucket: cloud-security-audit
+  key: access-analyzer-external-finding
+  table: investigations
+  locked: false
+  lockId: null
+awsResources:
+  - type: access_analyzer_finding
+    name: aa-7f2c1d8e
+    id: aa-7f2c1d8e
+    status: failed
+    note: Bucket policy grants s3:GetObject to external account 210987654321.
+stateResources:
+  - address: s3.bucket.prod-checkout-artifacts.principal
+    id: external
+flags:
+  initialized: false
+  validationPassed: false
+  securityPassed: false
+  cleanPlan: false
+  cloudsecValidated: false
