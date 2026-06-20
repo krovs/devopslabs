@@ -4,6 +4,7 @@ title: Runbook Execution Gap
 description: On-call follows a stale runbook whose steps diverge from the live service port; flag the drift and patch the runbook.
 primaryFile: runbook.yaml
 tips:
+  - Run runbook validate checkout-api to check for drift.
   - The runbook says the service listens on port 9090.
   - The live checkout-api service listens on port 8080.
   - Update the runbook port to match the live service.
@@ -21,9 +22,11 @@ solution:
   summary: |
     The runbook is stale: it points at port 9090 while checkout-api now listens on 8080. Update the runbook port to match the live service.
   steps:
+    - Run runbook validate checkout-api to check for drift.
     - Compare the runbook port against the live service listening port.
     - The runbook says 9090 but the service listens on 8080.
     - Update the runbook port to 8080.
+    - Run runbook validate checkout-api again to confirm.
   explanation: |
     Runbooks drift when services change and the documentation is not updated. Executing a stale runbook during an incident wastes time and can worsen impact, so the runbook port must match the live service.
   outcome: |
@@ -36,7 +39,8 @@ solution:
       replace: |
         port: 8080
   commands:
-    - incident validate
+    - runbook validate checkout-api
+    - check
 backend:
   bucket: incident-response
   key: runbook-execution-gap

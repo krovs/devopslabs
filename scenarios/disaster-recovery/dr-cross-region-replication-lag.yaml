@@ -4,6 +4,7 @@ title: Cross-Region Replication Lag Triage
 description: S3 cross-region replication lag exceeds the RPO; find the bucket with paused replication and the wrong scope.
 primaryFile: crr.json
 tips:
+  - Run aws s3api get-bucket-replication --bucket checkout-artifacts-prod to inspect replication status.
   - Cross-region replication lag exceeds the RPO.
   - Replication is paused on the bucket.
   - The replication scope is prefix-only instead of all objects.
@@ -26,10 +27,12 @@ solution:
   summary: |
     Replication is paused and scoped to a single prefix, so lag exceeds the RPO. Resume replication and set the scope to all objects.
   steps:
+    - Run aws s3api get-bucket-replication --bucket checkout-artifacts-prod to inspect replication.
     - Confirm replication is paused on the bucket.
     - Confirm the scope is prefix-only instead of all.
     - Resume replication by setting status to active.
     - Set scope to all.
+    - Run aws s3api get-bucket-replication again to confirm replication is active.
   explanation: |
     Cross-region replication only meets the RPO when it is active and covers all objects. A paused rule or prefix-only scope leaves objects unprotected and inflates lag beyond the SLO.
   outcome: |
@@ -43,7 +46,8 @@ solution:
       search: '"scope": "prefix-only"'
       replace: '"scope": "all"'
   commands:
-    - dr validate
+    - aws s3api get-bucket-replication --bucket checkout-artifacts-prod
+    - check
 backend:
   bucket: disaster-recovery
   key: cross-region-replication-lag

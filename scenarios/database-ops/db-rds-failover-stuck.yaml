@@ -4,6 +4,7 @@ title: RDS Failover Stuck
 description: A Multi-AZ failover is stuck; diagnose the event log, DNS, and standby health before forcing failover.
 primaryFile: failover.json
 tips:
+  - Run aws rds describe-events --db-cluster-identifier checkout-prod to inspect the failover state.
   - The failover is stuck waiting.
   - The standby health is unknown.
   - DNS has not been verified against the new writer.
@@ -25,10 +26,12 @@ solution:
   summary: |
     The failover is stuck on wait with unknown standby health and unverified DNS. Confirm standby health, verify DNS, then force failover.
   steps:
+    - Run aws rds describe-events --db-cluster-identifier checkout-prod to inspect the failover state.
     - Check the RDS event log for the stuck failover.
     - Confirm the standby is healthy.
     - Verify DNS points at the new writer.
     - Change action from wait to force-failover.
+    - Run aws rds describe-events again to confirm the failover completed.
   explanation: |
     A stuck Multi-AZ failover is usually waiting on an unhealthy standby or stale DNS. Confirming standby health and DNS first avoids promoting a bad replica, then force-failover completes the cutover.
   outcome: |
@@ -45,7 +48,8 @@ solution:
       search: '"dnsVerified": false'
       replace: '"dnsVerified": true'
   commands:
-    - db validate
+    - aws rds describe-events --db-cluster-identifier checkout-prod
+    - check
 backend:
   bucket: database-ops
   key: rds-failover-stuck

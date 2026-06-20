@@ -4,6 +4,7 @@ title: RDS Multi-AZ Failover and Verify
 description: Promote the RDS standby, verify the application reconnects, and confirm replica health before cutover.
 primaryFile: failover.json
 tips:
+  - Run aws rds describe-db-clusters --db-cluster-identifier checkout-prod to inspect.
   - The cluster is Multi-AZ but the failover action is still monitor.
   - Promote the standby to take over.
   - Verify replica health is healthy before cutover.
@@ -25,10 +26,12 @@ solution:
   summary: |
     The failover is stuck on monitor. Promote the standby, confirm replica health, and verify the application reconnects before cutover.
   steps:
+    - Run aws rds describe-db-clusters --db-cluster-identifier checkout-prod to inspect the cluster.
     - Confirm the cluster is Multi-AZ with an available standby.
     - Change action from monitor to promote.
     - Set replicaHealth to healthy.
     - Set appReconnectVerified to true.
+    - Run aws rds describe-db-clusters again to confirm failover is complete.
   explanation: |
     A Multi-AZ failover requires promoting the standby, confirming the new writer is healthy, and verifying the application pool reconnects before declaring cutover complete.
   outcome: |
@@ -45,7 +48,8 @@ solution:
       search: '"appReconnectVerified": false'
       replace: '"appReconnectVerified": true'
   commands:
-    - dr validate
+    - aws rds describe-db-clusters --db-cluster-identifier checkout-prod
+    - check
 backend:
   bucket: disaster-recovery
   key: rds-failover-verify

@@ -4,6 +4,7 @@ title: Alert Storm Triage
 description: Two hundred correlated alerts flood the pager; identify the root alert and suppress the noise.
 primaryFile: alerts.json
 tips:
+  - Run pagerduty alerts list --service checkout-api to see all active alerts.
   - The pager is flooded with correlated alerts.
   - One alert is the root cause; the rest are downstream symptoms.
   - db-cpu-100 is the root alert driving the api-latency and queue-depth symptoms.
@@ -22,10 +23,12 @@ solution:
   summary: |
     The alert storm is driven by one root alert. Identify db-cpu-100 as the root and suppress the downstream symptom alerts.
   steps:
+    - Run pagerduty alerts list --service checkout-api to see all active alerts.
     - Correlate the fired alerts to find the common root.
     - db-cpu-100 is the root alert driving api-latency and queue-depth symptoms.
     - Set rootAlertId to db-cpu-100.
     - Suppress the three downstream symptom alerts.
+    - Run pagerduty alerts list again to confirm suppression.
   explanation: |
     Alert storms happen when one root failure cascades into many symptom alerts. Triaging means identifying the root alert and suppressing the noise so the responder can focus on the cause.
   outcome: |
@@ -39,7 +42,8 @@ solution:
       search: '"suppressed": []'
       replace: '"suppressed": ["api-latency-1", "api-latency-2", "queue-depth-1"]'
   commands:
-    - incident validate
+    - pagerduty alerts list --service checkout-api
+    - check
 backend:
   bucket: incident-response
   key: alert-storm-triage

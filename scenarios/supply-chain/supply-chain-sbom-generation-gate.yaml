@@ -4,6 +4,7 @@ title: SBOM Generation Gate
 description: A release is blocked because the CI job does not emit a CycloneDX SBOM; generate the SBOM and unblock the gate.
 primaryFile: release.json
 tips:
+  - Run syft check release checkout-api:2.5.0 to see the SBOM status.
   - The release gate is blocked because no SBOM is emitted.
   - The required SBOM format is CycloneDX.
   - Generate the SBOM so sbomPresent is true.
@@ -43,7 +44,8 @@ solution:
       search: '"gate": "blocked"'
       replace: '"gate": "passed"'
   commands:
-    - supply-chain validate
+    - syft check release checkout-api:2.5.0
+    - check
 backend:
   bucket: supply-chain
   key: sbom-generation-gate

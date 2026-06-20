@@ -1093,7 +1093,20 @@ export const documentationSections: DocSection[] = [
         ],
       },
       { type: "heading", text: "Common Commands" },
-      { type: "code", text: "aws guardduty list-findings\naws guardduty get-findings\naws cloudtrail lookup-events\naws logs filter-log-events\naws configservice get-resource-config-history\naws iam simulate-principal-policy" },
+      { type: "code", text: "aws guardduty list-findings\naws guardduty get-findings\naws cloudtrail lookup-events\naws logs filter-log-events\naws configservice get-resource-config-history\naws iam simulate-principal-policy\naws securityhub get-findings\naws securityhub batch-update-findings\naws accessanalyzer list-findings" },
+      { type: "heading", text: "Common Signals" },
+      {
+        type: "unorderedList",
+        items: [
+          ["GuardDuty: threat detections from logs and telemetry."],
+          ["CloudTrail: API activity history."],
+          ["CloudWatch Logs: application and service logs."],
+          ["AWS Config: resource configuration history."],
+          ["IAM simulation: effective permission checks."],
+          ["Security Hub: centralized findings across services. Triage by suppressing accepted risks and escalating critical findings."],
+          ["Access Analyzer: detects resource policies that grant access to external principals."],
+        ],
+      },
       { type: "heading", text: "Common Problems" },
       {
         type: "unorderedList",
@@ -1222,7 +1235,35 @@ export const documentationSections: DocSection[] = [
         ],
       },
       { type: "heading", text: "Useful Commands" },
-      { type: "code", text: "aws cloudformation validate-template\naws cloudformation create-change-set\naws cloudformation describe-stack-events\naws cloudformation detect-stack-drift" },
+      { type: "code", text: "aws cloudformation validate-template\naws cloudformation create-change-set\naws cloudformation describe-stack-events\naws cloudformation detect-stack-drift\naws cloudformation update-stack\naws cloudformation get-stack-policy --stack-name <name>\naws cloudformation describe-stacks --stack-name <name>\naws cloudformation list-exports\naws cloudformation list-stack-instances --stack-set-name <name>" },
+      { type: "heading", text: "Stack Policies" },
+      {
+        type: "unorderedList",
+        items: [
+          ["Stack policies protect resources from accidental updates by denying actions by default."],
+          [{ code: "Effect: Deny" }, " with a Condition on ", { code: "cloudformation:ResourceType" }, " blocks updates to specific resource types."],
+          ["Add a narrow ", { code: "Effect: Allow" }, " statement to permit intended changes while keeping the guardrail."],
+        ],
+      },
+      { type: "heading", text: "Rollback Recovery" },
+      {
+        type: "unorderedList",
+        items: [
+          ["UPDATE_ROLLBACK_FAILED is a stuck state that needs manual intervention."],
+          ["Continue the update rollback while skipping resources that cannot be deleted (e.g. termination-protected RDS)."],
+          [{ code: "aws cloudformation continue-update-rollback --stack-name <name> --resources-to-skip <resource>" }, " skips the blocked resource."],
+        ],
+      },
+      { type: "heading", text: "Nested Stacks & StackSets" },
+      {
+        type: "unorderedList",
+        items: [
+          ["Nested stacks receive parameters from their parent template. Parameter name mismatches cause child failures."],
+          ["StackSets deploy to multiple accounts and regions using a two-role model: administration role + execution role."],
+          ["Each target account must trust the execution role or the StackSet instance fails."],
+          ["StackSet instances can drift independently; use list-stack-instances to check status across all accounts and regions."],
+        ],
+      },
       { type: "heading", text: "Drift Triage Flow" },
       {
         type: "orderedList",
@@ -1297,6 +1338,8 @@ export const documentationSections: DocSection[] = [
           ["The postmortem must be blameless: focus on systems, guardrails, and process gaps, not individuals."],
         ],
       },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "pagerduty incident show INC-2041\npagerduty alerts list --service checkout-api\npostmortem review INC-2041\nrunbook validate checkout-api\nstatuspage incident show INC-2041" },
       { type: "heading", text: "Alert Triage" },
       {
         type: "unorderedList",
@@ -1338,8 +1381,8 @@ export const documentationSections: DocSection[] = [
           ["Cross-region replication: S3 CRR must cover all objects and stay within RPO lag."],
         ],
       },
-      { type: "heading", text: "Commands" },
-      { type: "code", text: "dr validate" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "aws rds describe-db-clusters --db-cluster-identifier <id>\naws rds describe-db-snapshots\naws route53 list-resource-record-sets --hosted-zone-id Z123456\naws s3api get-bucket-replication --bucket <name>" },
     ],
   },
   {
@@ -1379,8 +1422,8 @@ export const documentationSections: DocSection[] = [
           ["Throttling: WriteThrottleEvents > 0 means a single partition is over-provisioned."],
         ],
       },
-      { type: "heading", text: "Commands" },
-      { type: "code", text: "db validate" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "aws rds describe-events --db-cluster-identifier <id>\naws rds describe-db-clusters --db-cluster-identifier <id>\naws rds describe-db-log-files --db-instance-identifier <id>\naws rds describe-db-logs --db-cluster-identifier <id>\npgbouncer show pools\naws dynamodb describe-table --table-name <name>" },
     ],
   },
   {
@@ -1427,8 +1470,8 @@ export const documentationSections: DocSection[] = [
           ["Pin internal packages to a private index URL and an exact version to avoid substitution attacks."],
         ],
       },
-      { type: "heading", text: "Commands" },
-      { type: "code", text: "supply-chain validate" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "syft check release <image>\ncosign verify <image>\ngrype scan <image>\nslsa-verifier verify-image <image>\npip-audit --index-url <url>" },
     ],
   },
   {
@@ -1478,8 +1521,8 @@ export const documentationSections: DocSection[] = [
           ["Identify the repeat offender and propose automation before tuning alert thresholds."],
         ],
       },
-      { type: "heading", text: "Commands" },
-      { type: "code", text: "sre validate" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "promtool check sli <service>\npromtool check rules <rule-set>\nsloth slo validate <service>\nsre toil audit <team>" },
     ],
   },
   {
@@ -1531,8 +1574,8 @@ export const documentationSections: DocSection[] = [
           ["Idempotency: use a dedupe table keyed by message ID or business key to skip redelivered messages."],
         ],
       },
-      { type: "heading", text: "Commands" },
-      { type: "code", text: "msg validate" },
+      { type: "heading", text: "Common Commands" },
+      { type: "code", text: "aws sqs get-queue-attributes --queue-url <url> --attribute-names All\nkafka-consumer-groups --describe --group <group>\naws sns list-subscriptions-by-topic --topic-arn <arn>\naws kinesis describe-stream --stream-name <name>\naws sqs receive-message --queue-url <url>" },
     ],
   },
   {

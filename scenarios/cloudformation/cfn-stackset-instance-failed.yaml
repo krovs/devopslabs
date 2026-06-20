@@ -1,0 +1,74 @@
+id: cfnStackSetInstanceFailed
+kind: cloudformation
+title: CloudFormation StackSet Instance Failed
+description: A StackSet fails to deploy to a member account because the execution role is not trusted. Register the role trust in the target account.
+primaryFile: fix.json
+tips:
+  - Run aws cloudformation list-stack-instances --stack-set-name checkout-baseline to see all instances.
+  - One instance failed in account 210987654321 with the reason ExecutionRole not trusted.
+  - The administration role must be trusted by the target account to assume the execution role.
+  - Set trusted to true and action to trust-execution-role in fix.json.
+files:
+  "fix.json": |
+    {
+      "stackSet": "checkout-baseline",
+      "failedAccount": "210987654321",
+      "failedRegion": "eu-west-1",
+      "reason": "AWSCloudFormationStackSetExecutionRole not trusted in target account",
+      "trusted": false,
+      "action": ""
+    }
+  "stackset-context.txt": |
+    StackSet: checkout-baseline
+    AdministrationRole: AWSCloudFormationStackSetAdministrationRole (in mgmt account 123456789012)
+    ExecutionRole: AWSCloudFormationStackSetExecutionRole
+    Targets:
+      - 123456789012 eu-west-1, eu-west-2  OK
+      - 210987654321 eu-west-1  FAILED
+    Issue: account 210987654321 does not trust the execution role.
+    Fix: add a trust to the execution role in the target account.
+solution:
+  summary: |
+    The StackSet instance failed because the target account does not trust the execution role. Register the trust so CloudFormation can deploy to that account.
+  steps:
+    - Run aws cloudformation list-stack-instances --stack-set-name checkout-baseline to see the failed instance.
+    - Confirm account 210987654321 failed because the execution role is not trusted.
+    - Set trusted to true to acknowledge the trust relationship.
+    - Set action to trust-execution-role to register the trust.
+    - Run aws cloudformation list-stack-instances again to confirm all instances are current.
+  explanation: |
+    StackSets use a two-role model: an administration role in the management account and an execution role in each target account. If the target account does not trust the execution role, deployments fail. Registering the trust enables the administration role to assume the execution role and manage StackSet instances.
+  outcome: |
+    The execution role trust is registered for account 210987654321 and the StackSet instance is current with no drift.
+  focusFileName: fix.json
+  replacements:
+    - fileName: fix.json
+      search: '"trusted": false,'
+      replace: '"trusted": true,'
+    - fileName: fix.json
+      search: '"action": ""'
+      replace: '"action": "trust-execution-role"'
+  commands:
+    - aws cloudformation list-stack-instances --stack-set-name checkout-baseline
+    - check
+backend:
+  bucket: cfn-review
+  key: stackset-instance-failed
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudformation_stackset
+    name: checkout-baseline
+    id: arn:aws:cloudformation:eu-west-1:123456789012:stackset/checkout-baseline
+    status: failed
+    note: StackSet instance failed in account 210987654321. Execution role not trusted in target account.
+stateResources:
+  - address: stackset.instance.210987654321
+    id: FAILED
+flags:
+  initialized: false
+  lintPassed: false
+  validationPassed: false
+  cleanPlan: false
+  cloudformationValidated: false

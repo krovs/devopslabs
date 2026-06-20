@@ -4,6 +4,7 @@ title: Blameless Postmortem Draft
 description: Draft a blameless postmortem from a raw incident timeline: fill the root cause and action items and remove blame language.
 primaryFile: postmortem.md
 tips:
+  - Run postmortem review INC-2041 to audit the draft.
   - A blameless postmortem never names a person as the cause.
   - Fill the root cause with the technical failure mode.
   - Add concrete action items that would prevent recurrence.
@@ -22,9 +23,11 @@ solution:
   summary: |
     The postmortem is missing the root cause and action items and contains blame language. Fill the technical root cause, add action items, and remove the blame line.
   steps:
+    - Run postmortem review INC-2041 to audit the current draft.
     - Replace the empty rootCause with the technical failure mode.
     - Add concrete action items: canary gate, DB migration review, rollback runbook.
     - Remove the blame line that names the developer.
+    - Run postmortem review INC-2041 again to confirm.
   explanation: |
     Blameless postmortems focus on systemic causes and guardrails, not individuals. The root cause was a bad migration deployed without a canary, so the action items target canary deployment, migration review, and rollback readiness.
   outcome: |
@@ -40,7 +43,8 @@ solution:
         rootCause: bad migration deployed without canary deploy.
         actionItems: add canary gate, require DB migration review, add rollback runbook.
   commands:
-    - incident validate
+    - postmortem review INC-2041
+    - check
 backend:
   bucket: incident-response
   key: inc-2041-postmortem

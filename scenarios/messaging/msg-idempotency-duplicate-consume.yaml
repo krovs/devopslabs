@@ -4,6 +4,7 @@ title: Idempotency Duplicate Consume
 description: At-least-once delivery causes double charges; add an idempotency key and a dedupe table to the consumer.
 primaryFile: consumer.json
 tips:
+  - Run aws sqs receive-message --queue-url https://sqs.eu-west-1.amazonaws.com/123456789012/checkout-orders to see duplicate messages.
   - At-least-once delivery redelivers messages.
   - The consumer has no idempotency key and no dedupe table.
   - Use orderId as the idempotency key.
@@ -46,7 +47,8 @@ solution:
       search: '"duplicateChargeRisk": true'
       replace: '"duplicateChargeRisk": false'
   commands:
-    - msg validate
+    - aws sqs receive-message --queue-url https://sqs.eu-west-1.amazonaws.com/123456789012/checkout-orders
+    - check
 backend:
   bucket: messaging
   key: idempotency-duplicate-consume

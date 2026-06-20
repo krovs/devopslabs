@@ -4,6 +4,7 @@ title: Alert SLO-Based Replacement
 description: Replace a CPU threshold alert with an SLO burn-rate alert that maps user impact to burn rate.
 primaryFile: alert.json
 tips:
+  - Run promtool check rules checkout-api-capacity to see the current alert.
   - The current alert is a CPU threshold that does not map to user impact.
   - Replace it with an SLO burn-rate alert.
   - Set alertType to slo-burn.
@@ -44,7 +45,8 @@ solution:
       search: '"sloBurnRate": 0'
       replace: '"sloBurnRate": 14.4'
   commands:
-    - sre validate
+    - promtool check rules checkout-api-capacity
+    - check
 backend:
   bucket: sre-slo
   key: alert-slo-based-replacement

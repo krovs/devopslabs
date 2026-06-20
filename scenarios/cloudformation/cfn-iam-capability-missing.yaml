@@ -1,0 +1,75 @@
+id: cfnIamCapabilityMissing
+kind: cloudformation
+title: CloudFormation CAPABILITY_IAM Missing
+description: A stack creation fails because the template creates an IAM role but CAPABILITY_IAM was not specified. Add the capability flag.
+primaryFile: deploy.json
+tips:
+  - Run aws cloudformation describe-stack-events --stack-name checkout-iam-role to see the failure.
+  - The template creates an IAM role but CAPABILITY_IAM is not acknowledged.
+  - CloudFormation requires explicit acknowledgement for IAM resource creation.
+  - Add CAPABILITY_IAM to the capabilities list in deploy.json.
+files:
+  "deploy.json": |
+    {
+      "stack": "checkout-iam-role",
+      "template": "file://template.yaml",
+      "capabilities": []
+    }
+  "template.yaml": |
+    AWSTemplateFormatVersion: "2010-09-09"
+    Description: IAM role for checkout service
+    Resources:
+      CheckoutServiceRole:
+        Type: AWS::IAM::Role
+        Properties:
+          RoleName: checkout-service-role
+          AssumeRolePolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Principal:
+                  Service: ec2.amazonaws.com
+                Action: sts:AssumeRole
+          ManagedPolicyArns:
+            - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+solution:
+  summary: |
+    CloudFormation requires CAPABILITY_IAM to be explicitly acknowledged when creating IAM resources as a guard against accidental privilege escalation. Add it to the capabilities list.
+  steps:
+    - Run aws cloudformation describe-stack-events --stack-name checkout-iam-role to see the failure.
+    - Confirm the stack failed because CAPABILITY_IAM was not specified.
+    - Add CAPABILITY_IAM to the capabilities array in deploy.json.
+    - Run aws cloudformation describe-stack-events again to confirm the stack created.
+  explanation: |
+    CloudFormation requires explicit acknowledgement (CAPABILITY_IAM) before creating IAM resources. This prevents accidental creation of roles and policies that could escalate privileges. Adding the capability unblocks the stack.
+  outcome: |
+    deploy.json includes CAPABILITY_IAM and the stack creates the CheckoutServiceRole successfully.
+  focusFileName: deploy.json
+  replacements:
+    - fileName: deploy.json
+      search: '"capabilities": []'
+      replace: '"capabilities": ["CAPABILITY_IAM"]'
+  commands:
+    - aws cloudformation describe-stack-events --stack-name checkout-iam-role
+    - check
+backend:
+  bucket: cfn-review
+  key: iam-capability-missing
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudformation_stack
+    name: checkout-iam-role
+    id: arn:aws:cloudformation:eu-west-1:123456789012:stack/checkout-iam-role
+    status: failed
+    note: Stack creation failed. CAPABILITY_IAM was not specified for the IAM role resource.
+stateResources:
+  - address: stack.capabilities
+    id: empty
+flags:
+  initialized: false
+  lintPassed: false
+  validationPassed: false
+  cleanPlan: false
+  cloudformationValidated: false

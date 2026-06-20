@@ -4,6 +4,7 @@ title: Error Budget Burn Rate Alert
 description: A multi-window burn rate alert is misconfigured; fix the fast-burn and slow-burn windows and thresholds.
 primaryFile: alert.json
 tips:
+  - Run promtool check rules burn-rate-alerts to see the current alert configuration.
   - Multi-window burn rate needs a fast and a slow window.
   - The fast window is 5m and the slow window is 1h for 99.9% SLO.
   - The fast-burn threshold is 14.4 and the slow-burn threshold is 6.
@@ -51,7 +52,8 @@ solution:
       search: '"slowThreshold": 0'
       replace: '"slowThreshold": 6'
   commands:
-    - sre validate
+    - promtool check rules burn-rate-alerts
+    - check
 backend:
   bucket: sre-slo
   key: error-budget-burn-rate

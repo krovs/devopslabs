@@ -168,7 +168,7 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
     if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation create-change-set to inspect the change set."];
     if (!runtime.flags.validationPassed) return ["Not complete: run aws cloudformation describe-stack-events to see the last update."];
     if (!runtime.flags.cleanPlan) return ["Not complete: run aws cloudformation detect-stack-drift to find the configuration drift."];
-    if (!cloudformationFixApplied(runtime)) return ["Not complete: the CloudFormation template still has a public-read ACL. Change AccessControl to Private and add PublicAccessBlockConfiguration."];
+    if (!cloudformationFixApplied(runtime, scenarioId)) return ["Not complete: the CloudFormation template or configuration still has the unresolved issue. Review the inspect command output and fix the template or deployment file."];
     markCloudformationScenarioSolved(runtime);
     return ["Scenario complete."];
   }

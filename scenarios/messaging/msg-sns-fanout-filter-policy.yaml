@@ -4,6 +4,7 @@ title: SNS Fan-out Filter Policy
 description: Subscribers receive the wrong messages; fix the SNS subscription FilterPolicy on message attributes.
 primaryFile: subscription.json
 tips:
+  - Run aws sns list-subscriptions-by-topic --topic-arn arn:aws:sns:eu-west-1:123456789012:checkout-events to see subscriptions.
   - Subscribers receive every message on the fan-out topic.
   - The order-service subscription should only receive order.created events.
   - The FilterPolicy is empty.
@@ -40,7 +41,8 @@ solution:
       replace: |
         "filterPolicy": {"event": ["order.created"]}
   commands:
-    - msg validate
+    - aws sns list-subscriptions-by-topic --topic-arn arn:aws:sns:eu-west-1:123456789012:checkout-events
+    - check
 backend:
   bucket: messaging
   key: sns-fanout-filter-policy

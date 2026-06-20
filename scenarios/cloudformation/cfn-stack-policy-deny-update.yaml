@@ -1,0 +1,101 @@
+id: cfnStackPolicyDenyUpdate
+kind: cloudformation
+title: CloudFormation Stack Policy Denies Update
+description: A stack update is blocked by a stack policy that denies all RDS modifications. Add an Allow statement for the specific resource change.
+primaryFile: template.yaml
+tips:
+  - Run aws cloudformation get-stack-policy --stack-name checkout-api-artifacts to inspect the stack policy.
+  - The stack policy currently denies all updates to RDS resources.
+  - The RDS instance CheckoutDatabase needs its instance class changed.
+  - Add an Allow statement for rds:ModifyDBInstance and rds:DescribeDBInstances on that specific logical resource.
+files:
+  "template.yaml": |
+    AWSTemplateFormatVersion: "2010-09-09"
+    Description: Checkout API with RDS database
+    Resources:
+      CheckoutDatabase:
+        Type: AWS::RDS::DBInstance
+        Properties:
+          DBInstanceIdentifier: checkout-prod
+          DBInstanceClass: db.r6g.large
+          Engine: aurora-postgresql
+          DeletionProtection: true
+    StackPolicy:
+      Statement:
+        - Effect: Deny
+          Principal: "*"
+          Action: "Update:*"
+          Resource: "*"
+          Condition:
+            StringEquals:
+              "cloudformation:ResourceType": "AWS::RDS::DBInstance"
+  "update-plan.txt": |
+    Desired change: upgrade CheckoutDatabase from db.r6g.large to db.r6g.xlarge.
+    Stack policy blocks all RDS:DBInstance updates.
+    Fix: add an Allow statement for rds:ModifyDBInstance and rds:DescribeDBInstances
+    scoped to LogicalResourceId/CheckoutDatabase.
+solution:
+  summary: |
+    The stack policy denies all RDS modifications. Add an Allow statement so the instance class upgrade is permitted while keeping the deny for other RDS changes.
+  steps:
+    - Run aws cloudformation get-stack-policy --stack-name checkout-api-artifacts to see the policy.
+    - Confirm the stack policy denies all Update actions on RDS resources.
+    - Add an Allow statement for rds:ModifyDBInstance and rds:DescribeDBInstances on CheckoutDatabase.
+    - Run aws cloudformation get-stack-policy again to confirm the Allow statement is present.
+  explanation: |
+    Stack policies protect critical resources from accidental updates. A blanket deny on RDS prevents all changes, including safe instance class upgrades. Adding a narrow Allow for the specific actions and resource lets through the intended update while keeping the guardrail.
+  outcome: |
+    The stack policy now allows rds:ModifyDBInstance and rds:DescribeDBInstances on CheckoutDatabase so the instance class upgrade can proceed.
+  focusFileName: template.yaml
+  replacements:
+    - fileName: template.yaml
+      search: |
+        StackPolicy:
+          Statement:
+            - Effect: Deny
+              Principal: "*"
+              Action: "Update:*"
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  "cloudformation:ResourceType": "AWS::RDS::DBInstance"
+      replace: |
+        StackPolicy:
+          Statement:
+            - Effect: Deny
+              Principal: "*"
+              Action: "Update:*"
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  "cloudformation:ResourceType": "AWS::RDS::DBInstance"
+            - Effect: Allow
+              Principal: "*"
+              Action:
+                - rds:ModifyDBInstance
+                - rds:DescribeDBInstances
+              Resource: LogicalResourceId/CheckoutDatabase
+  commands:
+    - aws cloudformation get-stack-policy --stack-name checkout-api-artifacts
+    - check
+backend:
+  bucket: cfn-review
+  key: stack-policy-deny-update
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudformation_stack
+    name: checkout-api-artifacts
+    id: arn:aws:cloudformation:eu-west-1:123456789012:stack/checkout-api-artifacts
+    status: failed
+    note: Stack policy denies all RDS modifications including the intended instance class upgrade.
+stateResources:
+  - address: stack.policy.rds
+    id: deny-all
+flags:
+  initialized: false
+  lintPassed: false
+  validationPassed: false
+  cleanPlan: false
+  cloudformationValidated: false

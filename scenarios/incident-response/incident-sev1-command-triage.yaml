@@ -4,6 +4,7 @@ title: SEV1 Incident Command Triage
 description: A production checkout-api 5xx spike is open without an incident commander or severity; assign command, set SEV1, and move to detected.
 primaryFile: incident.json
 tips:
+  - Run pagerduty incident show INC-2041 to see the current incident state.
   - A SEV1 needs a named incident commander before anything else.
   - The service is user-facing checkout-api with a 5xx spike.
   - Set severity to SEV1 and move status from investigating to detected.
@@ -25,10 +26,12 @@ solution:
   summary: |
     The incident is open without a commander or correct severity. Assign the commander, raise to SEV1, and move status to detected.
   steps:
+    - Run pagerduty incident show INC-2041 to inspect the current incident state.
     - Confirm the service is user-facing checkout-api with a 5xx spike.
     - Assign commander priya@acme.com.
     - Raise severity from SEV3 to SEV1.
     - Move status from investigating to detected.
+    - Run pagerduty incident show INC-2041 again to confirm.
   explanation: |
     A SEV1 incident requires a named incident commander before coordination can proceed. The user-facing checkout-api 5xx spike warrants SEV1, and moving status to detected signals that the impact is confirmed and triage can begin.
   outcome: |
@@ -45,7 +48,8 @@ solution:
       search: '"status": "investigating"'
       replace: '"status": "detected"'
   commands:
-    - incident validate
+    - pagerduty incident show INC-2041
+    - check
 backend:
   bucket: incident-response
   key: inc-2041-command

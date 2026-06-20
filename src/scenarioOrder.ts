@@ -15,6 +15,12 @@ export const scenarioOrderByGroup = {
     "terraformAzureBlobLeaseLock",
     "terraformAzureNsgDrift",
     "cloudFormationDriftDetection",
+    "cfnStackPolicyDenyUpdate",
+    "cfnRollbackFailedContinue",
+    "cfnNestedStackParameterMismatch",
+    "cfnIamCapabilityMissing",
+    "cfnExportImportConflict",
+    "cfnStackSetInstanceFailed",
   ],
   iacSecurity: [
     "awsConfigCloudWatchRetention",

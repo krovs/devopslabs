@@ -4,9 +4,11 @@ title: Backup Restore Integrity Check
 description: Restore the nightly PostgreSQL backup to staging and verify row-count and checksum diffs against the production snapshot.
 primaryFile: restore.json
 tips:
+  - Run aws rds describe-db-clusters --db-cluster-identifier checkout-prod to find the latest snapshot.
   - The nightly backup has not been restored.
   - Restore the backup to the staging target.
   - Verify checksum and row-count diffs match the production snapshot.
+  - Run aws rds describe-db-clusters --db-cluster-identifier staging-restore to confirm integrity.
 files:
   "restore.json": |
     {
@@ -23,9 +25,11 @@ solution:
   summary: |
     The backup has not been restored and integrity diffs mismatch. Restore the backup and verify checksum and row-count diffs match.
   steps:
+    - Run aws rds describe-db-clusters --db-cluster-identifier checkout-prod to find the latest snapshot.
     - Restore the nightly PostgreSQL backup to staging-restore.
     - Verify the checksum diff matches the production snapshot.
     - Verify the row-count diff matches the production snapshot.
+    - Run aws rds describe-db-clusters --db-cluster-identifier staging-restore to confirm integrity.
   explanation: |
     A backup is only useful if it restores and the restored data matches the source. Restoring to staging and comparing checksum and row-count diffs proves the backup is recoverable and intact.
   outcome: |
@@ -42,7 +46,9 @@ solution:
       search: '"rowCountDiff": "mismatch"'
       replace: '"rowCountDiff": "match"'
   commands:
-    - dr validate
+    - aws rds describe-db-clusters --db-cluster-identifier checkout-prod
+    - aws rds describe-db-clusters --db-cluster-identifier staging-restore
+    - check
 backend:
   bucket: disaster-recovery
   key: backup-restore-integrity

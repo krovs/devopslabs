@@ -4,6 +4,7 @@ title: SLSA Level 3 Provenance Check
 description: Build provenance attestation is missing the builder identity; fix the workflow and verify with slsa-verifier.
 primaryFile: provenance.json
 tips:
+  - Run slsa-verifier verify-image ghcr.io/acme/checkout-api:2.5.0 to check provenance.
   - The provenance attestation is missing the builder identity.
   - The expected builder is the GitHub Actions workflow.
   - Set builderId to github-actions.
@@ -42,7 +43,8 @@ solution:
       search: '"slsaLevel": 0'
       replace: '"slsaLevel": 3'
   commands:
-    - supply-chain validate
+    - slsa-verifier verify-image ghcr.io/acme/checkout-api:2.5.0
+    - check
 backend:
   bucket: supply-chain
   key: slsa-level3-provenance

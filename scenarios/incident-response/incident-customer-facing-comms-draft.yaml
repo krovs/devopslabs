@@ -4,6 +4,7 @@ title: Customer-Facing Status Comms
 description: Draft status page updates at t+0, t+15, and t+60 that balance transparency with SLA wording.
 primaryFile: status-update.json
 tips:
+  - Run statuspage incident show INC-2041 to see the current status page.
   - A status page needs updates at t+0, t+15, and t+60.
   - t+0 acknowledges the incident and impact.
   - t+15 shares the investigation status.
@@ -23,10 +24,12 @@ solution:
   summary: |
     The status page has no updates. Draft the t+0, t+15, and t+60 updates with the required impact wording.
   steps:
+    - Run statuspage incident show INC-2041 to see the current status page.
     - Add a t+0 update acknowledging the incident and stating the impact.
     - Add a t+15 update sharing the investigation status.
     - Add a t+60 update sharing the mitigation and resolution path.
     - Each update must include the impact wording.
+    - Run statuspage incident show INC-2041 again to confirm.
   explanation: |
     Customer-facing comms during an incident need a regular cadence with honest impact wording. The t+0 acknowledges, t+15 updates on investigation, and t+60 reports mitigation, all carrying the same impact statement so customers see consistency.
   outcome: |
@@ -43,7 +46,8 @@ solution:
           { "time": "t+60", "message": "Mitigated, monitoring recovery. impact: checkout API errors for 12% of orders." }
         ]
   commands:
-    - incident validate
+    - statuspage incident show INC-2041
+    - check
 backend:
   bucket: incident-response
   key: customer-facing-comms

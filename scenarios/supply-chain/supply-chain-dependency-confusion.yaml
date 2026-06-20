@@ -4,6 +4,7 @@ title: Dependency Confusion Poisoning
 description: A private package name was registered publicly and pip pulls the malicious public version; pin to the private index.
 primaryFile: requirements.txt
 tips:
+  - Run pip-audit --index-url https://pypi.acme.internal/simple to check the dependency source.
   - A private package name was registered on the public PyPI index.
   - pip currently pulls from the public index.
   - Pin the internal package to a version and point at the private index.
@@ -40,7 +41,8 @@ solution:
         --index-url https://pypi.acme.internal/simple
         acme-internal-utils==1.2.3
   commands:
-    - supply-chain validate
+    - pip-audit --index-url https://pypi.acme.internal/simple
+    - check
 backend:
   bucket: supply-chain
   key: dependency-confusion

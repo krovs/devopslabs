@@ -4,6 +4,7 @@ title: Kafka Consumer Rebalance Storm
 description: Consumers are stuck in a rebalance loop; fix the session timeout, heartbeat, and static membership strategy.
 primaryFile: consumer.yaml
 tips:
+  - Run kafka-consumer-groups --describe --group checkout-worker to inspect the consumer group.
   - Consumers are stuck in a rebalance loop.
   - The session timeout is too short at 10000ms.
   - There is no static group membership.
@@ -44,7 +45,8 @@ solution:
       search: 'partitionAssignmentStrategy: range'
       replace: 'partitionAssignmentStrategy: cooperative-sticky'
   commands:
-    - msg validate
+    - kafka-consumer-groups --describe --group checkout-worker
+    - check
 backend:
   bucket: messaging
   key: kafka-consumer-rebalance-storm

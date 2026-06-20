@@ -4,6 +4,7 @@ title: PITR Restore to Specific Timestamp
 description: Restore RDS to 30 minutes before a bad migration; verify the target time is inside the retention window.
 primaryFile: restore.json
 tips:
+  - Run aws rds describe-db-logs --db-cluster-identifier checkout-prod to check the PITR window.
   - A bad migration needs a point-in-time restore.
   - The target time is 30 minutes before the migration.
   - The target time is 2026-06-18T11:30:00Z.
@@ -26,9 +27,11 @@ solution:
   summary: |
     A bad migration requires a point-in-time restore to 30 minutes before it. Set the target time, confirm it is inside the retention window, and restore.
   steps:
+    - Run aws rds describe-db-logs --db-cluster-identifier checkout-prod to check the PITR window.
     - Set targetTime to 2026-06-18T11:30:00Z, 30 minutes before the bad migration.
     - Confirm the target time is within the retention window.
     - Change action to pitr-restore.
+    - Run aws rds describe-db-logs again to confirm restore queued.
   explanation: |
     Point-in-time recovery restores to a specific moment before a bad change. The target time must be inside the backup retention window or the restore fails, so verifying the window first avoids a failed cutover.
   outcome: |
@@ -45,7 +48,8 @@ solution:
       search: '"action": "none"'
       replace: '"action": "pitr-restore"'
   commands:
-    - db validate
+    - aws rds describe-db-logs --db-cluster-identifier checkout-prod
+    - check
 backend:
   bucket: database-ops
   key: pitr-restore-to-point

@@ -4,6 +4,7 @@ title: SLO Tier Mismatch
 description: A tier-1 service inherits a tier-3 SLO; tighten the tier, availability target, and error budget policy.
 primaryFile: slo.json
 tips:
+  - Run sloth slo validate checkout-api to see the current SLO tier.
   - checkout-api is a tier-1 user-facing service.
   - It currently inherits a tier-3 SLO.
   - Tier-1 requires 99.95% availability.
@@ -45,7 +46,8 @@ solution:
       search: '"errorBudgetPolicy": "lenient"'
       replace: '"errorBudgetPolicy": "strict"'
   commands:
-    - sre validate
+    - sloth slo validate checkout-api
+    - check
 backend:
   bucket: sre-slo
   key: slo-tier-mismatch

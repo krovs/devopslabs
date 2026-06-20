@@ -1,0 +1,76 @@
+id: cfnNestedStackParameterMismatch
+kind: cloudformation
+title: CloudFormation Nested Stack Parameter Mismatch
+description: A nested stack fails because the parent passes a parameter name that does not match the child template. Fix the parameter mapping.
+primaryFile: parent.yaml
+tips:
+  - Run aws cloudformation describe-stacks --stack-name checkout-nested to see the failure.
+  - The parent template passes DBName as a parameter to the child stack.
+  - The child template expects the parameter to be named DatabaseName.
+  - Fix the parameter name in the parent template to match the child.
+files:
+  "parent.yaml": |
+    AWSTemplateFormatVersion: "2010-09-09"
+    Description: Checkout parent stack with nested database
+    Resources:
+      CheckoutNested:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+          TemplateURL: https://s3.amazonaws.com/checkout-templates/database.yaml
+          Parameters:
+            DBName: checkout-prod
+            Engine: aurora-postgresql
+            InstanceClass: db.r6g.large
+  "child-excerpt.txt": |
+    Child template (database.yaml) parameters:
+      DatabaseName:
+        Type: String
+        Description: The name of the database cluster.
+      Engine:
+        Type: String
+      InstanceClass:
+        Type: String
+    Parent passes 'DBName' but child expects 'DatabaseName'.
+solution:
+  summary: |
+    The nested stack fails because the parent passes the parameter DBName while the child template expects DatabaseName. Fix the parameter key in the parent template.
+  steps:
+    - Run aws cloudformation describe-stacks --stack-name checkout-nested to see the parameter mismatch.
+    - Confirm the parent passes DBName but the child expects DatabaseName.
+    - Change DBName to DatabaseName in parent.yaml.
+    - Run aws cloudformation describe-stacks again to confirm the nested stack created.
+  explanation: |
+    Nested stacks receive parameters from their parent. A parameter name mismatch causes the child to fail because it receives an unexpected parameter. The fix is a single key rename in the parent template.
+  outcome: |
+    The parent now passes DatabaseName to the nested stack and the child stack creates successfully.
+  focusFileName: parent.yaml
+  replacements:
+    - fileName: parent.yaml
+      search: |
+            DBName: checkout-prod
+      replace: |
+            DatabaseName: checkout-prod
+  commands:
+    - aws cloudformation describe-stacks --stack-name checkout-nested
+    - check
+backend:
+  bucket: cfn-review
+  key: nested-stack-param-mismatch
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudformation_stack
+    name: checkout-nested
+    id: arn:aws:cloudformation:eu-west-1:123456789012:stack/checkout-nested
+    status: failed
+    note: Nested stack failed. Parent passes DBName, child expects DatabaseName.
+stateResources:
+  - address: stack.param.DBName
+    id: mismatch
+flags:
+  initialized: false
+  lintPassed: false
+  validationPassed: false
+  cleanPlan: false
+  cloudformationValidated: false

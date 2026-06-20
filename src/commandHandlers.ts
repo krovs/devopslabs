@@ -43,6 +43,10 @@ import {
   cloudformationDetectStackDrift as runCloudformationDetectStackDrift,
   cloudformationUpdateStack as runCloudformationUpdateStack,
   cloudformationValidateTemplate as runCloudformationValidateTemplate,
+  cfnGetStackPolicy as runCfnGetStackPolicy,
+  cfnDescribeStacks as runCfnDescribeStacks,
+  cfnListExports as runCfnListExports,
+  cfnListStackInstances as runCfnListStackInstances,
 } from "./simulators/cloudformation";
 import { argocdAppGet as runArgocdAppGet, fluxReconcileKustomization as runFluxReconcileKustomization } from "./simulators/gitops";
 import {
@@ -137,12 +141,12 @@ import {
   terraformValidate as runTerraformValidate,
 } from "./simulators/terraform";
 import { threatModelReview as runThreatModelReview } from "./simulators/threatmodel";
-import { incidentValidate as runIncidentValidate } from "./simulators/incident";
-import { drValidate as runDrValidate } from "./simulators/dr";
-import { databaseValidate as runDatabaseValidate } from "./simulators/database";
-import { supplyChainValidate as runSupplyChainValidate } from "./simulators/supplychain";
-import { sreValidate as runSreValidate } from "./simulators/sre";
-import { messagingValidate as runMessagingValidate } from "./simulators/messaging";
+import { pagerdutyIncidentShow as runPagerdutyIncidentShow, postmortemReview as runPostmortemReview, runbookValidate as runRunbookValidate, pagerdutyAlertsList as runPagerdutyAlertsList, statuspageIncidentShow as runStatuspageIncidentShow } from "./simulators/incident";
+import { rdsDescribeDbClusters as runRdsDescribeDbClusters, route53ListRecordSets as runRoute53ListRecordSets, s3GetBucketReplication as runS3GetBucketReplication } from "./simulators/dr";
+import { rdsDescribeEvents as runDbRdsDescribeEvents, rdsDescribeDbClusters as runDbRdsDescribeDbClusters, rdsDescribeDbLogFiles as runDbRdsDescribeDbLogFiles, pgbouncerShowPools as runDbPgbouncerShowPools, rdsDescribeDbLogs as runDbRdsDescribeDbLogs, dynamodbDescribeTable as runDbDynamodbDescribeTable } from "./simulators/database";
+import { syftCheckRelease as runScSyftCheckRelease, cosignVerify as runScCosignVerify, grypeScan as runScGrypeScan, slsaVerifierVerify as runScSlsaVerifierVerify, pipAudit as runScPipAudit } from "./simulators/supplychain";
+import { promtoolCheckSli as runSrePromtoolCheckSli, promtoolCheckRules as runSrePromtoolCheckRules, slothSloValidate as runSreSlothSloValidate, sreToilAudit as runSreToilAudit } from "./simulators/sre";
+import { sqsGetQueueAttributes as runMsgSqsGetQueueAttributes, kafkaConsumerGroupsDescribeMsg as runMsgKafkaConsumerGroupsDescribe, snsListSubscriptions as runMsgSnsListSubscriptions, kinesisDescribeStream as runMsgKinesisDescribeStream, sqsReceiveMessage as runMsgSqsReceiveMessage } from "./simulators/messaging";
 import type { Scenario } from "./types";
 
 export type CommandHandlerContext = {
@@ -285,17 +289,43 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     cloudformationDescribeStackEvents: () => withRuntimeRefresh(() => runCloudformationDescribeStackEvents(runtime(), scenarioId())),
     cloudformationDetectStackDrift: () => withRuntimeRefresh(() => runCloudformationDetectStackDrift(runtime(), scenarioId())),
     cloudformationUpdateStack: () => withRuntimeRefresh(() => runCloudformationUpdateStack(runtime(), scenarioId())),
+    cfnGetStackPolicy: () => withRuntimeRefresh(() => runCfnGetStackPolicy(runtime(), scenarioId())),
+    cfnDescribeStacks: () => withRuntimeRefresh(() => runCfnDescribeStacks(runtime(), scenarioId())),
+    cfnListExports: () => withRuntimeRefresh(() => runCfnListExports(runtime(), scenarioId())),
+    cfnListStackInstances: () => withRuntimeRefresh(() => runCfnListStackInstances(runtime(), scenarioId())),
     mlPipelineStatus: () => withRuntimeRefresh(() => runMlPipelineStatus(runtime(), scenarioId())),
     mlArtifactsList: () => withRuntimeRefresh(() => runMlArtifactsList(runtime(), scenarioId())),
     mlPipelineRun: () => withRuntimeRefresh(() => runMlPipelineRun(runtime(), scenarioId())),
     mlModelDescribe: () => withRuntimeRefresh(() => runMlModelDescribe(runtime(), scenarioId())),
     mlModelPromote: () => withRuntimeRefresh(() => runMlModelPromote(runtime(), scenarioId())),
-    incidentValidate: () => withRuntimeRefresh(() => runIncidentValidate(runtime(), scenarioId())),
-    drValidate: () => withRuntimeRefresh(() => runDrValidate(runtime(), scenarioId())),
-    databaseValidate: () => withRuntimeRefresh(() => runDatabaseValidate(runtime(), scenarioId())),
-    supplyChainValidate: () => withRuntimeRefresh(() => runSupplyChainValidate(runtime(), scenarioId())),
-    sreValidate: () => withRuntimeRefresh(() => runSreValidate(runtime(), scenarioId())),
-    messagingValidate: () => withRuntimeRefresh(() => runMessagingValidate(runtime(), scenarioId())),
+    pagerdutyIncidentShow: () => withRuntimeRefresh(() => runPagerdutyIncidentShow(runtime(), scenarioId())),
+    postmortemReview: () => withRuntimeRefresh(() => runPostmortemReview(runtime(), scenarioId())),
+    runbookValidate: () => withRuntimeRefresh(() => runRunbookValidate(runtime(), scenarioId())),
+    pagerdutyAlertsList: () => withRuntimeRefresh(() => runPagerdutyAlertsList(runtime(), scenarioId())),
+    statuspageIncidentShow: () => withRuntimeRefresh(() => runStatuspageIncidentShow(runtime(), scenarioId())),
+    rdsDescribeDbClusters: () => withRuntimeRefresh(() => runRdsDescribeDbClusters(runtime(), scenarioId())),
+    route53ListRecordSets: () => withRuntimeRefresh(() => runRoute53ListRecordSets(runtime(), scenarioId())),
+    s3GetBucketReplication: () => withRuntimeRefresh(() => runS3GetBucketReplication(runtime(), scenarioId())),
+    rdsDescribeEvents: () => withRuntimeRefresh(() => runDbRdsDescribeEvents(runtime(), scenarioId())),
+    dbRdsDescribeDbClusters: () => withRuntimeRefresh(() => runDbRdsDescribeDbClusters(runtime(), scenarioId())),
+    rdsDescribeDbLogFiles: () => withRuntimeRefresh(() => runDbRdsDescribeDbLogFiles(runtime(), scenarioId())),
+    pgbouncerShowPools: () => withRuntimeRefresh(() => runDbPgbouncerShowPools(runtime(), scenarioId())),
+    rdsDescribeDbLogs: () => withRuntimeRefresh(() => runDbRdsDescribeDbLogs(runtime(), scenarioId())),
+    dynamodbDescribeTable: () => withRuntimeRefresh(() => runDbDynamodbDescribeTable(runtime(), scenarioId())),
+    syftCheckRelease: () => withRuntimeRefresh(() => runScSyftCheckRelease(runtime(), scenarioId())),
+    cosignVerify: () => withRuntimeRefresh(() => runScCosignVerify(runtime(), scenarioId())),
+    grypeScan: () => withRuntimeRefresh(() => runScGrypeScan(runtime(), scenarioId())),
+    slsaVerifierVerify: () => withRuntimeRefresh(() => runScSlsaVerifierVerify(runtime(), scenarioId())),
+    pipAudit: () => withRuntimeRefresh(() => runScPipAudit(runtime(), scenarioId())),
+    promtoolCheckSli: () => withRuntimeRefresh(() => runSrePromtoolCheckSli(runtime(), scenarioId())),
+    promtoolCheckRules: () => withRuntimeRefresh(() => runSrePromtoolCheckRules(runtime(), scenarioId())),
+    slothSloValidate: () => withRuntimeRefresh(() => runSreSlothSloValidate(runtime(), scenarioId())),
+    sreToilAudit: () => withRuntimeRefresh(() => runSreToilAudit(runtime(), scenarioId())),
+    sqsGetQueueAttributes: () => withRuntimeRefresh(() => runMsgSqsGetQueueAttributes(runtime(), scenarioId())),
+    kafkaConsumerGroupsDescribeMsg: () => withRuntimeRefresh(() => runMsgKafkaConsumerGroupsDescribe(runtime(), scenarioId())),
+    snsListSubscriptions: () => withRuntimeRefresh(() => runMsgSnsListSubscriptions(runtime(), scenarioId())),
+    kinesisDescribeStream: () => withRuntimeRefresh(() => runMsgKinesisDescribeStream(runtime(), scenarioId())),
+    sqsReceiveMessage: () => withRuntimeRefresh(() => runMsgSqsReceiveMessage(runtime(), scenarioId())),
     checkScenario: () => withRuntimeRefresh(() => checkScenarioCompletion(runtime(), scenarioId(), activeFileName())),
   };
 }

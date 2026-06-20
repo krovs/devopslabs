@@ -4,6 +4,7 @@ title: Toil Budget Exceeded
 description: Team toil is above 50% of the sprint; classify the repeat offender and propose automation to bring it under budget.
 primaryFile: toil.json
 tips:
+  - Run sre toil audit platform-team to see the current toil breakdown.
   - SRE teams should keep toil under 50% of a sprint.
   - Current toil is 70%.
   - The repeat offender is manual-db-restart.
@@ -42,7 +43,8 @@ solution:
       search: '"automationProposed": false'
       replace: '"automationProposed": true'
   commands:
-    - sre validate
+    - sre toil audit platform-team
+    - check
 backend:
   bucket: sre-slo
   key: toil-budget-exceeded

@@ -44,7 +44,7 @@ solution:
       search: '"achievedRtoMinutes": 0'
       replace: '"achievedRtoMinutes": 60'
   commands:
-    - dr validate
+    - check
 backend:
   bucket: disaster-recovery
   key: rpo-rto-calculation

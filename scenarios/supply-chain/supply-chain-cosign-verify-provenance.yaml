@@ -4,6 +4,7 @@ title: Cosign Verify Image Provenance
 description: A Kubernetes admission controller rejects a pod because the image lacks a cosign signature; verify the signing identity.
 primaryFile: admission.yaml
 tips:
+  - Run cosign verify ghcr.io/acme/checkout-api:2.5.0 to check the image signature.
   - The admission policy rejects unsigned images.
   - Verification is currently disabled.
   - The expected signing identity is acme-signer.
@@ -39,7 +40,8 @@ solution:
         verify: true
         signingIdentity: acme-signer
   commands:
-    - supply-chain validate
+    - cosign verify ghcr.io/acme/checkout-api:2.5.0
+    - check
 backend:
   bucket: supply-chain
   key: cosign-verify-provenance

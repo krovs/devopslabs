@@ -1,0 +1,71 @@
+id: cfnRollbackFailedContinue
+kind: cloudformation
+title: CloudFormation Rollback Failed Continue
+description: A stack is stuck in UPDATE_ROLLBACK_FAILED because an RDS resource has termination protection. Continue rollback skipping the bad resource.
+primaryFile: rollback.json
+tips:
+  - Run aws cloudformation describe-stack-events --stack-name checkout-api-artifacts to see the failure.
+  - The stack is stuck in UPDATE_ROLLBACK_FAILED state.
+  - An RDS instance CheckoutDatabase failed to delete during rollback due to termination protection.
+  - Set action to continue-update-rollback and skip the CheckoutDatabase resource.
+files:
+  "rollback.json": |
+    {
+      "stack": "checkout-api-artifacts",
+      "status": "UPDATE_ROLLBACK_FAILED",
+      "failedResource": "CheckoutDatabase",
+      "reason": "RDS instance has DeletionProtection enabled",
+      "action": "",
+      "skipResource": ""
+    }
+  "stack-events.txt": |
+    Stack: checkout-api-artifacts
+    Status: UPDATE_ROLLBACK_FAILED
+    Failed resource: AWS::RDS::DBInstance CheckoutDatabase
+    Reason: RDS instance checkout-prod has termination protection enabled.
+    Recovery: continue-update-rollback, skipping CheckoutDatabase.
+solution:
+  summary: |
+    The stack is stuck because RDS termination protection prevented deletion during rollback. Continue the update rollback while skipping the failed resource.
+  steps:
+    - Run aws cloudformation describe-stack-events --stack-name checkout-api-artifacts to see the stuck state.
+    - Confirm CheckoutDatabase failed to delete because of termination protection.
+    - Set action to continue-update-rollback.
+    - Set skipResource to CheckoutDatabase to exclude it from the rollback.
+    - Run aws cloudformation describe-stack-events again to confirm recovery.
+  explanation: |
+    UPDATE_ROLLBACK_FAILED is a stuck state that requires manual intervention. Resources with DeletionProtection enabled cannot be deleted during rollback. Continuing the rollback while skipping the protected resource recovers the stack without data loss.
+  outcome: |
+    The stack recovers to UPDATE_ROLLBACK_COMPLETE with CheckoutDatabase retained.
+  focusFileName: rollback.json
+  replacements:
+    - fileName: rollback.json
+      search: '"action": "",'
+      replace: '"action": "continue-update-rollback",'
+    - fileName: rollback.json
+      search: '"skipResource": ""'
+      replace: '"skipResource": "CheckoutDatabase"'
+  commands:
+    - aws cloudformation describe-stack-events --stack-name checkout-api-artifacts
+    - check
+backend:
+  bucket: cfn-review
+  key: rollback-failed-continue
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudformation_stack
+    name: checkout-api-artifacts
+    id: arn:aws:cloudformation:eu-west-1:123456789012:stack/checkout-api-artifacts
+    status: failed
+    note: Stack stuck in UPDATE_ROLLBACK_FAILED. RDS CheckoutDatabase deletion blocked by termination protection.
+stateResources:
+  - address: stack.status
+    id: UPDATE_ROLLBACK_FAILED
+flags:
+  initialized: false
+  lintPassed: false
+  validationPassed: false
+  cleanPlan: false
+  cloudformationValidated: false

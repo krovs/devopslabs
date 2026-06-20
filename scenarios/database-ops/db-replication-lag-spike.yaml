@@ -4,6 +4,7 @@ title: Read Replica Replication Lag Spike
 description: Read replica lag is climbing; identify the long-running transaction on the primary and the stalled checkpoint.
 primaryFile: replica.json
 tips:
+  - Run aws rds describe-db-clusters --db-cluster-identifier checkout-read-1 to inspect replica state.
   - Replica lag is climbing past 5 minutes.
   - A long-running transaction on the primary is blocking WAL replication.
   - The checkpoint status is stalled.
@@ -25,9 +26,11 @@ solution:
   summary: |
     Replica lag is driven by a long-running transaction and a stalled checkpoint. Kill the largest transaction and let the checkpoint complete.
   steps:
+    - Run aws rds describe-db-clusters --db-cluster-identifier checkout-read-1 to inspect replica lag.
     - Identify the long-running transaction on the primary.
     - Kill the largest transaction to release WAL replication.
     - Let the checkpoint complete to flush WAL to the replica.
+    - Run aws rds describe-db-clusters again to confirm lag is draining.
   explanation: |
     Read replica lag spikes when a long-running transaction holds WAL and a stalled checkpoint cannot flush. Killing the offending transaction and completing the checkpoint lets replication drain.
   outcome: |
@@ -41,7 +44,8 @@ solution:
       search: '"checkpointStatus": "stalled"'
       replace: '"checkpointStatus": "completed"'
   commands:
-    - db validate
+    - aws rds describe-db-clusters --db-cluster-identifier checkout-read-1
+    - check
 backend:
   bucket: database-ops
   key: replication-lag-spike

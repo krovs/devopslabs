@@ -4,6 +4,7 @@ title: Connection Pool Exhaustion
 description: PgBouncer is saturated; identify the leaky client, tune the pool mode, and raise the client connection limit.
 primaryFile: pool.json
 tips:
+  - Run pgbouncer show pools to inspect the connection pool state.
   - PgBouncer is saturated and rejecting connections.
   - A leaky client is holding sessions open.
   - Session mode keeps connections pinned; transaction mode reuses them.
@@ -26,10 +27,12 @@ solution:
   summary: |
     PgBouncer is exhausted in session mode by a leaky client. Fix the leak, switch to transaction mode, and raise the client connection limit.
   steps:
+    - Run pgbouncer show pools to inspect pool state.
     - Identify the leaky client holding sessions open.
     - Switch poolMode from session to transaction to reuse connections.
     - Raise maxClientConn from 100 to 1000.
     - Mark the leaky client as fixed.
+    - Run pgbouncer show pools again to confirm pool is healthy.
   explanation: |
     Session mode pins a backend connection per client, so a leaky client exhausts the pool. Transaction mode returns connections between transactions, and raising maxClientConn absorbs burst traffic while the leak is fixed.
   outcome: |
@@ -46,7 +49,8 @@ solution:
       search: '"leakyClientUnfixed": true'
       replace: '"leakyClientUnfixed": false'
   commands:
-    - db validate
+    - pgbouncer show pools
+    - check
 backend:
   bucket: database-ops
   key: connection-pool-exhaustion

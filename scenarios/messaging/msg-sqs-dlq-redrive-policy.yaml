@@ -4,6 +4,7 @@ title: SQS DLQ Redrive Policy
 description: A DLQ is filling with poison messages; fix the redrive target, maxReceiveCount, and add an idempotency check.
 primaryFile: queue.json
 tips:
+  - Run aws sqs get-queue-attributes --queue-url https://sqs.eu-west-1.amazonaws.com/123456789012/checkout-orders --attribute-names All to inspect queue.
   - The DLQ is filling with poison messages.
   - The source queue has no redrive policy and maxReceiveCount is 0.
   - Set the redrive target to the DLQ ARN.
@@ -45,7 +46,8 @@ solution:
       search: '"idempotencyCheck": false'
       replace: '"idempotencyCheck": true'
   commands:
-    - msg validate
+    - aws sqs get-queue-attributes --queue-url https://sqs.eu-west-1.amazonaws.com/123456789012/checkout-orders --attribute-names All
+    - check
 backend:
   bucket: messaging
   key: sqs-dlq-redrive-policy

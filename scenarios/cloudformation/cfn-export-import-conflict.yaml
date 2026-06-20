@@ -1,0 +1,72 @@
+id: cfnExportImportConflict
+kind: cloudformation
+title: CloudFormation Export Import Conflict
+description: A stack cannot be deleted because another stack imports its VPC ID export via Fn::ImportValue. Replace the import with a hardcoded value.
+primaryFile: importer.yaml
+tips:
+  - Run aws cloudformation list-exports to see which export is blocking the deletion.
+  - The checkout-vpc-id export (vpc-abc123def456) is imported by checkout-importer.
+  - The importing stack uses Fn::ImportValue to reference the VPC ID.
+  - Replace Fn::ImportValue with the hardcoded VPC ID in importer.yaml.
+files:
+  "importer.yaml": |
+    AWSTemplateFormatVersion: "2010-09-09"
+    Description: Importer stack referencing exported VPC ID
+    Resources:
+      CheckoutSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+          GroupDescription: checkout-api security group
+          VpcId:
+            Fn::ImportValue: checkout-vpc-id
+          SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: 8080
+              ToPort: 8080
+              CidrIp: 10.0.0.0/8
+  "delete-error.txt": |
+    Stack: checkout-vpc-exports
+    Delete failed: export checkout-vpc-id cannot be deleted because it is imported by stack checkout-importer.
+    Export value: vpc-abc123def456
+    Fix: replace Fn::ImportValue in checkout-importer with the hardcoded VPC ID.
+solution:
+  summary: |
+    CloudFormation prevents deletion of exports that are still imported by other stacks. Replace the Fn::ImportValue with the hardcoded VPC ID so the cross-stack reference is removed.
+  steps:
+    - Run aws cloudformation list-exports to find the export blocking deletion.
+    - Confirm checkout-vpc-id (vpc-abc123def456) is imported by checkout-importer.
+    - Replace Fn::ImportValue: checkout-vpc-id with the hardcoded value vpc-abc123def456.
+    - Run aws cloudformation list-exports again to confirm the import is gone.
+  explanation: |
+    CloudFormation exports and Fn::ImportValue create cross-stack dependencies. An exporting stack cannot be deleted while another stack imports its exports. Replacing the ImportValue with the actual value removes the dependency and unblocks the deletion.
+  outcome: |
+    The importer stack uses the hardcoded VPC ID and the exporting stack can now be deleted.
+  focusFileName: importer.yaml
+  replacements:
+    - fileName: importer.yaml
+      search: 'Fn::ImportValue: checkout-vpc-id'
+      replace: 'vpc-abc123def456'
+  commands:
+    - aws cloudformation list-exports
+    - check
+backend:
+  bucket: cfn-review
+  key: export-import-conflict
+  table: none
+  locked: false
+  lockId: null
+awsResources:
+  - type: cloudformation_stack
+    name: checkout-importer
+    id: arn:aws:cloudformation:eu-west-1:123456789012:stack/checkout-importer
+    status: failed
+    note: Export checkout-vpc-id is imported by checkout-importer. Blocking deletion of the exporting stack.
+stateResources:
+  - address: export.checkout-vpc-id
+    id: imported
+flags:
+  initialized: false
+  lintPassed: false
+  validationPassed: false
+  cleanPlan: false
+  cloudformationValidated: false

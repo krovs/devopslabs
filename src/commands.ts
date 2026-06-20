@@ -114,17 +114,43 @@ export type CommandHandlers = {
   cloudformationDescribeStackEvents: () => string[];
   cloudformationDetectStackDrift: () => string[];
   cloudformationUpdateStack: () => string[];
+  cfnGetStackPolicy: () => string[];
+  cfnDescribeStacks: () => string[];
+  cfnListExports: () => string[];
+  cfnListStackInstances: () => string[];
   mlPipelineStatus: () => string[];
   mlArtifactsList: () => string[];
   mlPipelineRun: () => string[];
   mlModelDescribe: () => string[];
   mlModelPromote: () => string[];
-  incidentValidate: () => string[];
-  drValidate: () => string[];
-  databaseValidate: () => string[];
-  supplyChainValidate: () => string[];
-  sreValidate: () => string[];
-  messagingValidate: () => string[];
+  pagerdutyIncidentShow: () => string[];
+  postmortemReview: () => string[];
+  runbookValidate: () => string[];
+  pagerdutyAlertsList: () => string[];
+  statuspageIncidentShow: () => string[];
+  rdsDescribeDbClusters: () => string[];
+  route53ListRecordSets: () => string[];
+  s3GetBucketReplication: () => string[];
+  rdsDescribeEvents: () => string[];
+  dbRdsDescribeDbClusters: () => string[];
+  rdsDescribeDbLogFiles: () => string[];
+  pgbouncerShowPools: () => string[];
+  rdsDescribeDbLogs: () => string[];
+  dynamodbDescribeTable: () => string[];
+  promtoolCheckSli: () => string[];
+  promtoolCheckRules: () => string[];
+  slothSloValidate: () => string[];
+  sreToilAudit: () => string[];
+  sqsGetQueueAttributes: () => string[];
+  kafkaConsumerGroupsDescribeMsg: () => string[];
+  snsListSubscriptions: () => string[];
+  kinesisDescribeStream: () => string[];
+  sqsReceiveMessage: () => string[];
+  syftCheckRelease: () => string[];
+  cosignVerify: () => string[];
+  grypeScan: () => string[];
+  slsaVerifierVerify: () => string[];
+  pipAudit: () => string[];
   checkScenario: () => string[];
 };
 
@@ -267,8 +293,14 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "aws cloudformation validate-template") return handlers.cloudformationValidateTemplate();
     if (input === "aws cloudformation create-change-set") return handlers.cloudformationCreateChangeSet();
     if (input === "aws cloudformation describe-stack-events") return handlers.cloudformationDescribeStackEvents();
+    if (input === "aws cloudformation describe-stack-events --stack-name checkout-api-artifacts") return handlers.cloudformationDescribeStackEvents();
+    if (input === "aws cloudformation describe-stack-events --stack-name checkout-iam-role") return handlers.cloudformationDescribeStackEvents();
     if (input === "aws cloudformation detect-stack-drift") return handlers.cloudformationDetectStackDrift();
     if (input === "aws cloudformation update-stack") return handlers.cloudformationUpdateStack();
+    if (input === "aws cloudformation get-stack-policy --stack-name checkout-api-artifacts") return handlers.cfnGetStackPolicy();
+    if (input === "aws cloudformation describe-stacks --stack-name checkout-nested") return handlers.cfnDescribeStacks();
+    if (input === "aws cloudformation list-exports") return handlers.cfnListExports();
+    if (input === "aws cloudformation list-stack-instances --stack-set-name checkout-baseline") return handlers.cfnListStackInstances();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -284,37 +316,61 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
   }
 
   if (runtime.kind === "incident") {
-    if (input === "incident validate") return handlers.incidentValidate();
+    if (input === "pagerduty incident show INC-2041") return handlers.pagerdutyIncidentShow();
+    if (input === "postmortem review INC-2041") return handlers.postmortemReview();
+    if (input === "runbook validate checkout-api") return handlers.runbookValidate();
+    if (input === "pagerduty alerts list --service checkout-api") return handlers.pagerdutyAlertsList();
+    if (input === "statuspage incident show INC-2041") return handlers.statuspageIncidentShow();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
 
   if (runtime.kind === "dr") {
-    if (input === "dr validate") return handlers.drValidate();
+    if (input === "aws rds describe-db-clusters --db-cluster-identifier checkout-prod") return handlers.rdsDescribeDbClusters();
+    if (input === "aws rds describe-db-clusters --db-cluster-identifier staging-restore") return handlers.rdsDescribeDbClusters();
+    if (input === "aws route53 list-resource-record-sets --hosted-zone-id Z123456") return handlers.route53ListRecordSets();
+    if (input === "aws s3api get-bucket-replication --bucket checkout-artifacts-prod") return handlers.s3GetBucketReplication();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
 
   if (runtime.kind === "database") {
-    if (input === "db validate") return handlers.databaseValidate();
+    if (input === "aws rds describe-events --db-cluster-identifier checkout-prod") return handlers.rdsDescribeEvents();
+    if (input === "aws rds describe-db-clusters --db-cluster-identifier checkout-read-1") return handlers.dbRdsDescribeDbClusters();
+    if (input === "aws rds describe-db-log-files --db-instance-identifier checkout-prod") return handlers.rdsDescribeDbLogFiles();
+    if (input === "pgbouncer show pools") return handlers.pgbouncerShowPools();
+    if (input === "aws rds describe-db-logs --db-cluster-identifier checkout-prod") return handlers.rdsDescribeDbLogs();
+    if (input === "aws dynamodb describe-table --table-name checkout-events") return handlers.dynamodbDescribeTable();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
 
   if (runtime.kind === "supplychain") {
-    if (input === "supply-chain validate") return handlers.supplyChainValidate();
+    if (input === "syft check release checkout-api:2.5.0") return handlers.syftCheckRelease();
+    if (input === "cosign verify ghcr.io/acme/checkout-api:2.5.0") return handlers.cosignVerify();
+    if (input === "grype scan checkout-api:2.5.0") return handlers.grypeScan();
+    if (input === "slsa-verifier verify-image ghcr.io/acme/checkout-api:2.5.0") return handlers.slsaVerifierVerify();
+    if (input === "pip-audit --index-url https://pypi.acme.internal/simple") return handlers.pipAudit();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
 
   if (runtime.kind === "sre") {
-    if (input === "sre validate") return handlers.sreValidate();
+    if (input === "promtool check sli checkout-api") return handlers.promtoolCheckSli();
+    if (input === "promtool check rules burn-rate-alerts") return handlers.promtoolCheckRules();
+    if (input === "promtool check rules checkout-api-capacity") return handlers.promtoolCheckRules();
+    if (input === "sloth slo validate checkout-api") return handlers.slothSloValidate();
+    if (input === "sre toil audit platform-team") return handlers.sreToilAudit();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
 
   if (runtime.kind === "messaging") {
-    if (input === "msg validate") return handlers.messagingValidate();
+    if (input === "aws sqs get-queue-attributes --queue-url https://sqs.eu-west-1.amazonaws.com/123456789012/checkout-orders --attribute-names All") return handlers.sqsGetQueueAttributes();
+    if (input === "kafka-consumer-groups --describe --group checkout-worker") return handlers.kafkaConsumerGroupsDescribeMsg();
+    if (input === "aws sns list-subscriptions-by-topic --topic-arn arn:aws:sns:eu-west-1:123456789012:checkout-events") return handlers.snsListSubscriptions();
+    if (input === "aws kinesis describe-stream --stream-name checkout-events") return handlers.kinesisDescribeStream();
+    if (input === "aws sqs receive-message --queue-url https://sqs.eu-west-1.amazonaws.com/123456789012/checkout-orders") return handlers.sqsReceiveMessage();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -444,7 +500,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "cloudformation") {
-    return ["Available commands:", "  aws cloudformation validate-template", "  aws cloudformation create-change-set", "  aws cloudformation describe-stack-events", "  aws cloudformation detect-stack-drift", "  aws cloudformation update-stack", "  check", "  help"];
+    return ["Available commands:", "  aws cloudformation validate-template", "  aws cloudformation create-change-set", "  aws cloudformation describe-stack-events", "  aws cloudformation detect-stack-drift", "  aws cloudformation update-stack", "  aws cloudformation get-stack-policy --stack-name <name>", "  aws cloudformation describe-stacks --stack-name <name>", "  aws cloudformation list-exports", "  aws cloudformation list-stack-instances --stack-set-name <name>", "  check", "  help"];
   }
 
   if (runtime.kind === "mlops") {
@@ -452,27 +508,27 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "incident") {
-    return ["Available commands:", "  incident validate", "  check", "  help"];
+    return ["Available commands:", "  pagerduty incident show INC-2041", "  postmortem review INC-2041", "  runbook validate checkout-api", "  pagerduty alerts list --service checkout-api", "  statuspage incident show INC-2041", "  check", "  help"];
   }
 
   if (runtime.kind === "dr") {
-    return ["Available commands:", "  dr validate", "  check", "  help"];
+    return ["Available commands:", "  aws rds describe-db-clusters --db-cluster-identifier <id>", "  aws route53 list-resource-record-sets --hosted-zone-id Z123456", "  aws s3api get-bucket-replication --bucket checkout-artifacts-prod", "  check", "  help"];
   }
 
   if (runtime.kind === "database") {
-    return ["Available commands:", "  db validate", "  check", "  help"];
+    return ["Available commands:", "  aws rds describe-events --db-cluster-identifier <id>", "  aws rds describe-db-clusters --db-cluster-identifier <id>", "  aws rds describe-db-log-files --db-instance-identifier <id>", "  pgbouncer show pools", "  aws rds describe-db-logs --db-cluster-identifier <id>", "  aws dynamodb describe-table --table-name <name>", "  check", "  help"];
   }
 
   if (runtime.kind === "supplychain") {
-    return ["Available commands:", "  supply-chain validate", "  check", "  help"];
+    return ["Available commands:", "  syft check release <image>", "  cosign verify <image>", "  grype scan <image>", "  slsa-verifier verify-image <image>", "  pip-audit --index-url <url>", "  check", "  help"];
   }
 
   if (runtime.kind === "sre") {
-    return ["Available commands:", "  sre validate", "  check", "  help"];
+    return ["Available commands:", "  promtool check sli checkout-api", "  promtool check rules burn-rate-alerts", "  promtool check rules checkout-api-capacity", "  sloth slo validate checkout-api", "  sre toil audit platform-team", "  check", "  help"];
   }
 
   if (runtime.kind === "messaging") {
-    return ["Available commands:", "  msg validate", "  check", "  help"];
+    return ["Available commands:", "  aws sqs get-queue-attributes --queue-url <url> --attribute-names All", "  kafka-consumer-groups --describe --group <group>", "  aws sns list-subscriptions-by-topic --topic-arn <arn>", "  aws kinesis describe-stream --stream-name <name>", "  aws sqs receive-message --queue-url <url>", "  check", "  help"];
   }
 
   return [

@@ -4,6 +4,7 @@ title: Syft Grype Vulnerability Gate
 description: An image scan finds a CVE; rebuild on a distroless base image and add a narrow, justified scanner exception.
 primaryFile: scan.json
 tips:
+  - Run grype scan checkout-api:2.5.0 to see the vulnerability scan.
   - The image scan finds a CVE on the ubuntu base image.
   - Rebuild on a distroless base image to remove the vulnerable packages.
   - Add a narrow, justified exception for the accepted finding.
@@ -45,7 +46,8 @@ solution:
       search: '"gate": "blocked"'
       replace: '"gate": "passed"'
   commands:
-    - supply-chain validate
+    - grype scan checkout-api:2.5.0
+    - check
 backend:
   bucket: supply-chain
   key: syft-grype-vuln-gate

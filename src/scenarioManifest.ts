@@ -450,8 +450,50 @@ export const scenarioManifest = [
     "id": "cloudFormationDriftDetection",
     "kind": "cloudformation",
     "title": "CloudFormation Drift Detection",
-    "description": "A CloudFormation stack for checkout API artifact storage has drifted — someone changed the S3 bucket ACL to public-read directly in the AWS console.",
+    "description": "A CloudFormation stack has drifted — someone changed an S3 bucket ACL to public-read directly in the AWS console.",
     "path": "../scenarios/cloudformation/cloudformation-drift-detection.yaml"
+  },
+  {
+    "id": "cfnStackPolicyDenyUpdate",
+    "kind": "cloudformation",
+    "title": "CloudFormation Stack Policy Denies Update",
+    "description": "A stack update is blocked by a stack policy denying RDS modifications. Add an Allow statement for the specific resource change.",
+    "path": "../scenarios/cloudformation/cfn-stack-policy-deny-update.yaml"
+  },
+  {
+    "id": "cfnRollbackFailedContinue",
+    "kind": "cloudformation",
+    "title": "CloudFormation Rollback Failed Continue",
+    "description": "A stack is stuck in UPDATE_ROLLBACK_FAILED because an RDS resource has termination protection. Continue rollback skipping the bad resource.",
+    "path": "../scenarios/cloudformation/cfn-rollback-failed-continue.yaml"
+  },
+  {
+    "id": "cfnNestedStackParameterMismatch",
+    "kind": "cloudformation",
+    "title": "CloudFormation Nested Stack Parameter Mismatch",
+    "description": "A nested stack fails because the parent passes a parameter name that does not match the child template. Fix the parameter mapping.",
+    "path": "../scenarios/cloudformation/cfn-nested-stack-parameter-mismatch.yaml"
+  },
+  {
+    "id": "cfnIamCapabilityMissing",
+    "kind": "cloudformation",
+    "title": "CloudFormation CAPABILITY_IAM Missing",
+    "description": "A stack creation fails because the template creates an IAM role but CAPABILITY_IAM was not specified. Add the capability flag.",
+    "path": "../scenarios/cloudformation/cfn-iam-capability-missing.yaml"
+  },
+  {
+    "id": "cfnExportImportConflict",
+    "kind": "cloudformation",
+    "title": "CloudFormation Export Import Conflict",
+    "description": "A stack cannot be deleted because another stack imports its VPC ID export via Fn::ImportValue. Replace the import with a hardcoded value.",
+    "path": "../scenarios/cloudformation/cfn-export-import-conflict.yaml"
+  },
+  {
+    "id": "cfnStackSetInstanceFailed",
+    "kind": "cloudformation",
+    "title": "CloudFormation StackSet Instance Failed",
+    "description": "A StackSet fails to deploy to one member account because the execution role is not trusted. Register the role trust in the target account.",
+    "path": "../scenarios/cloudformation/cfn-stackset-instance-failed.yaml"
   },
   {
     "id": "mlopsTrainingDatasetVersion",

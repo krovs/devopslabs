@@ -4,6 +4,7 @@ title: Ordered Delivery Partition Key
 description: Ordering is broken and one partition is hot; fix the partition key strategy and rebalance the hot partition.
 primaryFile: producer.json
 tips:
+  - Run aws kinesis describe-stream --stream-name checkout-events to inspect the stream.
   - Ordering is broken because the partition key is empty.
   - One partition is hot because of poor key distribution.
   - Use orderId as the partition key to keep order per order.
@@ -45,7 +46,8 @@ solution:
       search: '"strategy": "random"'
       replace: '"strategy": "key-sharding"'
   commands:
-    - msg validate
+    - aws kinesis describe-stream --stream-name checkout-events
+    - check
 backend:
   bucket: messaging
   key: ordered-delivery-partition-key
