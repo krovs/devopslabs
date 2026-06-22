@@ -4,10 +4,10 @@ title: Linux Disk Full Inode Exhaustion
 description: df shows free space but writes fail. df -i shows 100% inode usage. Find the small-file culprit directory and clean it up.
 primaryFile: diagnosis.json
 tips:
-  - Start with df -h to confirm there is free disk space.
-  - Run df -hi to check inode usage — the root filesystem is at 100%.
-  - The culprit is a directory with hundreds of thousands of small files.
-  - Identify /var/spool/tmp as the culprit and clean it up in diagnosis.json.
+  - Start with df -h to confirm free disk space exists.
+  - Run df -hi to check inode usage.
+  - "Inode exhaustion means millions of tiny files. Run du --inodes -d 2 /var to find which subdirectory consumes the most."
+  - Fill diagnosis.json with the culprit path, action, and inode estimate.
 files:
   "diagnosis.json": |
     {
@@ -24,18 +24,19 @@ files:
     - Restore write capability on web-prod-01.
 
     Constraints:
-    - df -h shows free disk space, so this is not a byte-level disk full.
+    - df -h shows free disk space — this is not a byte-level disk full.
     - df -hi shows 100% inode usage on the root filesystem.
-    - Find the directory with the most small files.
-    - The culprit is /var/spool/tmp.
-    - Clean up the culprit directory and confirm inodes are freed.
+    - Find the directory consuming the most inodes.
+    - Determine the appropriate cleanup action and estimate freed inode count.
+    - Fill in diagnosis.json and confirm inodes are freed.
 solution:
   summary: |
     The filesystem has free bytes but no free inodes. Hundreds of thousands of small files in /var/spool/tmp exhausted the inode table.
   steps:
     - Run df -h to confirm free disk space exists.
     - Run df -hi to find 100% inode usage on the root filesystem.
-    - Identify /var/spool/tmp as the directory with the most small files.
+    - Run du --inodes -d 2 /var to locate the directory consuming the most inodes.
+    - Identify /var/spool/tmp as the culprit.
     - Set culpritDir to /var/spool/tmp.
     - Set action to cleanup.
     - Set inodesFreed to 480000.
@@ -58,6 +59,7 @@ solution:
   commands:
     - df -h
     - df -hi
+    - "du --inodes -d 2 /var"
     - check
 backend:
   bucket: linux

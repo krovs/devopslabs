@@ -134,6 +134,29 @@ export function runLinuxDfInodes(runtime: Scenario): string[] {
   ];
 }
 
+export function runLinuxDuInodes(runtime: Scenario): string[] {
+  runtime.flags.linuxResourcesChecked = true;
+  if (runtime.id === "linuxDiskInodeFull") {
+    return [
+      "480000  /var/spool/tmp",
+      "42300   /var/spool",
+      "522300  /var/spool (total)",
+      "18000   /var/log/journal",
+      "19000   /var/log",
+      "5000    /var/cache/apt",
+      "5200    /var/cache",
+      "2000    /var/tmp",
+      "",
+      "Finding: /var/spool/tmp has 480k inodes — the vast majority.",
+    ];
+  }
+  return [
+    "12000  /var/log",
+    "5000   /var/cache",
+    "2000   /var/tmp",
+  ];
+}
+
 export function runLinuxSystemctlDaemonReload(runtime: Scenario): string[] {
   if (runtime.id !== "linuxSystemdUnitFailed") return ["daemon-reload is not needed for this lab."];
   const unit = runtime.files["web.service"] ?? "";

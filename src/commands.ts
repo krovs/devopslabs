@@ -108,6 +108,7 @@ export type CommandHandlers = {
   securityHubBatchUpdateFindings: () => string[];
   accessAnalyzerListFindings: () => string[];
   linuxDfInodes: () => string[];
+  linuxDuInodes: () => string[];
   linuxSystemctlDaemonReload: () => string[];
   cloudformationValidateTemplate: () => string[];
   cloudformationCreateChangeSet: () => string[];
@@ -216,6 +217,7 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "grep ERROR app.log") return handlers.linuxGrepError();
     if (input === "df -h") return handlers.linuxDf();
     if (input === "df -hi") return handlers.linuxDfInodes();
+    if (input === "du --inodes -d 2 /var") return handlers.linuxDuInodes();
     if (input === "free -m") return handlers.linuxFree();
     if (input === "ps aux") return handlers.linuxPs();
     if (input === "top -b -n1") return handlers.linuxTop();
@@ -480,7 +482,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "linux") {
-    return ["Available commands:", "  ls -la", "  cat app.log", "  grep ERROR app.log", "  journalctl -u web -n 20", "  systemctl status web", "  df -h", "  df -hi", "  free -m", "  ps aux", "  top -b -n1", "  ss -tulpn", "  sudo systemctl daemon-reload", "  sudo systemctl restart web", "  check", "  help"];
+    return ["Available commands:", "  ls -la", "  cat app.log", "  grep ERROR app.log", "  journalctl -u web -n 20", "  systemctl status web", "  df -h", "  df -hi", "  du --inodes -d 2 /var", "  free -m", "  ps aux", "  top -b -n1", "  ss -tulpn", "  sudo systemctl daemon-reload", "  sudo systemctl restart web", "  check", "  help"];
   }
 
   if (runtime.kind === "kubernetes") {

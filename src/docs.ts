@@ -1579,6 +1579,53 @@ export const documentationSections: DocSection[] = [
     ],
   },
   {
+    id: "wiki-linux",
+    navTitle: "Linux",
+    title: "Linux System Administration",
+    blocks: [
+      {
+        type: "paragraph",
+        content: [
+          "Linux diagnostics start by answering: is the service running, is it listening, is it logging, and is the host under resource pressure.",
+        ],
+      },
+      { type: "heading", text: "Commands" },
+      { type: "code", text: "systemctl status <service>\ndf -h\ndf -hi\ndu --inodes -d 2 /var\nfree -m\nps aux\nss -tulpn\ntop -b -n1\nls -la\njournalctl -u <service> -n 50\ngrep ERROR <logfile>" },
+      { type: "heading", text: "Service Triage" },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "systemctl status" }, " shows whether the unit is active, failed, restarting, and which command started it."],
+          [{ code: "journalctl -u" }, " shows service logs; read the first real error before changing config."],
+          [{ code: "ss -tulpn" }, " confirms whether the expected process is listening on the expected port."],
+          ["Disk, memory, and process pressure can make a service fail even when its config is correct."],
+          ["Environment files and systemd overrides are common places for missing ports, credentials, or paths."],
+        ],
+      },
+      { type: "heading", text: "Disk Space vs. Inodes" },
+      {
+        type: "unorderedList",
+        items: [
+          [{ code: "df -h" }, " shows byte-level disk usage. Free bytes does not mean the filesystem can accept new files."],
+          [{ code: "df -hi" }, " shows inode usage. Inodes are filesystem metadata entries — every file consumes one."],
+          [{ code: "du --inodes" }, " shows inode count per directory, helping find directories with millions of tiny files."],
+          ["Inode exhaustion blocks writes even when bytes are free because no new metadata entries can be allocated."],
+          ["Common culprits: session files under /tmp or /var/tmp, mail/cron spools under /var/spool, cache directories."],
+        ],
+      },
+      { type: "heading", text: "Common Problems" },
+      {
+        type: "unorderedList",
+        items: [
+          ["Service is stopped, crash-looping, or listening on the wrong port."],
+          ["Disk, memory, or process pressure affects availability."],
+          ["Filesystem has free bytes but inode table is full — writes fail with", { code: "No space left on device" }, "."],
+          ["Unit file ExecStart path is wrong, User is root instead of app, or Restart policy is missing."],
+        ],
+      },
+    ],
+  },
+  {
     id: "wiki-operations",
     navTitle: "Operations",
     title: "Operations",
@@ -1699,7 +1746,7 @@ const referenceSectionByKind: Record<NonNullable<Scenario["kind"]>, string> = {
   terragrunt: "wiki-terragrunt",
   cicd: "wiki-github",
   gitops: "wiki-gitops",
-  linux: "wiki-operations",
+  linux: "wiki-linux",
   kubernetes: "wiki-kubernetes",
   appsec: "wiki-appsec",
   threatmodel: "wiki-threatmodel",
