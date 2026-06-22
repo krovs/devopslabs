@@ -145,7 +145,7 @@ import { threatModelReview as runThreatModelReview } from "./simulators/threatmo
 import { pagerdutyIncidentShow as runPagerdutyIncidentShow, postmortemReview as runPostmortemReview, runbookValidate as runRunbookValidate, pagerdutyAlertsList as runPagerdutyAlertsList, statuspageIncidentShow as runStatuspageIncidentShow } from "./simulators/incident";
 import { rdsDescribeDbClusters as runRdsDescribeDbClusters, route53ListRecordSets as runRoute53ListRecordSets, s3GetBucketReplication as runS3GetBucketReplication } from "./simulators/dr";
 import { rdsDescribeEvents as runDbRdsDescribeEvents, rdsDescribeDbClusters as runDbRdsDescribeDbClusters, rdsDescribeDbLogFiles as runDbRdsDescribeDbLogFiles, pgbouncerShowPools as runDbPgbouncerShowPools, rdsDescribeDbLogs as runDbRdsDescribeDbLogs, dynamodbDescribeTable as runDbDynamodbDescribeTable } from "./simulators/database";
-import { syftCheckRelease as runScSyftCheckRelease, cosignVerify as runScCosignVerify, grypeScan as runScGrypeScan, slsaVerifierVerify as runScSlsaVerifierVerify, pipAudit as runScPipAudit } from "./simulators/supplychain";
+import { syftCheckRelease as runScSyftCheckRelease, syftGenerate as runScSyftGenerate, cosignVerify as runScCosignVerify, grypeScan as runScGrypeScan, slsaVerifierVerify as runScSlsaVerifierVerify, pipAudit as runScPipAudit } from "./simulators/supplychain";
 import { promtoolCheckSli as runSrePromtoolCheckSli, promtoolCheckRules as runSrePromtoolCheckRules, slothSloValidate as runSreSlothSloValidate, sreToilAudit as runSreToilAudit } from "./simulators/sre";
 import { sqsGetQueueAttributes as runMsgSqsGetQueueAttributes, kafkaConsumerGroupsDescribeMsg as runMsgKafkaConsumerGroupsDescribe, snsListSubscriptions as runMsgSnsListSubscriptions, kinesisDescribeStream as runMsgKinesisDescribeStream, sqsReceiveMessage as runMsgSqsReceiveMessage } from "./simulators/messaging";
 import type { Scenario } from "./types";
@@ -257,7 +257,7 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     kubectlGetPdb: () => withRuntimeRefresh(() => runKubectlGetPdb(runtime(), scenarioId())),
     kubectlApplyManifest: (fileName?: string) => withRuntimeRefresh(() => runKubectlApplyManifest(runtime(), scenarioId(), fileName)),
     kubectlDrainNode: () => withRuntimeRefresh(() => runKubectlDrainNode(runtime(), scenarioId())),
-    kubectlAuthCanI: () => withRuntimeRefresh(() => runKubectlAuthCanI(runtime(), scenarioId())),
+    kubectlAuthCanI: (resource?: string) => withRuntimeRefresh(() => runKubectlAuthCanI(runtime(), scenarioId(), resource)),
     eksIamListRoles: () => withRuntimeRefresh(() => runEksIamListRoles(runtime(), scenarioId())),
     eksIamGetRole: (roleName?: string) => withRuntimeRefresh(() => runEksIamGetRole(runtime(), scenarioId(), roleName)),
     eksAssumeRoleWithWebIdentity: () => withRuntimeRefresh(() => runEksAssumeRoleWithWebIdentity(runtime(), scenarioId())),
@@ -315,6 +315,7 @@ export function createCommandHandlers(context: CommandHandlerContext): CommandHa
     rdsDescribeDbLogs: () => withRuntimeRefresh(() => runDbRdsDescribeDbLogs(runtime(), scenarioId())),
     dynamodbDescribeTable: () => withRuntimeRefresh(() => runDbDynamodbDescribeTable(runtime(), scenarioId())),
     syftCheckRelease: () => withRuntimeRefresh(() => runScSyftCheckRelease(runtime(), scenarioId())),
+    syftGenerate: () => withRuntimeRefresh(() => runScSyftGenerate(runtime(), scenarioId())),
     cosignVerify: () => withRuntimeRefresh(() => runScCosignVerify(runtime(), scenarioId())),
     grypeScan: () => withRuntimeRefresh(() => runScGrypeScan(runtime(), scenarioId())),
     slsaVerifierVerify: () => withRuntimeRefresh(() => runScSlsaVerifierVerify(runtime(), scenarioId())),

@@ -5,10 +5,9 @@ description: A private package name was registered publicly and pip pulls the ma
 primaryFile: requirements.txt
 tips:
   - Run pip-audit --index-url https://pypi.acme.internal/simple to check the dependency source.
-  - A private package name was registered on the public PyPI index.
-  - pip currently pulls from the public index.
-  - Pin the internal package to a version and point at the private index.
-  - The private index is https://pypi.acme.internal/simple.
+  - pip pulls from the public index and resolves a malicious version of a private package.
+  - Read audit.txt to find the correct private index URL and the internal package version.
+  - Fix requirements.txt to use the private index and pin the internal package.
 files:
   "requirements.txt": |
     --index-url https://pypi.org/simple
@@ -20,13 +19,24 @@ files:
     internalVersion: 1.2.3
     privateIndex: https://pypi.acme.internal/simple
     current: pulling from public pypi.org
+  "runbook.md": |
+    Goal:
+    - Resolve internal packages from the private index, not the public one.
+    
+    Constraints:
+    - The public registry has a malicious package with the same name as an internal one.
+    - pip currently pulls from pypi.org and does not pin the internal package version.
+    - Read audit.txt for the correct index URL and internal version.
+    - Fix requirements.txt and confirm with pip-audit.
 solution:
   summary: |
     pip pulls a malicious public version of an internal package. Point at the private index and pin the internal package version.
   steps:
-    - Point the index URL at the private registry https://pypi.acme.internal/simple.
-    - Pin acme-internal-utils to 1.2.3 so the private version is resolved.
-    - Confirm the public pypi.org index is no longer used.
+    - Run pip-audit to confirm the malicious public resolution.
+    - Read audit.txt to find the private index URL and pinned internal version.
+    - Change --index-url to https://pypi.acme.internal/simple.
+    - Pin acme-internal-utils to 1.2.3.
+    - Run pip-audit again to confirm safe resolution.
   explanation: |
     Dependency confusion exploits private package names that are also registered publicly. Pinning the internal package version and pointing pip at the private index ensures the trusted version is installed.
   outcome: |

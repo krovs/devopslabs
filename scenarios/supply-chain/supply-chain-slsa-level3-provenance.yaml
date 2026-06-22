@@ -5,10 +5,9 @@ description: Build provenance attestation is missing the builder identity; fix t
 primaryFile: provenance.json
 tips:
   - Run slsa-verifier verify-image ghcr.io/acme/checkout-api:2.5.0 to check provenance.
-  - The provenance attestation is missing the builder identity.
-  - The expected builder is the GitHub Actions workflow.
-  - Set builderId to github-actions.
-  - Set slsaLevel to 3 so slsa-verifier accepts the attestation.
+  - The verifier rejects the attestation because the builder identity is empty.
+  - Read provenance-policy.txt to find the required values.
+  - Set the builder identity and SLSA level in provenance.json to match the policy.
 files:
   "provenance.json": |
     {
@@ -23,13 +22,24 @@ files:
     requiredSlsaLevel: 3
     verifier: slsa-verifier
     current: builderId empty, slsaLevel 0
+  "runbook.md": |
+    Goal:
+    - Get slsa-verifier to accept the provenance attestation.
+    
+    Constraints:
+    - The attestation is missing the builder identity and has the wrong SLSA level.
+    - provenance-policy.txt defines the required builder and SLSA level.
+    - Edit provenance.json to match the policy requirements.
+    - Run slsa-verifier verify-image again.
 solution:
   summary: |
     The provenance attestation is missing the builder identity and SLSA level. Set the builder to github-actions and the level to 3 so slsa-verifier accepts it.
   steps:
+    - Run slsa-verifier to see the rejected attestation.
+    - Read provenance-policy.txt for the required builder and level.
     - Set builderId to github-actions to identify the build platform.
     - Set slsaLevel to 3 to meet the provenance requirement.
-    - slsa-verifier now accepts the attestation.
+    - Run slsa-verifier again to confirm acceptance.
   explanation: |
     SLSA level 3 requires a provenance attestation with a verified builder identity. Without the builderId, slsa-verifier cannot confirm the artifact came from the trusted workflow, so the release is rejected.
   outcome: |

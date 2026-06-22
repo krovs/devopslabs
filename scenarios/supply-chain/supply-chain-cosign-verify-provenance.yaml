@@ -5,10 +5,9 @@ description: A Kubernetes admission controller rejects a pod because the image l
 primaryFile: admission.yaml
 tips:
   - Run cosign verify ghcr.io/acme/checkout-api:2.5.0 to check the image signature.
-  - The admission policy rejects unsigned images.
-  - Verification is currently disabled.
-  - The expected signing identity is acme-signer.
-  - Enable verification and set the signing identity.
+  - The admission policy requires signed images but verification is disabled.
+  - Look at the failure output — what identity should be signing?
+  - Enable verification and set the correct signing identity in admission.yaml.
 files:
   "admission.yaml": |
     policy: verify-image-signature
@@ -19,13 +18,22 @@ files:
     image: ghcr.io/acme/checkout-api:2.5.0
     rejection: no verified signature
     expectedSigningIdentity: acme-signer
+  "runbook.md": |
+    Goal:
+    - Allow the pod to be admitted by enabling cosign signature verification.
+
+    Constraints:
+    - The admission controller blocks pods with unsigned images.
+    - Verification is currently disabled and the signing identity is empty.
+    - Run cosign verify to confirm the image fails without verification.
+    - Fix the admission policy and re-run cosign verify.
 solution:
   summary: |
     The admission policy rejects the pod because image signature verification is disabled. Enable verification and set the signing identity to acme-signer.
   steps:
     - Enable verify on the admission policy.
     - Set signingIdentity to acme-signer.
-    - The admission controller now verifies the cosign signature.
+    - Run cosign verify to confirm the image now passes.
   explanation: |
     Cosign verification enforces that only images signed by a trusted identity run in the cluster. Enabling verify and pinning the signing identity makes the admission controller reject unsigned or wrongly-signed images.
   outcome: |

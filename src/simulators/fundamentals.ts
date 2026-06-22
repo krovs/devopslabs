@@ -606,14 +606,23 @@ export function runKubectlDrainNode(runtime: Scenario, scenarioId: string): stri
   return ["node/ip-10-0-4-21 cordoned", "evicting pod checkout-api-7bd8dfc6d4-2q8xp", "evicting pod checkout-api-7bd8dfc6d4-5jv7m", "evicting pod checkout-api-7bd8dfc6d4-rp9kx", "warning: checkout-api capacity dropped below maintenance target"];
 }
 
-export function runKubectlAuthCanI(runtime: Scenario, scenarioId: string): string[] {
-  if (!isEksRbacIrsaScenario(scenarioId)) return ["yes"];
+export function runKubectlAuthCanI(runtime: Scenario, scenarioId: string, resource?: string): string[] {
+  if (!isEksRbacScenario(scenarioId)) return ["yes"];
 
   runtime.flags.validationPassed = true;
   const rbac = runtime.files["rbac.yaml"] ?? "";
 
   if (scenarioId === "kubernetesEksRbacWrongRules") {
-    if (rbac.includes('resources: ["configmaps"]')) {
+    const isFixed = rbac.includes('resources: ["configmaps"]');
+
+    if (resource === "secrets") {
+      if (isFixed) {
+        return ["no", "RBAC: Role grants configmaps, not secrets — access denied as expected"];
+      }
+      return ["yes", "system:serviceaccount:payments:checkout-api can get secrets in namespace payments — wrong resource!"];
+    }
+
+    if (isFixed) {
       return ["yes", "system:serviceaccount:payments:checkout-api can get configmaps in namespace payments"];
     }
     return ["no", "RBAC: Role grants access to secrets, not configmaps"];
@@ -741,7 +750,7 @@ export function runKubectlRolloutRestart(runtime: Scenario, scenarioId: string):
     return ["deployment.apps/checkout-api restarted", "rollout status: pending. Apply the HPA scaling policy before verifying rollout."];
   }
 
-  if (isEksRbacIrsaScenario(scenarioId)) {
+  if (isEksRbacScenario(scenarioId)) {
     const rbac = runtime.files["rbac.yaml"] ?? "";
     const serviceAccount = runtime.files["serviceaccount.yaml"] ?? "";
     if (scenarioId === "kubernetesEksRbacWrongRules") {
@@ -809,7 +818,7 @@ export function runKubectlScale(runtime: Scenario): string[] {
 
 export function runKubectlRolloutStatus(runtime: Scenario, scenarioId: string): string[] {
   const deployment = runtime.files["deployment.yaml"] ?? "";
-  if (isEksRbacIrsaScenario(scenarioId)) {
+  if (isEksRbacScenario(scenarioId)) {
     const rbac = runtime.files["rbac.yaml"] ?? "";
     if (scenarioId === "kubernetesEksRbacWrongRules") {
       if (runtime.flags.cleanPlan && runtime.flags.validationPassed && rbac.includes('resources: ["configmaps"]')) {

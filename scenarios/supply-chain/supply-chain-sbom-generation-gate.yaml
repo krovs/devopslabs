@@ -1,49 +1,45 @@
 id: supplyChainSbomGenerationGate
 kind: supplychain
 title: SBOM Generation Gate
-description: A release is blocked because the CI job does not emit a CycloneDX SBOM; generate the SBOM and unblock the gate.
+description: A release is blocked because the CI pipeline does not produce a CycloneDX SBOM. Generate one to unblock the gate.
 primaryFile: release.json
 tips:
-  - Run syft check release checkout-api:2.5.0 to see the SBOM status.
-  - The release gate is blocked because no SBOM is emitted.
-  - The required SBOM format is CycloneDX.
-  - Generate the SBOM so sbomPresent is true.
-  - The gate passes once the SBOM is present.
+  - Run syft check release checkout-api:2.5.0 to see the gate status.
+  - The release gate is blocked because no CycloneDX SBOM is present.
+  - "Generate an SBOM with: syft generate checkout-api:2.5.0 -o cyclonedx"
+  - Run syft check release again to confirm the gate passes.
 files:
   "release.json": |
     {
       "release": "checkout-api-2.5.0",
-      "sbomFormat": "",
       "sbomPresent": false,
       "gate": "blocked"
     }
-  "gate-policy.txt": |
-    requiredSbomFormat: CycloneDX
-    gate: blocked when sbomPresent is false
-    release: checkout-api-2.5.0
+  "runbook.md": |
+    Goal:
+    - Unblock the release gate for checkout-api:2.5.0.
+
+    Constraints:
+    - The CI pipeline requires a CycloneDX SBOM before release.
+    - Run syft check release to inspect the current gate state.
+    - Generate the SBOM using syft.
+    - Confirm the gate passes before running check.
 solution:
   summary: |
-    The release is blocked because no SBOM is generated. Emit a CycloneDX SBOM so the gate passes.
+    The release gate blocks deploys until a CycloneDX SBOM is produced.
   steps:
-    - Set sbomFormat to CycloneDX.
-    - Set sbomPresent to true.
-    - The gate moves from blocked to passed.
+    - Run syft check release checkout-api:2.5.0 to confirm the gate is blocked and no SBOM exists.
+    - Run syft generate checkout-api:2.5.0 -o cyclonedx to produce sbom.cdx.json.
+    - Run syft check release checkout-api:2.5.0 to confirm the gate passes.
   explanation: |
-    A release gate that requires an SBOM blocks deploys until a CycloneDX document is produced. Generating the SBOM satisfies the gate and gives downstream consumers a verifiable inventory.
+    In a real CI pipeline, syft scans the container image and writes a CycloneDX SBOM file. The release gate detects the SBOM and unblocks deployment. The lab simulates this: syft generate creates sbom.cdx.json, and the gate transitions from blocked to passed.
   outcome: |
-    A CycloneDX SBOM is present and the release gate passes.
+    sbom.cdx.json is generated, the release gate passes, and checkout-api:2.5.0 is clear for deployment.
   focusFileName: release.json
-  replacements:
-    - fileName: release.json
-      search: '"sbomFormat": "",'
-      replace: '"sbomFormat": "CycloneDX",'
-    - fileName: release.json
-      search: '"sbomPresent": false,'
-      replace: '"sbomPresent": true,'
-    - fileName: release.json
-      search: '"gate": "blocked"'
-      replace: '"gate": "passed"'
+  replacements: []
   commands:
+    - syft check release checkout-api:2.5.0
+    - syft generate checkout-api:2.5.0 -o cyclonedx
     - syft check release checkout-api:2.5.0
     - check
 backend:

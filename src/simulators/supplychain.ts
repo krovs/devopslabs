@@ -3,12 +3,8 @@ import { markFirstResourceFailed, markOperationalScenarioSolved } from "./shared
 
 export function supplyChainFixApplied(runtime: Scenario, scenarioId: string): boolean {
   if (scenarioId === "supplyChainSbomGenerationGate") {
-    const file = runtime.files["release.json"] ?? "";
-    return (
-      file.includes('"sbomFormat": "CycloneDX"') &&
-      file.includes('"sbomPresent": true') &&
-      file.includes('"gate": "passed"')
-    );
+    const sbom = runtime.files["sbom.cdx.json"] ?? "";
+    return sbom.length > 0;
   }
 
   if (scenarioId === "supplyChainCosignVerifyProvenance") {
@@ -20,8 +16,7 @@ export function supplyChainFixApplied(runtime: Scenario, scenarioId: string): bo
     const file = runtime.files["scan.json"] ?? "";
     return (
       file.includes('"baseImage": "distroless"') &&
-      file.includes('"ignoreJustified": true') &&
-      file.includes('"gate": "passed"')
+      file.includes('"ignoreJustified": true')
     );
   }
 
@@ -50,19 +45,55 @@ export function syftCheckRelease(runtime: Scenario, scenarioId: string): string[
     markOperationalScenarioSolved(runtime, "supplyChainValidated", "CycloneDX SBOM generated for checkout-api:2.5.0, release gate passed.");
     return [
       "syft check release checkout-api:2.5.0",
-      "SBOM format: CycloneDX 1.4",
-      "SBOM present: true",
+      "SBOM found: sbom.cdx.json",
+      "Format: CycloneDX 1.4",
       "Components: 142 packages catalogued",
       "Gate: passed",
     ];
   }
-  markFirstResourceFailed(runtime, "No SBOM emitted; CycloneDX format required, release gate blocked.");
+  markFirstResourceFailed(runtime, "No SBOM found; generate sbom.cdx.json with syft generate before release.");
   return [
     "syft check release checkout-api:2.5.0",
-    "SBOM format: (none)",
-    "SBOM present: false",
-    "Gate: blocked — no SBOM emitted",
-    "Finding: generate a CycloneDX SBOM before release.",
+    "SBOM: (none)",
+    "Gate: blocked — no CycloneDX SBOM found",
+    "Finding: run syft generate checkout-api:2.5.0 -o cyclonedx",
+  ];
+}
+
+export function syftGenerate(runtime: Scenario, scenarioId: string): string[] {
+  if (scenarioId !== "supplyChainSbomGenerationGate") return ["Syft is not configured for this lab."];
+  runtime.files["sbom.cdx.json"] = JSON.stringify({
+    bomFormat: "CycloneDX",
+    specVersion: "1.4",
+    serialNumber: "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+    version: 1,
+    metadata: {
+      component: { type: "container", name: "checkout-api", version: "2.5.0" },
+    },
+    components: [
+      { type: "library", name: "openssl", version: "3.0.12" },
+      { type: "library", name: "libc", version: "2.35" },
+      { type: "library", name: "fastapi", version: "0.110.0" },
+    ],
+  }, null, 2);
+
+  const release = runtime.files["release.json"] ?? "";
+  runtime.files["release.json"] = release
+    .replace('"sbomPresent": false', '"sbomPresent": true')
+    .replace('"gate": "blocked"', '"gate": "passed"');
+
+  if (runtime.awsResources[0]) {
+    runtime.awsResources[0].status = "exists";
+    runtime.awsResources[0].note = "SBOM generated: sbom.cdx.json (CycloneDX 1.4), release gate passing.";
+  }
+
+  return [
+    "syft generate checkout-api:2.5.0 -o cyclonedx",
+    "Syft v1.3.0",
+    "Cataloguing checkout-api:2.5.0...",
+    "Packages catalogued: 142",
+    "SBOM written: sbom.cdx.json (CycloneDX 1.4)",
+    "Release gate: unblocked",
   ];
 }
 
@@ -113,7 +144,7 @@ export function grypeScan(runtime: Scenario, scenarioId: string): string[] {
     "HIGH CVE-2024-11111  openssl  1.1.1t",
     "MEDIUM CVE-2024-99999  webpack-dev-server  5.0.0",
     "Gate: blocked — HIGH CVEs in base image",
-    "Finding: rebuild on distroless and add a narrow justified exception.",
+    "Finding: edit scan.json — set baseImage to distroless, set ignoreJustified to true.",
   ];
 }
 

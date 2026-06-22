@@ -78,7 +78,7 @@ export type CommandHandlers = {
   kubectlGetPdb: () => string[];
   kubectlApplyManifest: (fileName?: string) => string[];
   kubectlDrainNode: () => string[];
-  kubectlAuthCanI: () => string[];
+  kubectlAuthCanI: (resource?: string) => string[];
   eksIamListRoles: () => string[];
   eksIamGetRole: (roleName?: string) => string[];
   eksAssumeRoleWithWebIdentity: () => string[];
@@ -148,6 +148,7 @@ export type CommandHandlers = {
   kinesisDescribeStream: () => string[];
   sqsReceiveMessage: () => string[];
   syftCheckRelease: () => string[];
+  syftGenerate: () => string[];
   cosignVerify: () => string[];
   grypeScan: () => string[];
   slsaVerifierVerify: () => string[];
@@ -241,7 +242,8 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "kubectl get pdb checkout-api") return handlers.kubectlGetPdb();
     if (args[0] === "kubectl" && args[1] === "apply" && args[2] === "-f") return handlers.kubectlApplyManifest(args[3]);
     if (input === "kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data") return handlers.kubectlDrainNode();
-    if (input === "kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments") return handlers.kubectlAuthCanI();
+    if (input === "kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments") return handlers.kubectlAuthCanI("configmaps");
+    if (input === "kubectl auth can-i get secrets --as system:serviceaccount:payments:checkout-api -n payments") return handlers.kubectlAuthCanI("secrets");
     if (input === "aws iam list-roles") return handlers.eksIamListRoles();
     if (args[0] === "aws" && args[1] === "iam" && args[2] === "get-role" && args[3] === "--role-name") return handlers.eksIamGetRole(args[4]);
     if (input === "aws sts assume-role-with-web-identity") return handlers.eksAssumeRoleWithWebIdentity();
@@ -349,6 +351,7 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
 
   if (runtime.kind === "supplychain") {
     if (input === "syft check release checkout-api:2.5.0") return handlers.syftCheckRelease();
+    if (input === "syft generate checkout-api:2.5.0 -o cyclonedx") return handlers.syftGenerate();
     if (input === "cosign verify ghcr.io/acme/checkout-api:2.5.0") return handlers.cosignVerify();
     if (input === "grype scan checkout-api:2.5.0") return handlers.grypeScan();
     if (input === "slsa-verifier verify-image ghcr.io/acme/checkout-api:2.5.0") return handlers.slsaVerifierVerify();
@@ -486,7 +489,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "kubernetes") {
-    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe deployment checkout-api", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl get hpa checkout-api", "  kubectl describe hpa checkout-api", "  kubectl get pdb checkout-api", "  kubectl apply -f hpa.yaml", "  kubectl apply -f pdb.yaml", "  kubectl apply --dry-run=server -f deployment.yaml", "  kubectl apply --dry-run=server -f rbac.yaml", "  kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  aws iam list-roles", "  aws iam get-role --role-name <name>", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
+    return ["Available commands:", "  kubectl get pods", "  kubectl get events", "  kubectl describe deployment checkout-api", "  kubectl describe pod checkout-api", "  kubectl logs checkout-api", "  kubectl get hpa checkout-api", "  kubectl describe hpa checkout-api", "  kubectl get pdb checkout-api", "  kubectl apply -f hpa.yaml", "  kubectl apply -f pdb.yaml", "  kubectl apply --dry-run=server -f deployment.yaml", "  kubectl apply --dry-run=server -f rbac.yaml", "  kubectl drain ip-10-0-4-21 --ignore-daemonsets --delete-emptydir-data", "  kubectl auth can-i get configmaps --as system:serviceaccount:payments:checkout-api -n payments", "  kubectl auth can-i get secrets --as system:serviceaccount:payments:checkout-api -n payments", "  aws iam list-roles", "  aws iam get-role --role-name <name>", "  aws sts assume-role-with-web-identity", "  kubectl rollout restart deployment checkout-api", "  kubectl rollout status deployment checkout-api", "  kubectl scale deployment checkout-api --replicas=2", "  helm lint checkout ./chart", "  helm template checkout ./chart", "  helm upgrade checkout ./chart", "  check", "  help"];
   }
 
   if (runtime.kind === "appsec") {
@@ -522,7 +525,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "supplychain") {
-    return ["Available commands:", "  syft check release <image>", "  cosign verify <image>", "  grype scan <image>", "  slsa-verifier verify-image <image>", "  pip-audit --index-url <url>", "  check", "  help"];
+    return ["Available commands:", "  syft check release <image>", "  syft generate <image> -o cyclonedx", "  cosign verify <image>", "  grype scan <image>", "  slsa-verifier verify-image <image>", "  pip-audit --index-url <url>", "  check", "  help"];
   }
 
   if (runtime.kind === "sre") {

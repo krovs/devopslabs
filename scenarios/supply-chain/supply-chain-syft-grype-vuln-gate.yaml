@@ -4,11 +4,10 @@ title: Syft Grype Vulnerability Gate
 description: An image scan finds a CVE; rebuild on a distroless base image and add a narrow, justified scanner exception.
 primaryFile: scan.json
 tips:
-  - Run grype scan checkout-api:2.5.0 to see the vulnerability scan.
-  - The image scan finds a CVE on the ubuntu base image.
-  - Rebuild on a distroless base image to remove the vulnerable packages.
-  - Add a narrow, justified exception for the accepted finding.
-  - The gate passes once the base image and exception are correct.
+  - Run grype scan checkout-api:2.5.0 to see the vulnerability findings.
+  - The scan blocks the gate due to a CVE in the current base image.
+  - Read the scan-result.txt for the recommended fix.
+  - Edit scan.json: change the baseImage and enable the justified exception.
 files:
   "scan.json": |
     {
@@ -21,15 +20,25 @@ files:
     image: checkout-api:2.5.0
     baseImage: ubuntu:22.04
     finding: CVE in shell utilities
-    recommendation: distroless base + narrow justified ignore
+    recommendation: change baseImage to distroless, set ignoreJustified to true
     gate: blocked
+  "runbook.md": |
+    Goal:
+    - Pass the vulnerability gate for checkout-api:2.5.0.
+
+    Constraints:
+    - grype scan reveals a blocked gate with CVE findings.
+    - Read scan-result.txt for the fix details.
+    - Edit scan.json to change baseImage and enable the justified exception.
+    - Re-run grype scan after the changes.
 solution:
   summary: |
     The scan gate is blocked by a CVE in the ubuntu base image. Rebuild on a distroless base and add a narrow, justified exception so the gate passes.
   steps:
-    - Rebuild on a distroless base image to remove vulnerable packages.
-    - Add a narrow, justified scanner exception for the accepted finding.
-    - The gate moves from blocked to passed.
+    - Run grype scan to see the blocked gate and failing CVE.
+    - Read scan-result.txt for the recommended values.
+    - Set baseImage to distroless and ignoreJustified to true in scan.json.
+    - Run grype scan again to confirm the gate passes.
   explanation: |
     Fat base images carry packages that trigger vulnerability gates. A distroless base removes unused attack surface, and a narrow, justified exception documents the accepted residual risk so the gate can pass honestly.
   outcome: |
