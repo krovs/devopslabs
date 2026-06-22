@@ -447,7 +447,7 @@ function commandHelp(runtime: Scenario): string[] {
   }
 
   if (runtime.kind === "cloudformation") {
-    return ["Available commands:", "  aws cloudformation validate-template", "  aws cloudformation create-change-set", "  aws cloudformation describe-stack-events", "  aws cloudformation detect-stack-drift", "  aws cloudformation update-stack", "  aws cloudformation get-stack-policy --stack-name <name>", "  aws cloudformation describe-stacks --stack-name <name>", "  aws cloudformation list-exports", "  aws cloudformation list-stack-instances --stack-set-name <name>", "  check", "  help"];
+    return ["Available commands:", "  aws cloudformation validate-template", "  aws cloudformation create-change-set", "  aws cloudformation describe-stack-events --stack-name checkout-api-artifacts", "  aws cloudformation describe-stack-events --stack-name checkout-iam-role", "  aws cloudformation detect-stack-drift", "  aws cloudformation update-stack", "  aws cloudformation get-stack-policy --stack-name checkout-api-artifacts", "  aws cloudformation describe-stacks --stack-name checkout-nested", "  aws cloudformation list-exports", "  aws cloudformation list-stack-instances --stack-set-name checkout-baseline", "  check", "  help"];
   }
 
   if (runtime.kind === "mlops") {

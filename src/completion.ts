@@ -174,11 +174,57 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
   }
 
   if (runtime.kind === "cloudformation") {
-    if (!runtime.flags.lintPassed) return ["Not complete: run aws cloudformation validate-template to check the template."];
-    if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation create-change-set to inspect the change set."];
-    if (!runtime.flags.validationPassed) return ["Not complete: run aws cloudformation describe-stack-events to see the last update."];
-    if (!runtime.flags.cleanPlan) return ["Not complete: run aws cloudformation detect-stack-drift to find the configuration drift."];
-    if (!cloudformationFixApplied(runtime, scenarioId)) return ["Not complete: the CloudFormation template or configuration still has the unresolved issue. Review the inspect command output and fix the template or deployment file."];
+    if (scenarioId === "cloudFormationDriftDetection") {
+      if (!runtime.flags.lintPassed) return ["Not complete: run aws cloudformation validate-template to check the template."];
+      if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation create-change-set to inspect the change set."];
+      if (!runtime.flags.validationPassed) return ["Not complete: run aws cloudformation describe-stack-events to see the last update."];
+      if (!runtime.flags.cleanPlan) return ["Not complete: run aws cloudformation detect-stack-drift to find the configuration drift."];
+      if (!cloudformationFixApplied(runtime, scenarioId)) return ["Not complete: fix the template — restore AccessControl to Private and add PublicAccessBlockConfiguration."];
+      markCloudformationScenarioSolved(runtime);
+      return ["Scenario complete."];
+    }
+    if (scenarioId === "cfnStackPolicyDenyUpdate") {
+      if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation get-stack-policy --stack-name checkout-api-artifacts to inspect the stack policy."];
+      if (!cloudformationFixApplied(runtime, scenarioId)) return ["Not complete: add an Allow statement for rds:ModifyDBInstance and rds:DescribeDBInstances on LogicalResourceId/CheckoutDatabase."];
+      if (!runtime.flags.lintPassed) return ["Not complete: run aws cloudformation get-stack-policy again after fixing the template."];
+      markCloudformationScenarioSolved(runtime);
+      return ["Scenario complete."];
+    }
+    if (scenarioId === "cfnRollbackFailedContinue") {
+      if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation describe-stack-events --stack-name checkout-api-artifacts to see the rollback failure."];
+      if (!cloudformationFixApplied(runtime, scenarioId)) return ["Not complete: update rollback.json to continue-update-rollback skipping CheckoutDatabase."];
+      if (!runtime.flags.cleanPlan) return ["Not complete: run aws cloudformation describe-stack-events again after fixing rollback.json."];
+      markCloudformationScenarioSolved(runtime);
+      return ["Scenario complete."];
+    }
+    if (scenarioId === "cfnIamCapabilityMissing") {
+      if (!runtime.flags.validationPassed) return ["Not complete: run aws cloudformation describe-stack-events --stack-name checkout-iam-role to see the capability error."];
+      if (!cloudformationFixApplied(runtime, scenarioId)) return ["Not complete: add CAPABILITY_IAM to deploy.json."];
+      if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation describe-stack-events again after fixing deploy.json."];
+      markCloudformationScenarioSolved(runtime);
+      return ["Scenario complete."];
+    }
+    if (scenarioId === "cfnNestedStackParameterMismatch") {
+      if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation describe-stacks --stack-name checkout-nested to see the parameter mismatch."];
+      if (!cloudformationFixApplied(runtime, scenarioId)) return ["Not complete: fix the parameter name in parent.yaml to match DatabaseName expected by the child template."];
+      if (!runtime.flags.lintPassed) return ["Not complete: run aws cloudformation describe-stacks again after fixing the parameter name."];
+      markCloudformationScenarioSolved(runtime);
+      return ["Scenario complete."];
+    }
+    if (scenarioId === "cfnExportImportConflict") {
+      if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation list-exports to see the cross-stack reference."];
+      if (!cloudformationFixApplied(runtime, scenarioId)) return ["Not complete: replace Fn::ImportValue with the hardcoded VPC ID vpc-abc123def456 in importer.yaml."];
+      if (!runtime.flags.lintPassed) return ["Not complete: run aws cloudformation list-exports again after fixing importer.yaml."];
+      markCloudformationScenarioSolved(runtime);
+      return ["Scenario complete."];
+    }
+    if (scenarioId === "cfnStackSetInstanceFailed") {
+      if (!runtime.flags.initialized) return ["Not complete: run aws cloudformation list-stack-instances --stack-set-name checkout-baseline to see the failed instance."];
+      if (!cloudformationFixApplied(runtime, scenarioId)) return ["Not complete: trust the execution role in fix.json for account 210987654321."];
+      if (!runtime.flags.lintPassed) return ["Not complete: run aws cloudformation list-stack-instances again after fixing fix.json."];
+      markCloudformationScenarioSolved(runtime);
+      return ["Scenario complete."];
+    }
     markCloudformationScenarioSolved(runtime);
     return ["Scenario complete."];
   }
