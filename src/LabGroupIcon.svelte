@@ -53,16 +53,8 @@
   <ChartLineData {size} />
 {:else if id === "networking"}
   <Network_3 {size} />
-{:else if id === "incident"}
-  <Events {size} />
-{:else if id === "dr"}
-  <SysProvision {size} />
-{:else if id === "database"}
-  <IbmCloudDatabases {size} />
 {:else if id === "supplychain"}
   <ScisTransparentSupply {size} />
-{:else if id === "sre"}
-  <ServiceLevels {size} />
 {:else if id === "messaging"}
   <MessageQueue {size} />
 {:else}

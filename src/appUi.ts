@@ -27,11 +27,7 @@ const resourceTitleByKind: Partial<Record<NonNullable<Scenario["kind"]>, string>
   cloudsec: "Cloud Audit",
   mlops: "MLOps",
   pr: "PR Review",
-  incident: "Incident",
-  dr: "DR",
-  database: "Database",
   supplychain: "Supply Chain",
-  sre: "SRE",
   messaging: "Messaging",
 };
 
@@ -57,11 +53,7 @@ const contextualStateKinds = new Set<Scenario["kind"]>([
   "cloudsec",
   "mlops",
   "pr",
-  "incident",
-  "dr",
-  "database",
   "supplychain",
-  "sre",
   "messaging",
 ]);
 

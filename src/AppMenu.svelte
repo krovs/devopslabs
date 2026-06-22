@@ -92,9 +92,7 @@
       { groupIds: ["supplychain"] },
     ]},
     { id: "cloud-ops", title: "Cloud Ops", subsections: [
-      { label: "Resilience", groupIds: ["incident", "dr"] },
-      { label: "Data & ML", groupIds: ["mlops", "database"] },
-      { groupIds: ["sre"] },
+      { groupIds: ["mlops"] },
     ]},
   ];
 

@@ -124,24 +124,6 @@ export type CommandHandlers = {
   mlPipelineRun: () => string[];
   mlModelDescribe: () => string[];
   mlModelPromote: () => string[];
-  pagerdutyIncidentShow: () => string[];
-  postmortemReview: () => string[];
-  runbookValidate: () => string[];
-  pagerdutyAlertsList: () => string[];
-  statuspageIncidentShow: () => string[];
-  rdsDescribeDbClusters: () => string[];
-  route53ListRecordSets: () => string[];
-  s3GetBucketReplication: () => string[];
-  rdsDescribeEvents: () => string[];
-  dbRdsDescribeDbClusters: () => string[];
-  rdsDescribeDbLogFiles: () => string[];
-  pgbouncerShowPools: () => string[];
-  rdsDescribeDbLogs: () => string[];
-  dynamodbDescribeTable: () => string[];
-  promtoolCheckSli: () => string[];
-  promtoolCheckRules: () => string[];
-  slothSloValidate: () => string[];
-  sreToilAudit: () => string[];
   sqsGetQueueAttributes: () => string[];
   kafkaConsumerGroupsDescribeMsg: () => string[];
   snsListSubscriptions: () => string[];
@@ -319,36 +301,6 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     return unknownCommand(command);
   }
 
-  if (runtime.kind === "incident") {
-    if (input === "pagerduty incident show INC-2041") return handlers.pagerdutyIncidentShow();
-    if (input === "postmortem review INC-2041") return handlers.postmortemReview();
-    if (input === "runbook validate checkout-api") return handlers.runbookValidate();
-    if (input === "pagerduty alerts list --service checkout-api") return handlers.pagerdutyAlertsList();
-    if (input === "statuspage incident show INC-2041") return handlers.statuspageIncidentShow();
-    if (input === "check") return handlers.checkScenario();
-    return unknownCommand(command);
-  }
-
-  if (runtime.kind === "dr") {
-    if (input === "aws rds describe-db-clusters --db-cluster-identifier checkout-prod") return handlers.rdsDescribeDbClusters();
-    if (input === "aws rds describe-db-clusters --db-cluster-identifier staging-restore") return handlers.rdsDescribeDbClusters();
-    if (input === "aws route53 list-resource-record-sets --hosted-zone-id Z123456") return handlers.route53ListRecordSets();
-    if (input === "aws s3api get-bucket-replication --bucket checkout-artifacts-prod") return handlers.s3GetBucketReplication();
-    if (input === "check") return handlers.checkScenario();
-    return unknownCommand(command);
-  }
-
-  if (runtime.kind === "database") {
-    if (input === "aws rds describe-events --db-cluster-identifier checkout-prod") return handlers.rdsDescribeEvents();
-    if (input === "aws rds describe-db-clusters --db-cluster-identifier checkout-read-1") return handlers.dbRdsDescribeDbClusters();
-    if (input === "aws rds describe-db-log-files --db-instance-identifier checkout-prod") return handlers.rdsDescribeDbLogFiles();
-    if (input === "pgbouncer show pools") return handlers.pgbouncerShowPools();
-    if (input === "aws rds describe-db-logs --db-cluster-identifier checkout-prod") return handlers.rdsDescribeDbLogs();
-    if (input === "aws dynamodb describe-table --table-name checkout-events") return handlers.dynamodbDescribeTable();
-    if (input === "check") return handlers.checkScenario();
-    return unknownCommand(command);
-  }
-
   if (runtime.kind === "supplychain") {
     if (input === "syft check release checkout-api:2.5.0") return handlers.syftCheckRelease();
     if (input === "syft generate checkout-api:2.5.0 -o cyclonedx") return handlers.syftGenerate();
@@ -356,16 +308,6 @@ export function dispatchCommand(input: string, runtime: Scenario, handlers: Comm
     if (input === "grype scan checkout-api:2.5.0") return handlers.grypeScan();
     if (input === "slsa-verifier verify-image ghcr.io/acme/checkout-api:2.5.0") return handlers.slsaVerifierVerify();
     if (input === "pip-audit --index-url https://pypi.acme.internal/simple") return handlers.pipAudit();
-    if (input === "check") return handlers.checkScenario();
-    return unknownCommand(command);
-  }
-
-  if (runtime.kind === "sre") {
-    if (input === "promtool check sli checkout-api") return handlers.promtoolCheckSli();
-    if (input === "promtool check rules burn-rate-alerts") return handlers.promtoolCheckRules();
-    if (input === "promtool check rules checkout-api-capacity") return handlers.promtoolCheckRules();
-    if (input === "sloth slo validate checkout-api") return handlers.slothSloValidate();
-    if (input === "sre toil audit platform-team") return handlers.sreToilAudit();
     if (input === "check") return handlers.checkScenario();
     return unknownCommand(command);
   }
@@ -512,24 +454,8 @@ function commandHelp(runtime: Scenario): string[] {
     return ["Available commands:", "  ml pipeline status", "  ml artifacts list", "  ml pipeline run", "  ml model describe", "  ml model promote", "  check", "  help"];
   }
 
-  if (runtime.kind === "incident") {
-    return ["Available commands:", "  pagerduty incident show INC-2041", "  postmortem review INC-2041", "  runbook validate checkout-api", "  pagerduty alerts list --service checkout-api", "  statuspage incident show INC-2041", "  check", "  help"];
-  }
-
-  if (runtime.kind === "dr") {
-    return ["Available commands:", "  aws rds describe-db-clusters --db-cluster-identifier <id>", "  aws route53 list-resource-record-sets --hosted-zone-id Z123456", "  aws s3api get-bucket-replication --bucket checkout-artifacts-prod", "  check", "  help"];
-  }
-
-  if (runtime.kind === "database") {
-    return ["Available commands:", "  aws rds describe-events --db-cluster-identifier <id>", "  aws rds describe-db-clusters --db-cluster-identifier <id>", "  aws rds describe-db-log-files --db-instance-identifier <id>", "  pgbouncer show pools", "  aws rds describe-db-logs --db-cluster-identifier <id>", "  aws dynamodb describe-table --table-name <name>", "  check", "  help"];
-  }
-
   if (runtime.kind === "supplychain") {
     return ["Available commands:", "  syft check release <image>", "  syft generate <image> -o cyclonedx", "  cosign verify <image>", "  grype scan <image>", "  slsa-verifier verify-image <image>", "  pip-audit --index-url <url>", "  check", "  help"];
-  }
-
-  if (runtime.kind === "sre") {
-    return ["Available commands:", "  promtool check sli checkout-api", "  promtool check rules burn-rate-alerts", "  promtool check rules checkout-api-capacity", "  sloth slo validate checkout-api", "  sre toil audit platform-team", "  check", "  help"];
   }
 
   if (runtime.kind === "messaging") {

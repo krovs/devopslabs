@@ -9,11 +9,7 @@ import { dnsFixApplied, finopsFixApplied, observabilityFixApplied, secretsFixApp
 import { policyFixApplied } from "./simulators/policy";
 import { hasStateAddress } from "./simulators/terraform";
 import { markThreatModelScenarioSolved, threatModelFixApplied } from "./simulators/threatmodel";
-import { incidentFixApplied } from "./simulators/incident";
-import { drFixApplied } from "./simulators/dr";
-import { databaseFixApplied } from "./simulators/database";
 import { supplyChainFixApplied } from "./simulators/supplychain";
-import { sreFixApplied } from "./simulators/sre";
 import { messagingFixApplied } from "./simulators/messaging";
 import { parseSimpleYaml } from "./simpleYaml";
 import type { Scenario, ScenarioFlags } from "./types";
@@ -22,7 +18,7 @@ type OperationalCompletionFlag = Extract<
   keyof ScenarioFlags,
   "secretsValidated" | "dnsValidated" | "observabilityValidated" | "finopsValidated" | "policyValidated" | "gitopsValidated"
   | "linuxValidated" | "kubernetesValidated" | "appsecValidated" | "threatModelValidated" | "cloudsecValidated" | "cloudformationValidated" | "mlopsValidated"
-  | "incidentValidated" | "drValidated" | "databaseValidated" | "supplyChainValidated" | "sreValidated" | "messagingValidated"
+  | "supplyChainValidated" | "messagingValidated"
 >;
 
 function markFirstResource(runtime: Scenario, status: string, note: string): void {
@@ -154,6 +150,20 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
   }
 
   if (runtime.kind === "cloudsec") {
+    if (scenarioId === "secHubFindingsTriageSuppress") {
+      if (!runtime.flags.initialized) return ["Not complete: run aws securityhub get-findings to list findings."];
+      if (!cloudsecFixApplied(runtime, scenarioId)) return ["Not complete: update findings.json with the two suppressed LOW findings and the escalated CRITICAL finding with owner."];
+      if (!runtime.flags.securityPassed) return ["Not complete: run aws securityhub batch-update-findings after fixing findings.json."];
+      markCloudsecScenarioSolved(runtime);
+      return ["Scenario complete."];
+    }
+    if (scenarioId === "accessAnalyzerExternalFinding") {
+      if (!runtime.flags.initialized) return ["Not complete: run aws accessanalyzer list-findings to find the external access."];
+      if (!cloudsecFixApplied(runtime, scenarioId)) return ["Not complete: update analyzer-policy.json to restrict the bucket policy principal to the same account."];
+      if (!runtime.flags.securityPassed) return ["Not complete: run aws iam simulate-principal-policy after fixing the bucket policy."];
+      markCloudsecScenarioSolved(runtime);
+      return ["Scenario complete."];
+    }
     if (!runtime.flags.initialized) return ["Not complete: start from the GuardDuty finding list."];
     if (!runtime.flags.validationPassed) return ["Not complete: inspect GuardDuty, CloudTrail, and CloudWatch Logs before changing IAM."];
     if (!runtime.flags.cleanPlan) return ["Not complete: inspect AWS Config resource history for the policy change."];
@@ -247,33 +257,9 @@ export function checkScenario(runtime: Scenario, scenarioId: string, activeFileN
     return ["Not complete: inspect the stack and dependency state."];
   }
 
-  if (runtime.kind === "incident") {
-    if (!incidentFixApplied(runtime, scenarioId)) return ["Not complete: incident artifact still misses the required commander, severity, root cause, alert root, comms draft, or runbook fix."];
-    markOperationalScenarioSolved(runtime, "incidentValidated", "Incident response artifact meets the required on-call process state.");
-    return ["Scenario complete."];
-  }
-
-  if (runtime.kind === "dr") {
-    if (!drFixApplied(runtime, scenarioId)) return ["Not complete: disaster recovery configuration still has the wrong failover action, restore target, RPO/RTO, or replication scope."];
-    markOperationalScenarioSolved(runtime, "drValidated", "Disaster recovery configuration meets the required RTO/RPO and failover state.");
-    return ["Scenario complete."];
-  }
-
-  if (runtime.kind === "database") {
-    if (!databaseFixApplied(runtime, scenarioId)) return ["Not complete: database troubleshooting still has the wrong failover, replication, query, pool, restore, or throughput fix."];
-    markOperationalScenarioSolved(runtime, "databaseValidated", "Database operations troubleshooting completed.");
-    return ["Scenario complete."];
-  }
-
   if (runtime.kind === "supplychain") {
     if (!supplyChainFixApplied(runtime, scenarioId)) return ["Not complete: supply chain configuration still misses the required SBOM, signature, provenance, base image, or package scope fix."];
     markOperationalScenarioSolved(runtime, "supplyChainValidated", "Supply chain security gate passed.");
-    return ["Scenario complete."];
-  }
-
-  if (runtime.kind === "sre") {
-    if (!sreFixApplied(runtime, scenarioId)) return ["Not complete: SLO configuration still has the wrong SLI, burn rate, tier, toil budget, or alert type."];
-    markOperationalScenarioSolved(runtime, "sreValidated", "SRE/SLO configuration passed.");
     return ["Scenario complete."];
   }
 
@@ -307,11 +293,7 @@ export function isScenarioSolved(runtime: Scenario, scenarioId: string, activeFi
   if (runtime.kind === "cloudsec") return Boolean(runtime.flags.cloudsecValidated);
   if (runtime.kind === "cloudformation") return Boolean(runtime.flags.cloudformationValidated);
   if (runtime.kind === "mlops") return Boolean(runtime.flags.mlopsValidated);
-  if (runtime.kind === "incident") return Boolean(runtime.flags.incidentValidated);
-  if (runtime.kind === "dr") return Boolean(runtime.flags.drValidated);
-  if (runtime.kind === "database") return Boolean(runtime.flags.databaseValidated);
   if (runtime.kind === "supplychain") return Boolean(runtime.flags.supplyChainValidated);
-  if (runtime.kind === "sre") return Boolean(runtime.flags.sreValidated);
   if (runtime.kind === "messaging") return Boolean(runtime.flags.messagingValidated);
   if (runtime.kind === "awsconfig") return Boolean(runtime.flags.configValidated && runtime.flags.cleanPlan);
   if (scenarioId === "githubActionsMissingSecret") return Boolean(runtime.flags.secretsConfigured && runtime.flags.runPassing);

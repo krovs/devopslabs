@@ -45,7 +45,7 @@ function securityHubTriageFixed(runtime: Scenario): boolean {
 function accessAnalyzerExternalFixed(runtime: Scenario): boolean {
   const policy = runtime.files["analyzer-policy.json"] ?? "";
   return (
-    policy.includes('"Principal": {"AWS": "arn:aws:iam::123456789012:root"}') &&
+    /"Principal"\s*:\s*\{\s*"AWS"\s*:\s*"arn:aws:iam::123456789012:root"\s*\}/.test(policy) &&
     !policy.includes('"Principal": "*"') &&
     !policy.includes('210987654321') &&
     policy.includes('"Action": "s3:GetObject"') &&

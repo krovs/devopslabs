@@ -30,11 +30,7 @@ const expectedDirectoryByKind = {
   finops: "finops",
   pr: "change-review",
   networking: "network-design",
-  incident: "incident-response",
-  dr: "disaster-recovery",
-  database: "database-ops",
   supplychain: "supply-chain",
-  sre: "sre-slo",
   messaging: "messaging",
 };
 
@@ -76,11 +72,7 @@ const commandsByKind = {
   pr: ["check", "help"],
   networking: ["check", "help"],
   secrets: ["aws secretsmanager describe-secret", "aws ssm get-parameter", "vault policy read checkout-api", "vault token capabilities secret/data/staging/checkout/db", "vault kv get secret/staging/checkout/db", "check", "help"],
-  incident: ["pagerduty incident show INC-2041", "postmortem review INC-2041", "runbook validate checkout-api", "pagerduty alerts list --service checkout-api", "statuspage incident show INC-2041", "check", "help"],
-  dr: ["aws rds describe-db-clusters --db-cluster-identifier checkout-prod", "aws rds describe-db-clusters --db-cluster-identifier staging-restore", "aws route53 list-resource-record-sets --hosted-zone-id Z123456", "aws s3api get-bucket-replication --bucket checkout-artifacts-prod", "check", "help"],
-  database: ["aws rds describe-events --db-cluster-identifier checkout-prod", "aws rds describe-db-clusters --db-cluster-identifier checkout-read-1", "aws rds describe-db-log-files --db-instance-identifier checkout-prod", "pgbouncer show pools", "aws rds describe-db-logs --db-cluster-identifier checkout-prod", "aws dynamodb describe-table --table-name checkout-events", "check", "help"],
   supplychain: ["syft check release checkout-api:2.5.0", "cosign verify ghcr.io/acme/checkout-api:2.5.0", "grype scan checkout-api:2.5.0", "slsa-verifier verify-image ghcr.io/acme/checkout-api:2.5.0", "pip-audit --index-url https://pypi.acme.internal/simple", "check", "help"],
-  sre: ["promtool check sli checkout-api", "promtool check rules burn-rate-alerts", "promtool check rules checkout-api-capacity", "sloth slo validate checkout-api", "sre toil audit platform-team", "check", "help"],
   messaging: ["aws sqs get-queue-attributes --queue-url https://sqs.eu-west-1.amazonaws.com/123456789012/checkout-orders --attribute-names All", "kafka-consumer-groups --describe --group checkout-worker", "aws sns list-subscriptions-by-topic --topic-arn arn:aws:sns:eu-west-1:123456789012:checkout-events", "aws kinesis describe-stream --stream-name checkout-events", "aws sqs receive-message --queue-url https://sqs.eu-west-1.amazonaws.com/123456789012/checkout-orders", "check", "help"],
 };
 
